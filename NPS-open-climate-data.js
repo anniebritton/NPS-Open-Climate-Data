@@ -185,5 +185,5 @@ print('Merged by Unit_Nm and date:', mergedByUnitDate);
 Export.table.toDrive({
   collection: mergedByUnitDate,
   description: 'clean_timeseries_export',
-  fileFormat: 'CSV'  // Or 'GeoJSON' if you need spatial features
+  fileFormat: 'CSV' 
 });
