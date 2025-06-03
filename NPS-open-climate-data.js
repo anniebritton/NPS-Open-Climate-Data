@@ -23,7 +23,7 @@ var modisDataset = {
   scale: 1000
 };
 
-// 1. Load AOI (National Parks)
+// 1. Load AOIs
 var AOI = ee.FeatureCollection("USGS/GAP/PAD-US/v20/proclamation")
   .filter(ee.Filter.eq('Loc_Ds', 'National Park'));
 
@@ -99,7 +99,7 @@ function reduceImageOverAOI(img) {
 var featuresPerImage = mergedIC.map(reduceImageOverAOI);
 var flattened = featuresPerImage.flatten();
 
-// 7. View or export the result
+// 7. View result
 print('Per-feature per-date band means:', flattened);
 
 
@@ -150,7 +150,7 @@ function mergeByUnitAndDate(fc) {
 var mergedByUnitDate = mergeByUnitAndDate(flattened);
 print('Merged by Unit_Nm and date:', mergedByUnitDate);
 
-// // List of bands, matching whatever you've created during processing
+// // List of bands
 // var bandNames = [
 //   'MODIS_LST_Day_1km',
 //   'MODIS_LST_Night_1km',
@@ -171,7 +171,7 @@ print('Merged by Unit_Nm and date:', mergedByUnitDate);
 //   'ERA5_leaf_area_index_low_vegetation'
 // ];
 
-// // Desired property order
+// // Desired properties
 // var exportProps = ['date', 'Unit_Nm'].concat(bandNames);
 
 // var cleaned = mergedByUnitDate.map(function(feature) {
