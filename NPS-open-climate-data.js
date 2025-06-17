@@ -1,39 +1,28 @@
-//WHAT OTHER BANDS TO INCLUDE? DITCH MODIS AND JUST DO ERA?
+//WHAT OTHER BANDS TO INCLUDE?
 // UNIT ADJUSTMENTS?
 // Separate multipart parks
 
 var startDate = ee.Date('2020-01-01');
 var endDate = ee.Date('2021-01-01');
 
-function adjustModisLST(img) {
-  var lstBands = ['LST_Day_1km', 'LST_Night_1km'];
-  var adjusted = img.select(lstBands).multiply(0.02)
-    .subtract(273.15)
-    .multiply(9).divide(5).add(32);
-  var otherBands = img.select(img.bandNames().removeAll(lstBands));
-  return otherBands.addBands(adjusted).copyProperties(img, img.propertyNames());
-}
-
-var modisDataset = {
-  name: 'MODIS',
-  ic: ee.ImageCollection("MODIS/061/MOD11A1")
-    .filterDate(startDate, endDate)
-    .select(['LST_Day_1km', 'LST_Night_1km'])
-    .map(adjustModisLST),
-  scale: 1000
-};
-
-// 1. Load AOIs
-var AOI = ee.FeatureCollection("USGS/GAP/PAD-US/v20/proclamation")
+// Load AOI (National Parks)
+var AOI = ee.FeatureCollection("USGS/GAP/PAD-US/v20/proclamation") // Will need to update to most recent PADUS version
   .filter(ee.Filter.eq('Loc_Ds', 'National Park'));
 
+print(AOI)
+
 var datasets = [
-  modisDataset,
   {
     name: 'DAYMET',
     ic: ee.ImageCollection("NASA/ORNL/DAYMET_V4")
       .filterDate(startDate, endDate)
-      .select(['prcp', 'srad', 'swe', 'tmax', 'tmin', 'vp']),
+      .select([
+        'prcp', 
+        'srad', 
+        'swe', 
+        'tmax', 
+        'tmin', 
+        'vp']),
     scale: 1000
   },
   {
@@ -41,6 +30,9 @@ var datasets = [
     ic: ee.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR")
       .filterDate(startDate, endDate)
       .select([
+        'temperature_2m',
+        'temperature_2m_min',
+        'temperature_2m_max',
         'v_component_of_wind_10m',
         'u_component_of_wind_10m',
         'snowmelt_sum',
@@ -49,13 +41,15 @@ var datasets = [
         'snow_density',
         'snow_depth',
         'leaf_area_index_high_vegetation',
-        'leaf_area_index_low_vegetation'
+        'leaf_area_index_low_vegetation',
+        'total_evaporation_sum',
+        'potential_evaporation_sum'
       ]),
     scale: 11132
   }
 ];
 
-// 3. Rename bands with dataset prefix
+// Rename bands with dataset prefix
 function renameWithPrefix(img, dataset) {
   var oldNames = img.bandNames();
   var newNames = oldNames.map(function(band) {
@@ -64,7 +58,7 @@ function renameWithPrefix(img, dataset) {
   return img.rename(newNames);
 }
 
-// 4. Prepare merged ImageCollection from all datasets
+// Prepare merged IC from all datasets
 function getMergedImageCollection(datasetList) {
   var merged = ee.ImageCollection([]);
   datasetList.forEach(function(dataset) {
@@ -78,7 +72,7 @@ function getMergedImageCollection(datasetList) {
 
 var mergedIC = getMergedImageCollection(datasets).aside(print);
 
-// 5. Reduce an image over the AOI
+// Reduce an image over the AOI
 function reduceImageOverAOI(img) {
   var dateStr = img.date().format('YYYY-MM-dd');
   return AOI.map(function(feature) {
@@ -95,13 +89,11 @@ function reduceImageOverAOI(img) {
   });
 }
 
-// 6. Map over all images and flatten result
+// Map over all images and flatten result
 var featuresPerImage = mergedIC.map(reduceImageOverAOI);
 var flattened = featuresPerImage.flatten();
 
-// 7. View result
 print('Per-feature per-date band means:', flattened);
-
 
 // Group by Unit_Nm and date, and merge band values
 function mergeByUnitAndDate(fc) {
@@ -150,40 +142,8 @@ function mergeByUnitAndDate(fc) {
 var mergedByUnitDate = mergeByUnitAndDate(flattened);
 print('Merged by Unit_Nm and date:', mergedByUnitDate);
 
-// // List of bands
-// var bandNames = [
-//   'MODIS_LST_Day_1km',
-//   'MODIS_LST_Night_1km',
-//   'DAYMET_prcp',
-//   'DAYMET_srad',
-//   'DAYMET_swe',
-//   'DAYMET_tmax',
-//   'DAYMET_tmin',
-//   'DAYMET_vp',
-//   'ERA5_v_component_of_wind_10m',
-//   'ERA5_u_component_of_wind_10m',
-//   'ERA5_snowmelt_sum',
-//   'ERA5_snowfall_sum',
-//   'ERA5_snow_cover',
-//   'ERA5_snow_density',
-//   'ERA5_snow_depth',
-//   'ERA5_leaf_area_index_high_vegetation',
-//   'ERA5_leaf_area_index_low_vegetation'
-// ];
-
-// // Desired properties
-// var exportProps = ['date', 'Unit_Nm'].concat(bandNames);
-
-// var cleaned = mergedByUnitDate.map(function(feature) {
-//   // Remove system:index by setting it to null
-//   feature = feature.set('system:index', null);
-//   // Keep only your desired properties
-//   return feature.select(exportProps, null, false);
-// });
-
-
 Export.table.toDrive({
   collection: mergedByUnitDate,
   description: 'clean_timeseries_export',
-  fileFormat: 'CSV' 
+  fileFormat: 'csv'
 });
