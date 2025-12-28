@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.pyc
+
+# Distribution / Build
+build/
+dist/
+*.egg-info/
+
+# Mac
+.DS_Store
+
+# Data
+*.csv
+
+# Jupyter
+.ipynb_checkpoints/
