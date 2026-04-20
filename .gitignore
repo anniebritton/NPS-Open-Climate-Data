@@ -17,6 +17,7 @@ site/public/data/parks/
 site/public/data/parks.json
 site/public/data/carbon.json
 site/public/data/boundaries/
+site/public/nps-logo.svg
 
 # Site build output
 site/dist/

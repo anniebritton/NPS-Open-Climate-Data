@@ -82,7 +82,20 @@ a:hover { color: var(--canyon-deep); }
 }
 .nav a { color: var(--paper); text-decoration: none; }
 .nav a:hover { color: var(--sun); }
-.nav-brand { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.02em; }
+.nav-brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.nav-logo {
+  height: 26px;
+  width: auto;
+  display: inline-block;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.15));
+}
 .nav-links { display: flex; gap: 1.2rem; font-size: 0.95rem; }
 
 .hero {

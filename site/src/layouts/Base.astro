@@ -17,7 +17,10 @@ const base = import.meta.env.BASE_URL;
   <body>
     <nav class="nav">
       <div class="nav-inner">
-        <a class="nav-brand" href={base}>🌲 NPS Open Climate Data</a>
+        <a class="nav-brand" href={base}>
+          <img src={base + "nps-logo.svg"} alt="" aria-hidden="true" class="nav-logo" onerror="this.style.display='none'" />
+          <span>NPS Open Climate Data</span>
+        </a>
         <div class="nav-links">
           <a href={base + "#parks"}>Parks</a>
           <a href={base + "methodology"}>Methodology</a>

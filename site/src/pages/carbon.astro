@@ -5,13 +5,18 @@ const base = import.meta.env.BASE_URL;
 
 const kg = (g: number) => (g / 1000).toFixed(2);
 const car_km_per_g = 1 / 120;  // ~120 gCO2/km, typical ICE car
+const info = (carbon as any).build_info ?? null;
+const claudeInK = info ? Math.round(info.claude_input_tokens / 1000) : 300;
+const claudeOutK = info ? Math.round(info.claude_output_tokens / 1000) : 60;
 const rows = [
   ["Earth Engine processing (one-time)", carbon.ee_processing_g, "63 parks × 9 five-year chunks × ~2 CPU-min each"],
   ["Data egress from EE to local (one-time)", carbon.ee_egress_g, "~13 GB of daily DAYMET+ERA5 tables"],
   ["Local statistical analysis (one-time)", carbon.local_analysis_g, "Annual aggregates, MK tests, Theil-Sen slopes"],
-  ["Claude API usage while building site (one-time)", carbon.claude_api_g, "~300k input + ~60k output tokens"],
+  ["Claude API usage while building site (cumulative)", carbon.claude_api_g, `~${claudeInK}k input + ~${claudeOutK}k output tokens`],
 ];
 const buildTotal = carbon.total_build_g;
+const generatedAt = info?.generated_at ? new Date(info.generated_at) : null;
+const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
 ---
 <Base title="Carbon footprint — NPS Open Climate Data">
   <section class="container section">
@@ -25,6 +30,17 @@ const buildTotal = carbon.total_build_g;
       building the site, hosting it, and viewing it. Every assumption is
       listed below so you can audit or tune them.
     </p>
+
+    {info && (
+      <div class="note" style="margin-top:1rem">
+        <strong>This build</strong> — regenerated on every merge to{" "}
+        <code>main</code>. Commit{" "}
+        <a href={`https://github.com/anniebritton/NPS-Open-Climate-Data/commit/${info.commit}`}><code>{info.commit}</code></a>
+        {" "}({info.commit_count} total commits). Generated {generatedPretty}.
+        Boundary coverage: {info.boundary_sources?.real_padus_polygons ?? 0} real PAD-US polygons,{" "}
+        {info.boundary_sources?.circle_approximations ?? 0} circle approximations.
+      </div>
+    )}
 
     <div class="trend-grid" style="margin-top:1.5rem">
       <div class="trend-card">
