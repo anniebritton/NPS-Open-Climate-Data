@@ -25,7 +25,7 @@ function loadSilhouette(slug: string): string {
   }
 }
 
-// Climate-stripes colour bar for each park uses its tmean z-scores
+// Climate-stripes color bar for each park uses its tmean z-scores
 const withStripes = parks.map((p) => {
   const stripes = (p.stripes ?? []).map((s: any) => stripeColor(s.z));
   return { ...p, stripeColors: stripes, silhouette: loadSilhouette(p.slug) };
@@ -42,36 +42,65 @@ const warmingParks = parks.filter(
 const startYear = Math.min(...parks.map((p) => p.period?.start_year ?? 1980));
 const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 ---
-<Base title="NPS Open Climate Data — Climate Trends in America's National Parks">
+<Base title="Open Climate Data — Climate Trends in US National Parks">
   <section class="hero">
-    <svg class="hero-arc" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M 520,0 A 520,520 0 0 1 0,520" stroke="#0d0d0c" stroke-width="2.5" fill="none" opacity="0.13"/>
-      <path d="M 430,0 A 430,430 0 0 1 0,430" stroke="#0d0d0c" stroke-width="1" fill="none" opacity="0.06"/>
-    </svg>
-    <div class="hero-content">
-      <span class="kicker">Open Climate Data · Since 1980</span>
-      <h1>The story of climate<br/>change, park by park</h1>
-      <p>
-        Every one of the 63 US National Parks, with its own time series of
-        temperature, precipitation, and snow — reduced from satellite-era
-        reanalysis, tested for statistical trends, and ready to download.
-      </p>
-      <div class="hero-cta">
-        <a href={`${base}#parks`} class="btn btn-filled">Explore Parks</a>
-        <a href={`${base}researchers`} class="btn">Download Data</a>
+    <div class="hero-upper">
+      <!-- Mountain ridge outline. Four parallel lines give depth; bottom      -->
+      <!-- endpoints sit at y=380 so the ridge base aligns with the stats     -->
+      <!-- divider line below.                                                 -->
+      <svg class="hero-mountain" viewBox="0 0 760 380"
+           preserveAspectRatio="xMaxYMax meet"
+           width="100%" height="100%"
+           fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <path id="ridge" d="M 0,380
+            C 38,322 72,302 104,285
+            C 128,273 142,278 158,286
+            C 180,295 198,278 222,258
+            C 244,244 258,250 272,254
+            C 296,258 314,240 338,212
+            C 356,196 370,184 388,168
+            C 406,150 422,138 440,124
+            C 455,114 470,108 486,98
+            C 499,90 514,84 530,80
+            C 544,78 558,80 572,86
+            C 584,92 594,100 608,112
+            C 624,126 636,138 652,152
+            C 668,166 682,180 700,196
+            C 718,212 732,228 748,248
+            C 754,258 757,265 760,380"/>
+        </defs>
+        <use href="#ridge" stroke="#0d0d0c" stroke-width="1.4" stroke-opacity="0.50" fill="none"/>
+        <use href="#ridge" transform="translate(0,40)" stroke="#0d0d0c" stroke-width="1.0" stroke-opacity="0.26" fill="none"/>
+        <use href="#ridge" transform="translate(0,76)" stroke="#0d0d0c" stroke-width="0.8" stroke-opacity="0.15" fill="none"/>
+        <use href="#ridge" transform="translate(0,108)" stroke="#0d0d0c" stroke-width="0.7" stroke-opacity="0.08" fill="none"/>
+      </svg>
+      <div class="hero-content">
+        <span class="kicker">Open Climate Data · Since 1980</span>
+        <h1>The story of climate<br/>change, park by park</h1>
+        <p>
+          Every one of the 63 US National Parks, with its own daily record of
+          temperature, precipitation, snowpack, evaporation, solar radiation, and wind
+          — reduced from reanalysis data, tested for statistical trends,
+          and ready to download.
+        </p>
+        <div class="hero-cta">
+          <a href={`${base}#parks`} class="btn btn-filled">Explore Parks</a>
+          <a href={`${base}researchers`} class="btn">Download Data</a>
+        </div>
       </div>
-      <div class="hero-stats">
-        <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
-        <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
-        <div class="stat"><span class="num">+{meanSlope.toFixed(3)}°C</span><span class="lbl">Mean warming / yr</span></div>
-        <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Significant warming</span></div>
-      </div>
+    </div>
+    <div class="hero-stats">
+      <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
+      <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
+      <div class="stat"><span class="num">+{meanSlope.toFixed(3)}°C</span><span class="lbl">Mean warming / yr</span></div>
+      <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Significant warming</span></div>
     </div>
   </section>
 
   <section class="container section" id="map-overview">
     <span class="kicker">Warming at a glance</span>
-    <h2>Every park, coloured by its warming trend</h2>
+    <h2>Every park, colored by its warming trend</h2>
     <p style="color:var(--muted);max-width:720px">
       Each park is plotted at its approximate location and shaded by its
       annual-mean-temperature Theil–Sen slope. Redder means more warming

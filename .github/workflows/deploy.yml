@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history so git rev-list --count HEAD is accurate
 
       - name: Fetch NPS arrowhead logo (Wikimedia Commons, PD file)
         run: |

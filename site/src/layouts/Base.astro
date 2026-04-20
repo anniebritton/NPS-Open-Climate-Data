@@ -1,6 +1,6 @@
 ---
 import "../styles/global.css";
-const { title = "NPS Open Climate Data", description = "Climate trends for every US National Park, 1980-present." } = Astro.props;
+const { title = "Open Climate Data — US National Parks", description = "Climate trends for every US National Park, 1980-present." } = Astro.props;
 const base = import.meta.env.BASE_URL;
 const year = new Date().getFullYear();
 ---
@@ -19,8 +19,7 @@ const year = new Date().getFullYear();
     <nav class="nav">
       <div class="nav-inner">
         <a class="nav-brand" href={base}>
-          <img src={base + "nps-logo.svg"} alt="" aria-hidden="true" class="nav-logo" onerror="this.style.display='none'" />
-          <span>NPS Open Climate Data</span>
+          <span>Open Climate Data</span>
         </a>
         <div class="nav-links">
           <a href={base + "#parks"}>Parks</a>
@@ -69,7 +68,7 @@ const year = new Date().getFullYear();
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© {year} NPS Open Climate Data · MIT License</span>
+        <span>© {year} Open Climate Data — US National Parks · MIT License</span>
         <span>Data: DAYMET v4 · ERA5-Land · USGS PAD-US</span>
       </div>
     </footer>

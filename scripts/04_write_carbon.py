@@ -1,9 +1,9 @@
 """Dump the carbon-footprint estimate to a JSON the site can import.
 
-Pulls git metadata so the estimate actually moves between merges: Claude
-token usage scales with commit count (rough proxy for dev session work),
-and a ``build_info`` block records the commit, timestamp, and which
-source any boundary data came from (PAD-US vs circle fallback)."""
+Pulls git metadata so the estimate grows honestly over time: Claude token
+usage and GitHub Actions CI runs both scale with commit count. A
+``build_info`` block records the commit SHA, timestamp, and boundary
+source breakdown (PAD-US polygons vs circle fallbacks)."""
 
 import datetime as dt
 import json
@@ -13,13 +13,6 @@ from pathlib import Path
 from nps_climate_data.carbon import estimate
 
 REPO = Path(__file__).resolve().parents[1]
-
-# Per-commit Claude-session token budget, averaged across the project.
-# Real sessions vary wildly; this is an honest order-of-magnitude scale.
-CLAUDE_IN_PER_COMMIT = 50_000
-CLAUDE_OUT_PER_COMMIT = 10_000
-CLAUDE_IN_BASELINE = 300_000   # initial build work prior to first commit
-CLAUDE_OUT_BASELINE = 60_000
 
 
 def _git(*args: str) -> str:
@@ -57,17 +50,12 @@ def main():
     except ValueError:
         n_commits = 0
 
-    claude_in = CLAUDE_IN_BASELINE + n_commits * CLAUDE_IN_PER_COMMIT
-    claude_out = CLAUDE_OUT_BASELINE + n_commits * CLAUDE_OUT_PER_COMMIT
-
-    b = estimate(claude_input_tokens=claude_in, claude_output_tokens=claude_out)
+    b = estimate(n_commits=n_commits)
     payload = b.to_dict()
     payload["build_info"] = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"),
         "commit": _git("rev-parse", "--short", "HEAD") or "unknown",
         "commit_count": n_commits,
-        "claude_input_tokens": claude_in,
-        "claude_output_tokens": claude_out,
         "boundary_sources": _boundary_sources(),
     }
 
