@@ -25,7 +25,7 @@ function loadSilhouette(slug: string): string {
   }
 }
 
-// Climate-stripes colour bar for each park uses its tmean z-scores
+// Climate-stripes color bar for each park uses its tmean z-scores
 const withStripes = parks.map((p) => {
   const stripes = (p.stripes ?? []).map((s: any) => stripeColor(s.z));
   return { ...p, stripeColors: stripes, silhouette: loadSilhouette(p.slug) };
@@ -99,7 +99,7 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 
   <section class="container section" id="map-overview">
     <span class="kicker">Warming at a glance</span>
-    <h2>Every park, coloured by its warming trend</h2>
+    <h2>Every park, colored by its warming trend</h2>
     <p style="color:var(--muted);max-width:720px">
       Each park is plotted at its approximate location and shaded by its
       annual-mean-temperature Theil–Sen slope. Redder means more warming

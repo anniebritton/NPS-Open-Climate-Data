@@ -1,5 +1,5 @@
 /**
- * Build a normalised SVG path from a GeoJSON polygon/multipolygon. Input
+ * Build a normalized SVG path from a GeoJSON polygon/multipolygon. Input
  * coordinates are [lon, lat] (degrees). Output is a path string in a
  * 0..100 x 0..46 viewBox, with y flipped so north is up.
  */
