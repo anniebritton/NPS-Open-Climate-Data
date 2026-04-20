@@ -161,6 +161,7 @@ def download_from_drive(
     drive_folder: str,
     out_root: Path | str,
     stems: list[str] | None = None,
+    quota_project: str | None = None,
 ) -> None:
     """Download completed export CSVs from Google Drive to ``out_root/raw/``.
 
@@ -195,9 +196,14 @@ def download_from_drive(
     out_root = Path(out_root)
 
     try:
-        creds, _ = google.auth.default(
+        creds, detected_project = google.auth.default(
             scopes=["https://www.googleapis.com/auth/drive.readonly"]
         )
+        # ADC credentials obtained without --billing-project don't carry a
+        # quota project, which causes a 403. Apply one if available.
+        qp = quota_project or detected_project
+        if qp and hasattr(creds, "with_quota_project"):
+            creds = creds.with_quota_project(qp)
     except Exception as exc:
         raise RuntimeError(
             "Google credentials not found. Run:\n"
