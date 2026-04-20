@@ -35,7 +35,7 @@ def submit_park_tasks(
     park: dict,
     drive_folder: str,
     start: str,
-    end: str,
+    end: str | None = None,
 ) -> list[dict]:
     """Submit EE export tasks for one park.
 
@@ -43,9 +43,13 @@ def submit_park_tasks(
     Multipart parks (e.g. Saguaro, Channel Islands) produce one task
     per sub-unit.
     """
+    import datetime
     import ee
     from .utils import get_park_boundary, split_multipart_features
     from .core import make_export_task
+
+    if end is None:
+        end = datetime.date.today().isoformat()
 
     slug = park["slug"]
     ds = datasets_for_park(slug)
