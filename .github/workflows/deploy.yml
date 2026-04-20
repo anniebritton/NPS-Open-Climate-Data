@@ -22,13 +22,15 @@ jobs:
 
       - name: Fetch NPS arrowhead logo (Wikimedia Commons, PD file)
         run: |
-          curl -sS -L \
+          mkdir -p site/public
+          # Non-fatal: if Wikimedia is unreachable, the nav falls back to
+          # the text-only brand via onerror in Base.astro.
+          curl -sSL --create-dirs --max-time 30 \
             -A "NPS-Open-Climate-Data-Build/1.0 (https://github.com/anniebritton/NPS-Open-Climate-Data)" \
             -o site/public/nps-logo.svg \
-            "https://upload.wikimedia.org/wikipedia/commons/6/68/US-NationalParkService-Logo.svg"
-          # Sanity-check the download looks like SVG; otherwise remove so the
-          # layout falls back cleanly to the text alt.
-          if ! head -c 200 site/public/nps-logo.svg | grep -q -i 'svg'; then
+            "https://upload.wikimedia.org/wikipedia/commons/6/68/US-NationalParkService-Logo.svg" \
+            || { echo "::warning::logo fetch failed"; rm -f site/public/nps-logo.svg; }
+          if [ -f site/public/nps-logo.svg ] && ! head -c 200 site/public/nps-logo.svg | grep -q -i 'svg'; then
             echo "::warning::logo fetch did not return SVG; falling back"
             rm -f site/public/nps-logo.svg
           fi
