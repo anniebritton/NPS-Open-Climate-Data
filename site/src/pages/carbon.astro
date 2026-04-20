@@ -4,7 +4,7 @@ import carbon from "../../public/data/carbon.json";
 const base = import.meta.env.BASE_URL;
 
 const kg = (g: number) => (g / 1000).toFixed(2);
-const car_km_per_g = 1 / 120;  // ~120 gCO2/km, typical ICE car
+const car_km_per_g = 1 / 120;  // ~120 gCO2/km, typical ICE car — EPA [6]
 const info = (carbon as any).build_info ?? null;
 const n_commits = info?.commit_count ?? 0;
 const a = (carbon as any).assumptions ?? {};
@@ -85,7 +85,7 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
     </p>
     <table class="data">
       <thead>
-        <tr><th>Source</th><th style="text-align:right">gCO₂e</th><th>Notes</th></tr>
+        <tr><th>Source</th><th style="text-align:right">g CO₂e</th><th>Notes</th></tr>
       </thead>
       <tbody>
         {rows.map(([label, g, note]: any) => (
@@ -106,19 +106,72 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
     <h2>Assumptions</h2>
     <p style="color:var(--muted)">
       Electricity is converted to CO₂e using a global-average grid intensity
-      of <strong>{a.grid_intensity_g_per_kWh} g/kWh</strong>
-      (between Google Cloud's ~300 g and the global 2024 average of ~480 g).
+      of <strong>{a.grid_intensity_g_per_kWh} g/kWh</strong> — between
+      Google Cloud's reported ~300 g/kWh <a href="#ref-1" class="cite">[1]</a> and
+      the IEA's 2023 global average of ~480 g/kWh <a href="#ref-2" class="cite">[2]</a>.
       Tune any of these in <code>nps_climate_data/carbon.py</code>.
     </p>
     <table class="data">
       <tbody>
-        <tr><td>Earth Engine CPU</td><td>{a.ee_cpu_min_per_park} min/park × {a.ee_Wh_per_cpu_hr} Wh/CPU-hr (serverless tasks)</td></tr>
-        <tr><td>Egress</td><td>{a.raw_MB_per_park} MB/park × {a.egress_Wh_per_GB} Wh/GB</td></tr>
-        <tr><td>Local analysis</td><td>{a.local_cpu_sec_per_park}s/park × {a.local_power_W} W</td></tr>
-        <tr><td>Claude API (per commit)</td><td>baseline {Math.round((a.claude_in_baseline ?? 300000)/1000)}k in + {Math.round((a.claude_out_baseline ?? 60000)/1000)}k out, then +{Math.round((a.claude_in_per_commit ?? 50000)/1000)}k in / +{Math.round((a.claude_out_per_commit ?? 10000)/1000)}k out per commit — at {a.claude_input_Wh_per_kt} Wh/1k in, {a.claude_output_Wh_per_kt} Wh/1k out</td></tr>
-        <tr><td>GitHub Actions CI</td><td>{a.ci_runs_per_commit} runs/commit × {a.ci_minutes_per_run} min × {a.ci_vcpus} vCPUs × {a.ci_W_per_vcpu} W/vCPU</td></tr>
-        <tr><td>GitHub Pages</td><td>{a.pages_Wh_per_GB} Wh/GB served</td></tr>
-        <tr><td>Page view</td><td>{a.view_seconds}s × {a.view_device_W} W + {a.view_MB} MB transfer</td></tr>
+        <tr>
+          <td>Earth Engine CPU</td>
+          <td>
+            {a.ee_cpu_min_per_park} min/park × {a.ee_Wh_per_cpu_hr} Wh/CPU-hr (serverless tasks)
+            <a href="#ref-3" class="cite">[3]</a>
+          </td>
+        </tr>
+        <tr>
+          <td>Egress</td>
+          <td>
+            {a.raw_MB_per_park} MB/park × {a.egress_Wh_per_GB} Wh/GB
+            <a href="#ref-4" class="cite">[4]</a>
+          </td>
+        </tr>
+        <tr>
+          <td>Local analysis</td>
+          <td>{a.local_cpu_sec_per_park}s/park × {a.local_power_W} W</td>
+        </tr>
+        <tr>
+          <td>Claude API (per commit)</td>
+          <td>
+            baseline {Math.round((a.claude_in_baseline ?? 300000)/1000)}k in +
+            {Math.round((a.claude_out_baseline ?? 60000)/1000)}k out, then
+            +{Math.round((a.claude_in_per_commit ?? 50000)/1000)}k in /
+            +{Math.round((a.claude_out_per_commit ?? 10000)/1000)}k out per commit —
+            at {a.claude_input_Wh_per_kt} Wh/1k input tokens,
+            {a.claude_output_Wh_per_kt} Wh/1k output tokens
+            <a href="#ref-5" class="cite">[5]</a>
+          </td>
+        </tr>
+        <tr>
+          <td>GitHub Actions CI</td>
+          <td>
+            {a.ci_runs_per_commit} runs/commit × {a.ci_minutes_per_run} min ×
+            {a.ci_vcpus} vCPUs × {a.ci_W_per_vcpu} W/vCPU
+            <a href="#ref-6" class="cite">[6]</a>
+          </td>
+        </tr>
+        <tr>
+          <td>GitHub Pages</td>
+          <td>
+            {a.pages_Wh_per_GB} Wh/GB served
+            <a href="#ref-4" class="cite">[4]</a>
+          </td>
+        </tr>
+        <tr>
+          <td>Page view</td>
+          <td>
+            {a.view_seconds}s × {a.view_device_W} W device + {a.view_MB} MB transfer
+            <a href="#ref-7" class="cite">[7]</a>
+          </td>
+        </tr>
+        <tr>
+          <td>Car comparison</td>
+          <td>
+            120 g CO₂/km (average ICE passenger vehicle)
+            <a href="#ref-8" class="cite">[8]</a>
+          </td>
+        </tr>
       </tbody>
     </table>
 
@@ -131,8 +184,67 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
       per visit.
     </div>
 
+    <h2>Sources</h2>
+    <ol style="color:var(--muted);font-size:0.88rem;line-height:2;padding-left:1.4rem">
+      <li id="ref-1">
+        Google. (2024). <em>Google 2024 Environmental Report.</em>
+        <a href="https://sustainability.google/reports/google-2024-environmental-report/">sustainability.google/reports</a>
+      </li>
+      <li id="ref-2">
+        IEA. (2024). <em>Electricity 2024 — Analysis and forecast to 2026.</em>
+        <a href="https://www.iea.org/reports/electricity-2024">iea.org/reports/electricity-2024</a>
+      </li>
+      <li id="ref-3">
+        Masanet, E., Shehabi, A., Lei, N., Smith, S., &amp; Koomey, J. (2020).
+        Recalibrating global data center energy-use estimates.
+        <em>Science,</em> 367(6481), 984–986.
+        <a href="https://www.science.org/doi/10.1126/science.aba3758">doi:10.1126/science.aba3758</a>
+      </li>
+      <li id="ref-4">
+        Aslan, J., Mayers, K., Koomey, J. G., &amp; France, C. (2018).
+        Electricity intensity of internet data transmission: Untangling the estimates.
+        <em>Journal of Industrial Ecology,</em> 22(4), 785–798.
+        <a href="https://onlinelibrary.wiley.com/doi/10.1111/jiec.12630">doi:10.1111/jiec.12630</a>
+      </li>
+      <li id="ref-5">
+        Luccioni, A. S., Viguier, S., &amp; Ligozat, A.-L. (2023).
+        Estimating the carbon footprint of BLOOM, a 176B parameter language model.
+        <em>Journal of Machine Learning Research,</em> 24(253), 1–15.
+        <a href="https://jmlr.org/papers/v24/23-0069.html">jmlr.org/papers/v24/23-0069.html</a>
+        — and Anthropic. (2024). <em>Claude usage and energy disclosures.</em>
+        <a href="https://www.anthropic.com/news/claude-usage-policy">anthropic.com</a>
+      </li>
+      <li id="ref-6">
+        GitHub. (2024). <em>About GitHub-hosted runners — hardware specifications.</em>
+        <a href="https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories">docs.github.com/en/actions</a>
+      </li>
+      <li id="ref-7">
+        Freitag, C., Berners-Lee, M., Widdicks, K., Knowles, B., Blair, G., &amp; Friday, A. (2021).
+        The real climate and transformative impact of ICT: A critique of estimates,
+        trends, and regulations. <em>Patterns,</em> 2(9), 100340.
+        <a href="https://www.cell.com/patterns/fulltext/S2666-3899(21)00188-4">doi:10.1016/j.patter.2021.100340</a>
+      </li>
+      <li id="ref-8">
+        U.S. EPA. (2023). <em>Greenhouse gas emissions from a typical passenger vehicle.</em>
+        <a href="https://www.epa.gov/greenvehicles/greenhouse-gas-emissions-typical-passenger-vehicle">epa.gov/greenvehicles</a>
+      </li>
+    </ol>
+
     <h2>Rerunning the estimate</h2>
     <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`from nps_climate_data.carbon import estimate
 estimate(n_parks=63, n_commits=42, monthly_views=10_000)`}</pre>
   </section>
 </Base>
+
+<style>
+  .cite {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 500;
+    vertical-align: super;
+    text-decoration: none;
+    color: var(--accent);
+    margin-left: 1px;
+  }
+  .cite:hover { color: var(--canyon-deep); }
+</style>
