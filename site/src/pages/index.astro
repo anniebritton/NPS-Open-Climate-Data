@@ -44,32 +44,66 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 ---
 <Base title="Open Climate Data — Climate Trends in US National Parks">
   <section class="hero">
-    <!-- Mountain range silhouette filled with climate warming stripes -->
-    <!-- Left stripes = cooler historical years; right = warmer recent years -->
-    <svg class="hero-arc" viewBox="0 0 480 420" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <!-- Mountain range silhouette filled with climate warming stripes.        -->
+    <!-- Stripes go cool-blue (historical/left) → warm-red (recent/right).   -->
+    <svg class="hero-arc" viewBox="0 0 760 380"
+         preserveAspectRatio="xMaxYMax meet"
+         width="100%" height="100%"
+         fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         <clipPath id="mountain-clip">
-          <path d="M 0,420 L 0,365 L 45,318 L 78,340 L 122,278 L 158,300 L 202,212 L 238,234 L 282,128 L 318,184 L 352,152 L 388,214 L 422,188 L 458,228 L 480,248 L 480,420 Z"/>
+          <path d="M 0,380 L 0,342
+            C 38,322 72,302 104,285
+            C 128,273 142,278 158,286
+            C 180,295 198,278 222,258
+            C 244,244 258,250 272,254
+            C 296,258 314,240 338,212
+            C 356,196 370,184 388,168
+            C 406,150 422,138 440,124
+            C 455,114 470,108 486,98
+            C 499,90 514,84 530,80
+            C 544,78 558,80 572,86
+            C 584,92 594,100 608,112
+            C 624,126 636,138 652,152
+            C 668,166 682,180 700,196
+            C 718,212 732,228 748,248
+            C 754,258 757,265 760,272
+            L 760,380 Z"/>
         </clipPath>
       </defs>
-      <g clip-path="url(#mountain-clip)" opacity="0.82">
-        <rect x="0"   y="0" width="35" height="420" fill="#3d6189"/>
-        <rect x="35"  y="0" width="35" height="420" fill="#4e7fa5"/>
-        <rect x="70"  y="0" width="35" height="420" fill="#6595b8"/>
-        <rect x="105" y="0" width="35" height="420" fill="#80aac8"/>
-        <rect x="140" y="0" width="35" height="420" fill="#a0c2da"/>
-        <rect x="175" y="0" width="35" height="420" fill="#c0d6e8"/>
-        <rect x="210" y="0" width="35" height="420" fill="#dae3ee"/>
-        <rect x="245" y="0" width="35" height="420" fill="#e8ddd4"/>
-        <rect x="280" y="0" width="35" height="420" fill="#f0c8a8"/>
-        <rect x="315" y="0" width="35" height="420" fill="#e89a70"/>
-        <rect x="350" y="0" width="35" height="420" fill="#d46e42"/>
-        <rect x="385" y="0" width="35" height="420" fill="#b84e28"/>
-        <rect x="420" y="0" width="35" height="420" fill="#983018"/>
-        <rect x="455" y="0" width="35" height="420" fill="#741a08"/>
+      <g clip-path="url(#mountain-clip)" opacity="0.62">
+        <rect x="0"   y="0" width="55" height="380" fill="#3d6189"/>
+        <rect x="55"  y="0" width="55" height="380" fill="#4e7fa5"/>
+        <rect x="110" y="0" width="55" height="380" fill="#6595b8"/>
+        <rect x="165" y="0" width="55" height="380" fill="#80aac8"/>
+        <rect x="220" y="0" width="55" height="380" fill="#a0c2da"/>
+        <rect x="275" y="0" width="55" height="380" fill="#bcd4e8"/>
+        <rect x="330" y="0" width="55" height="380" fill="#d8e8f2"/>
+        <rect x="385" y="0" width="55" height="380" fill="#ecddd4"/>
+        <rect x="440" y="0" width="55" height="380" fill="#f0c8a8"/>
+        <rect x="495" y="0" width="55" height="380" fill="#e89a70"/>
+        <rect x="550" y="0" width="55" height="380" fill="#d46e42"/>
+        <rect x="605" y="0" width="55" height="380" fill="#b84e28"/>
+        <rect x="660" y="0" width="55" height="380" fill="#963018"/>
+        <rect x="715" y="0" width="55" height="380" fill="#741a08"/>
       </g>
-      <path d="M 0,365 L 45,318 L 78,340 L 122,278 L 158,300 L 202,212 L 238,234 L 282,128 L 318,184 L 352,152 L 388,214 L 422,188 L 458,228 L 480,248"
-            stroke="#0d0d0c" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+      <path d="M 0,342
+          C 38,322 72,302 104,285
+          C 128,273 142,278 158,286
+          C 180,295 198,278 222,258
+          C 244,244 258,250 272,254
+          C 296,258 314,240 338,212
+          C 356,196 370,184 388,168
+          C 406,150 422,138 440,124
+          C 455,114 470,108 486,98
+          C 499,90 514,84 530,80
+          C 544,78 558,80 572,86
+          C 584,92 594,100 608,112
+          C 624,126 636,138 652,152
+          C 668,166 682,180 700,196
+          C 718,212 732,228 748,248
+          C 754,258 757,265 760,272"
+        stroke="#0d0d0c" stroke-width="1.2" stroke-opacity="0.45" fill="none" stroke-linejoin="round"/>
     </svg>
     <div class="hero-content">
       <span class="kicker">Open Climate Data · Since 1980</span>
