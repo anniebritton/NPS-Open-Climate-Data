@@ -3,14 +3,32 @@ import Base from "../layouts/Base.astro";
 import parksData from "../../public/data/parks.json";
 import { stripeColor } from "../lib/stripes";
 import { fmtSlope } from "../lib/format";
+import { silhouetteFromGeoJSON } from "../lib/silhouette";
+import fs from "node:fs";
+import path from "node:path";
 
 const base = import.meta.env.BASE_URL;
 const parks = parksData.parks as any[];
 
+// Pre-compute a tiny SVG silhouette path per park from the boundary GeoJSON.
+// When real PAD-US polygons replace the current circular approximations, the
+// silhouettes automatically become distinctive — no code change.
+function loadSilhouette(slug: string): string {
+  try {
+    const geo = JSON.parse(
+      fs.readFileSync(path.resolve("public/data/boundaries", `${slug}.geojson`), "utf-8"),
+    );
+    const g = geo.features?.[0]?.geometry;
+    return g ? silhouetteFromGeoJSON(g) : "";
+  } catch {
+    return "";
+  }
+}
+
 // Climate-stripes colour bar for each park uses its tmean z-scores
 const withStripes = parks.map((p) => {
   const stripes = (p.stripes ?? []).map((s: any) => stripeColor(s.z));
-  return { ...p, stripeColors: stripes };
+  return { ...p, stripeColors: stripes, silhouette: loadSilhouette(p.slug) };
 });
 
 // Aggregate headline stat: average tmean slope across all parks
@@ -38,6 +56,27 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
       <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
       <div class="stat"><span class="num">+{meanSlope.toFixed(3)}°C</span><span class="lbl">Mean warming / yr</span></div>
       <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Parks with significant warming</span></div>
+    </div>
+  </section>
+
+  <section class="container section" id="map-overview">
+    <span class="kicker">Warming at a glance</span>
+    <h2>Every park, coloured by its warming trend</h2>
+    <p style="color:var(--muted);max-width:720px">
+      Each park is plotted at its approximate location and shaded by its
+      annual-mean-temperature Theil–Sen slope. Redder means more warming
+      per year; paler means flatter. Hover for the exact slope, click to
+      open the park's time series. Polygon shapes are approximate until
+      the PAD-US export runs — the full boundary lives in each park's
+      GitHub release.
+    </p>
+    <div id="overview-map" style="height:520px"></div>
+    <div class="legend" aria-hidden="true">
+      <span class="legend-label">Annual mean temperature slope (°C/yr)</span>
+      <div class="legend-ramp"></div>
+      <div class="legend-ticks">
+        <span>−0.04</span><span>0</span><span>+0.04</span>
+      </div>
     </div>
   </section>
 
@@ -78,6 +117,11 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
           >
             <span class="park-state">{p.state}</span>
             <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
+            {p.silhouette ? (
+              <svg class="park-silhouette" viewBox="0 0 100 46" aria-hidden="true">
+                <path d={p.silhouette} fill={slope != null ? (slope > 0 ? "var(--canyon)" : "var(--lake)") : "var(--muted)"} fill-opacity="0.55" stroke="var(--forest)" stroke-width="1"/>
+              </svg>
+            ) : null}
             <span class="trend-line">
               Mean temp: <strong>{fmtSlope(slope)}°C/yr</strong>
               {psig ? " ✓" : ""}
@@ -111,6 +155,63 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
   </section>
 </Base>
 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+<script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script define:vars={{ base }} is:inline>
+  // National overview map — 63 parks shaded by warming slope.
+  function rampColor(slope) {
+    if (slope == null || Number.isNaN(slope)) return "#c9c3b0";
+    // Clamp to ±0.04 °C/yr; red for warming, blue for cooling.
+    const v = Math.max(-0.04, Math.min(0.04, slope)) / 0.04;
+    const stops = v < 0
+      ? [[-1, [27, 58, 102]], [-0.5, [94, 132, 170]], [0, [239, 230, 210]]]
+      : [[0, [239, 230, 210]], [0.5, [208, 134, 99]], [1, [122, 28, 28]]];
+    let a = stops[0], b = stops[stops.length - 1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (v >= stops[i][0] && v <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+    }
+    const t = (v - a[0]) / ((b[0] - a[0]) || 1);
+    const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * t);
+    const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * t);
+    const bb = Math.round(a[1][2] + (b[1][2] - a[1][2]) * t);
+    return `rgb(${r},${g},${bb})`;
+  }
+
+  const mapEl = document.getElementById("overview-map");
+  if (mapEl && window.L) {
+    const map = L.map(mapEl, { scrollWheelZoom: false, worldCopyJump: false }).setView([39.5, -98.5], 3);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      maxZoom: 12,
+      opacity: 0.65,
+    }).addTo(map);
+
+    fetch(`${base}data/boundaries/all_parks.geojson`)
+      .then((r) => r.json())
+      .then((geo) => {
+        const layer = L.geoJSON(geo, {
+          style: (f) => ({
+            color: "#1f3b2a",
+            weight: 1.2,
+            fillColor: rampColor(f.properties.tmean_slope),
+            fillOpacity: 0.85,
+          }),
+          onEachFeature: (f, lyr) => {
+            const p = f.properties;
+            const slopeStr = p.tmean_slope != null
+              ? `${p.tmean_slope >= 0 ? "+" : ""}${p.tmean_slope.toFixed(3)} °C/yr${p.tmean_sig ? " · significant" : ""}`
+              : "no trend data";
+            lyr.bindTooltip(`<strong>${p.unit_name}</strong><br/>${slopeStr}`, { sticky: true });
+            lyr.on("click", () => { window.location.href = `${base}parks/${p.slug}`; });
+            lyr.on("mouseover", () => lyr.setStyle({ weight: 2.4, color: "#7d3718" }));
+            lyr.on("mouseout", () => lyr.setStyle({ weight: 1.2, color: "#1f3b2a" }));
+          },
+        }).addTo(map);
+        // Don't auto-fit: Alaska + Samoa pull the view out to uselessness.
+      })
+      .catch(() => {});
+  }
+</script>
 <script>
   const grid = document.getElementById("park-grid")!;
   const cards = Array.from(grid.querySelectorAll<HTMLAnchorElement>(".park-card"));

@@ -29,6 +29,7 @@ scripts/
   02_build_site_data.py  # Build analysis summaries
   03_generate_demo_data.py # Synthetic data for demoing the site
   04_write_carbon.py     # Dump carbon.json for the site
+  05_generate_boundaries.py # Approx. park-boundary GeoJSONs for the maps
 
 site/                    # Astro static site, deployed to GitHub Pages
 tests/                   # pytest suite (no network / no EE required)

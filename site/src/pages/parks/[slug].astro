@@ -129,8 +129,27 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
   ) : null}
 
   <section class="container section">
-    <h2>Park boundary</h2>
-    <div id="map" data-slug={summary.slug}></div>
+    <h2>Park boundary &amp; climate stripes</h2>
+    <p style="color:var(--muted);max-width:720px">
+      The park outline on the left, annual warming/cooling pattern on the
+      right. {summary.multipart ? "Sub-units of this park are drawn in distinct shades." : ""}
+      Polygon shown is approximate until the full PAD-US export runs — exact
+      geometry is in the <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/releases">GitHub release</a>.
+    </p>
+    <div class="map-beside-stripes">
+      <div id="map" data-slug={summary.slug}></div>
+      <div class="stripes-column">
+        <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
+          Annual mean temperature · {period.start_year}–{period.end_year}
+        </div>
+        <div class="stripes-full">
+          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value.toFixed(2)}°C (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
+        </div>
+        <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.78rem">
+          <span>{period.start_year}</span><span>{period.end_year}</span>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="container section">
@@ -206,23 +225,54 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
       lineChart("chart-swe", years, summary.annual.map((r) => r.swe_mm), "SWE (mm)", "#3a6e8a", null);
     }
 
-    // map
-    fetch(`${base}data/boundaries/${summary.slug}.geojson`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((geo) => {
-        const mapEl = document.getElementById("map");
-        if (!mapEl) return;
-        const map = L.map(mapEl).setView([39.5, -98.5], 3);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-          maxZoom: 14,
-        }).addTo(map);
-        if (geo) {
-          const layer = L.geoJSON(geo, { style: { color: "#1f3b2a", weight: 2, fillColor: "#e4a732", fillOpacity: 0.3 } }).addTo(map);
-          map.fitBounds(layer.getBounds(), { padding: [20, 20] });
-        } else {
-          mapEl.innerHTML = '<div style="padding:1rem;color:var(--muted)">Boundary GeoJSON not yet bundled; see GitHub for full boundaries.</div>';
+    // map — single park view with a fill shaded by its own warming slope.
+    const mapEl = document.getElementById("map");
+    if (mapEl) {
+      const map = L.map(mapEl).setView([39.5, -98.5], 3);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        maxZoom: 14,
+      }).addTo(map);
+
+      const slope = summary.headline_trends?.tmean_c?.slope_per_year ?? null;
+      const warmFill = (() => {
+        if (slope == null) return "#c9c3b0";
+        const v = Math.max(-0.04, Math.min(0.04, slope)) / 0.04;
+        if (v >= 0) {
+          const t = v;
+          const r = Math.round(239 + (122 - 239) * t);
+          const g = Math.round(230 + (28 - 230) * t);
+          const b = Math.round(210 + (28 - 210) * t);
+          return `rgb(${r},${g},${b})`;
         }
-      });
+        const t = -v;
+        const r = Math.round(239 + (27 - 239) * t);
+        const g = Math.round(230 + (58 - 230) * t);
+        const b = Math.round(210 + (102 - 210) * t);
+        return `rgb(${r},${g},${b})`;
+      })();
+
+      fetch(`${base}data/boundaries/${summary.slug}.geojson`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((geo) => {
+          if (!geo) {
+            mapEl.innerHTML = '<div style="padding:1rem;color:var(--muted)">Boundary GeoJSON not bundled yet; see GitHub for full boundaries.</div>';
+            return;
+          }
+          // For multipart parks, vary fill lightness so sub-units read as distinct.
+          let idx = 0;
+          const subShades = ["#e4a732", "#b0532e", "#2c6487", "#2d5a3d", "#7d3718"];
+          const layer = L.geoJSON(geo, {
+            style: () => {
+              const style = summary.multipart
+                ? { color: "#1f3b2a", weight: 2, fillColor: subShades[idx % subShades.length], fillOpacity: 0.55 }
+                : { color: "#1f3b2a", weight: 2, fillColor: warmFill, fillOpacity: 0.8 };
+              idx += 1;
+              return style;
+            },
+          }).addTo(map);
+          map.fitBounds(layer.getBounds(), { padding: [20, 20] });
+        });
+    }
   </script>
 </Base>
