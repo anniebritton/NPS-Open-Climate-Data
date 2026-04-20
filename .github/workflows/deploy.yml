@@ -44,6 +44,8 @@ jobs:
             cp "$d"*.csv site/public/data/raw/$slug/
             gzip -f site/public/data/raw/$slug/*.csv
           done
+          # Boundaries run last — they pull warming slopes from parks.json.
+          PYTHONPATH=. python scripts/05_generate_boundaries.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v4

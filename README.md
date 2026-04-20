@@ -29,6 +29,7 @@ scripts/
   02_build_site_data.py  # Build analysis summaries
   03_generate_demo_data.py # Synthetic data for demoing the site
   04_write_carbon.py     # Dump carbon.json for the site
+  05_generate_boundaries.py # Approx. park-boundary GeoJSONs for the maps
 
 site/                    # Astro static site, deployed to GitHub Pages
 tests/                   # pytest suite (no network / no EE required)
@@ -109,6 +110,18 @@ The suite covers:
 Parks with disjoint geometry (Saguaro, Channel Islands, Kings Canyon,
 etc.) are split by `ee.Geometry.geometries()` so each polygon gets its
 own time series, in addition to the union-level summary.
+
+## Authors
+
+- **Annie Britton** — project lead, analysis design, site
+- **Ian Pritchard** — contributor
+
+## Citing
+
+> Britton, A., & Pritchard, I. (2026). *NPS Open Climate Data:
+> Pre-processed climate trends for all US National Parks.* Derived from
+> DAYMET v4 and ERA5-Land via Google Earth Engine, with boundaries from
+> USGS PAD-US v20. MIT license.
 
 ## License
 

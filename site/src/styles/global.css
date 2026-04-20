@@ -263,6 +263,82 @@ canvas { max-width: 100%; }
   margin-top: 1rem;
 }
 
+#overview-map {
+  border-radius: 6px;
+  border: 1px solid var(--rule);
+  margin-top: 1rem;
+  background: var(--sandstone);
+}
+
+.legend {
+  margin-top: 0.8rem;
+  max-width: 420px;
+}
+.legend-label {
+  font-size: 0.82rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.legend-ramp {
+  height: 10px;
+  border-radius: 3px;
+  margin-top: 0.3rem;
+  background: linear-gradient(
+    to right,
+    rgb(27, 58, 102) 0%,
+    rgb(94, 132, 170) 25%,
+    rgb(239, 230, 210) 50%,
+    rgb(208, 134, 99) 75%,
+    rgb(122, 28, 28) 100%
+  );
+}
+.legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-feature-settings: "tnum";
+  margin-top: 0.2rem;
+}
+
+.park-silhouette {
+  width: 100%;
+  height: 44px;
+  margin-top: 0.2rem;
+  display: block;
+}
+.park-silhouette circle, .park-silhouette polygon {
+  stroke: var(--forest);
+  stroke-width: 1.2;
+}
+
+.map-beside-stripes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: stretch;
+  margin-top: 1rem;
+}
+.map-beside-stripes > * { min-width: 0; }
+.map-beside-stripes .stripes-column {
+  background: var(--sandstone);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.map-beside-stripes .stripes-column .stripes-full {
+  height: 160px;
+  margin: 0.5rem 0;
+}
+@media (max-width: 720px) {
+  .map-beside-stripes { grid-template-columns: 1fr; }
+  .map-beside-stripes .stripes-column .stripes-full { height: 80px; }
+}
+
 .downloads {
   display: flex;
   gap: 0.6rem;

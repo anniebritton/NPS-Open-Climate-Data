@@ -16,6 +16,7 @@ site/public/data/raw/
 site/public/data/parks/
 site/public/data/parks.json
 site/public/data/carbon.json
+site/public/data/boundaries/
 
 # Site build output
 site/dist/
