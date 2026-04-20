@@ -44,9 +44,32 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 ---
 <Base title="Open Climate Data — Climate Trends in US National Parks">
   <section class="hero">
-    <svg class="hero-arc" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <path d="M 520,0 A 520,520 0 0 1 0,520" stroke="#0d0d0c" stroke-width="2.5" fill="none" opacity="0.13"/>
-      <path d="M 430,0 A 430,430 0 0 1 0,430" stroke="#0d0d0c" stroke-width="1" fill="none" opacity="0.06"/>
+    <!-- Mountain range silhouette filled with climate warming stripes -->
+    <!-- Left stripes = cooler historical years; right = warmer recent years -->
+    <svg class="hero-arc" viewBox="0 0 480 420" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <defs>
+        <clipPath id="mountain-clip">
+          <path d="M 0,420 L 0,365 L 45,318 L 78,340 L 122,278 L 158,300 L 202,212 L 238,234 L 282,128 L 318,184 L 352,152 L 388,214 L 422,188 L 458,228 L 480,248 L 480,420 Z"/>
+        </clipPath>
+      </defs>
+      <g clip-path="url(#mountain-clip)" opacity="0.82">
+        <rect x="0"   y="0" width="35" height="420" fill="#3d6189"/>
+        <rect x="35"  y="0" width="35" height="420" fill="#4e7fa5"/>
+        <rect x="70"  y="0" width="35" height="420" fill="#6595b8"/>
+        <rect x="105" y="0" width="35" height="420" fill="#80aac8"/>
+        <rect x="140" y="0" width="35" height="420" fill="#a0c2da"/>
+        <rect x="175" y="0" width="35" height="420" fill="#c0d6e8"/>
+        <rect x="210" y="0" width="35" height="420" fill="#dae3ee"/>
+        <rect x="245" y="0" width="35" height="420" fill="#e8ddd4"/>
+        <rect x="280" y="0" width="35" height="420" fill="#f0c8a8"/>
+        <rect x="315" y="0" width="35" height="420" fill="#e89a70"/>
+        <rect x="350" y="0" width="35" height="420" fill="#d46e42"/>
+        <rect x="385" y="0" width="35" height="420" fill="#b84e28"/>
+        <rect x="420" y="0" width="35" height="420" fill="#983018"/>
+        <rect x="455" y="0" width="35" height="420" fill="#741a08"/>
+      </g>
+      <path d="M 0,365 L 45,318 L 78,340 L 122,278 L 158,300 L 202,212 L 238,234 L 282,128 L 318,184 L 352,152 L 388,214 L 422,188 L 458,228 L 480,248"
+            stroke="#0d0d0c" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
     </svg>
     <div class="hero-content">
       <span class="kicker">Open Climate Data · Since 1980</span>
