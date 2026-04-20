@@ -2,6 +2,7 @@
 import "../styles/global.css";
 const { title = "NPS Open Climate Data", description = "Climate trends for every US National Park, 1980-present." } = Astro.props;
 const base = import.meta.env.BASE_URL;
+const year = new Date().getFullYear();
 ---
 <!doctype html>
 <html lang="en">
@@ -12,7 +13,7 @@ const base = import.meta.env.BASE_URL;
     <meta name="description" content={description} />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Inter:wght@400;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Space+Grotesk:wght@400;500;600;700&display=swap" />
   </head>
   <body>
     <nav class="nav">
@@ -24,26 +25,52 @@ const base = import.meta.env.BASE_URL;
         <div class="nav-links">
           <a href={base + "#parks"}>Parks</a>
           <a href={base + "methodology"}>Methodology</a>
-          <a href={base + "carbon"}>Carbon Footprint</a>
+          <a href={base + "carbon"}>Carbon</a>
           <a href={base + "researchers"}>Researchers</a>
           <a href="https://github.com/anniebritton/NPS-Open-Climate-Data" target="_blank" rel="noopener">GitHub</a>
         </div>
       </div>
     </nav>
+
     <slot />
+
     <footer>
-      <div class="container">
+      <div class="footer-inner">
         <div>
-          <strong style="color:var(--sun)">NPS Open Climate Data</strong><br />
-          Open, pre-processed climate time series for every US National Park.<br />
-          Annie Britton &amp; Ian Pritchard · MIT licensed ·
-          <a href="https://github.com/anniebritton/NPS-Open-Climate-Data">GitHub</a>
+          <div class="footer-section-label">Navigation</div>
+          <nav class="footer-nav">
+            <a href={base}>Home</a>
+            <a href={base + "#parks"}>Parks</a>
+            <a href={base + "methodology"}>Methodology</a>
+            <a href={base + "carbon"}>Carbon</a>
+            <a href={base + "researchers"}>Researchers</a>
+          </nav>
         </div>
         <div>
-          Built with DAYMET v4 &amp; ERA5-Land via Google Earth Engine.<br />
-          Boundaries from USGS PAD-US v20.<br />
-          <a href={base + "methodology"}>Methodology</a> · <a href={base + "carbon"}>Carbon footprint</a>
+          <div class="footer-section-label">Data Sources</div>
+          <div class="footer-col-body">
+            DAYMET v4 &amp; ERA5-Land<br />via Google Earth Engine.<br />
+            USGS PAD-US v20 boundaries.<br /><br />
+            <a href={base + "methodology"}>Methodology</a> ·
+            <a href={base + "carbon"}>Carbon footprint</a>
+          </div>
         </div>
+        <div>
+          <div class="footer-section-label">About</div>
+          <div class="footer-col-body">
+            Open climate time series for<br />every US National Park.<br /><br />
+            Annie Britton &amp; Ian Pritchard<br />MIT licensed<br /><br />
+            <a href="https://github.com/anniebritton/NPS-Open-Climate-Data"
+               target="_blank" rel="noopener"
+               style="display:inline-block;font-family:'Space Grotesk',sans-serif;font-size:0.66rem;font-weight:500;letter-spacing:0.09em;text-transform:uppercase;padding:0.55rem 1.3rem;border:1.5px solid rgba(233,230,224,0.25);border-radius:9999px;color:rgba(233,230,224,0.8);transition:border-color 0.15s,color 0.15s">
+              GitHub ↗
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© {year} NPS Open Climate Data · MIT License</span>
+        <span>Data: DAYMET v4 · ERA5-Land · USGS PAD-US</span>
       </div>
     </footer>
   </body>
