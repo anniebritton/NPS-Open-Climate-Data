@@ -43,8 +43,10 @@ CANONICAL = {
     "tmin_c": [("DAYMET_tmin", "C"), ("ERA5_temperature_2m_min", "K")],
     "tmean_c": [("ERA5_temperature_2m", "K")],  # DAYMET has no tmean native
     "prcp_mm": [("DAYMET_prcp", "mm"), ("ERA5_total_precipitation_sum", "m")],
-    "snow_depth_we_m": [("ERA5_snow_depth", "m")],  # ERA5-Land stores as m w.e.
+    "snow_depth_we_mm": [("ERA5_snow_depth", "m_we")],  # ERA5-Land: m w.e. → mm
     "snowfall_mm": [("ERA5_snowfall_sum", "m_we")],
+    "snowmelt_mm": [("ERA5_snowmelt_sum", "m_we")],
+    "snow_cover_pct": [("ERA5_snow_cover", "pass")],  # ERA5: % (0-100), passthrough
     "srad_wm2": [("DAYMET_srad", "Wm2")],
     "swe_mm": [("DAYMET_swe", "kgm2")],
     "vp_pa": [("DAYMET_vp", "Pa")],
@@ -52,6 +54,7 @@ CANONICAL = {
     # pet_mm / aet_mm are the familiar positive mm / day values.
     "pet_mm": [("ERA5_potential_evaporation_sum", "m_neg")],
     "aet_mm": [("ERA5_total_evaporation_sum", "m_neg")],
+    # wind_speed_ms is derived below from u/v components — not listed here
 }
 
 
@@ -76,8 +79,8 @@ def canonicalise(df: pd.DataFrame) -> pd.DataFrame:
                 s = s * 1000.0
             elif unit == "m_neg":
                 s = -s * 1000.0  # ECMWF sign convention -> positive mm
-            # tmean should be a true daily mean. If absent, compute from
-            # tmax + tmin later.
+            # "pass" and unit tokens with no numeric conversion (Wm2, kgm2,
+            # Pa, mm, C) fall through unchanged.
             if series is None:
                 series = s
             else:
@@ -88,13 +91,25 @@ def canonicalise(df: pd.DataFrame) -> pd.DataFrame:
     if "tmean_c" not in out.columns and {"tmax_c", "tmin_c"}.issubset(out.columns):
         out["tmean_c"] = (out["tmax_c"] + out["tmin_c"]) / 2.0
 
+    # Wind speed derived from ERA5 u/v components (already in m/s).
+    u_col = "ERA5_u_component_of_wind_10m"
+    v_col = "ERA5_v_component_of_wind_10m"
+    if u_col in df.columns and v_col in df.columns:
+        u = df[u_col].astype(float)
+        v = df[v_col].astype(float)
+        out["wind_speed_ms"] = np.sqrt(u ** 2 + v ** 2)
+
     return out
 
 
 # ---- aggregation ----------------------------------------------------------
 
-SUM_VARS = {"prcp_mm", "snowfall_mm", "pet_mm", "aet_mm"}
-MEAN_VARS = {"tmax_c", "tmin_c", "tmean_c", "srad_wm2", "swe_mm", "vp_pa", "snow_depth_m"}
+SUM_VARS = {"prcp_mm", "snowfall_mm", "snowmelt_mm", "pet_mm", "aet_mm"}
+MEAN_VARS = {
+    "tmax_c", "tmin_c", "tmean_c",
+    "srad_wm2", "swe_mm", "vp_pa",
+    "snow_depth_we_mm", "snow_cover_pct", "wind_speed_ms",
+}
 
 SEASONS = {
     "DJF": (12, 1, 2),
