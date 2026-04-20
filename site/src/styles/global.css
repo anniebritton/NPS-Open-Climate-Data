@@ -102,10 +102,13 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
 .hero {
   background: var(--paper);
   color: var(--ink);
-  padding: 6rem 2rem 5rem;
+  border-bottom: 1px solid var(--rule);
+}
+.hero-upper {
+  padding: 6rem 2rem 3rem;
   position: relative;
   overflow: hidden;
-  border-bottom: 1px solid var(--rule);
+  min-height: 280px;
 }
 .hero-content {
   position: relative;
@@ -120,7 +123,7 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   margin: 0.8rem 0 0;
   line-height: 1.7;
 }
-.hero-arc {
+.hero-mountain {
   position: absolute;
   right: 0;
   top: 0;
@@ -136,12 +139,11 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   flex-wrap: wrap;
 }
 .hero-stats {
-  margin-top: 3rem;
   display: flex;
   gap: 0;
   flex-wrap: wrap;
   border-top: 1px solid var(--rule);
-  padding-top: 2rem;
+  padding: 2rem 2rem 3.5rem;
 }
 .hero-stats .stat {
   padding-right: 2.5rem;
@@ -565,8 +567,9 @@ table.data th {
   .footer-inner { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
 }
 @media (max-width: 640px) {
-  .hero { padding: 4rem 1.4rem 3rem; }
-  .hero-arc { width: 100%; min-width: 0; height: 160px; top: auto; bottom: 0; opacity: 0.5; }
+  .hero-upper { padding: 3.5rem 1.4rem 2.5rem; min-height: 200px; }
+  .hero-mountain { width: 100%; min-width: 0; height: 160px; top: auto; bottom: 0; opacity: 0.5; }
+  .hero-stats { padding: 1.5rem 1.4rem 2.5rem; }
   .container { padding: 0 1.4rem; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
   .hero-stats .stat { padding-right: 1.5rem; margin-right: 1.5rem; }
