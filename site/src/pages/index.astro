@@ -1,0 +1,148 @@
+---
+import Base from "../layouts/Base.astro";
+import parksData from "../../public/data/parks.json";
+import { stripeColor } from "../lib/stripes";
+import { fmtSlope } from "../lib/format";
+
+const base = import.meta.env.BASE_URL;
+const parks = parksData.parks as any[];
+
+// Climate-stripes colour bar for each park uses its tmean z-scores
+const withStripes = parks.map((p) => {
+  const stripes = (p.stripes ?? []).map((s: any) => stripeColor(s.z));
+  return { ...p, stripeColors: stripes };
+});
+
+// Aggregate headline stat: average tmean slope across all parks
+const slopes = parks
+  .map((p) => p.headline_trends?.tmean_c?.slope_per_year)
+  .filter((v) => typeof v === "number");
+const meanSlope = slopes.reduce((a, b) => a + b, 0) / (slopes.length || 1);
+const warmingParks = parks.filter(
+  (p) => (p.headline_trends?.tmean_c?.significant_95 ?? false) && p.headline_trends.tmean_c.slope_per_year > 0,
+).length;
+const startYear = Math.min(...parks.map((p) => p.period?.start_year ?? 1980));
+const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
+---
+<Base title="NPS Open Climate Data — Climate Trends in America's National Parks">
+  <section class="hero">
+    <span class="kicker" style="color:var(--sun)">Open Climate Data · Since 1980</span>
+    <h1>The story of climate change, park by park</h1>
+    <p>
+      Every one of the 63 US National Parks, with its own time series of
+      temperature, precipitation, and snow — reduced from satellite-era
+      reanalysis, tested for statistical trends, and ready to download.
+    </p>
+    <div class="hero-stats">
+      <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
+      <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
+      <div class="stat"><span class="num">+{meanSlope.toFixed(3)}°C</span><span class="lbl">Mean warming / yr</span></div>
+      <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Parks with significant warming</span></div>
+    </div>
+  </section>
+
+  <section class="container section" id="parks">
+    <span class="kicker">All 63 parks</span>
+    <h2>Browse the parks</h2>
+    <p style="color:var(--muted);max-width:680px">
+      Each tile summarises a park's mean annual temperature since {startYear}
+      as climate stripes (cool blue = below 1981-2010 baseline, warm red =
+      above). Click through for the full time series and trend tests.
+    </p>
+
+    <div class="controls">
+      <input id="search" type="search" placeholder="Search parks (name or state)…" autocomplete="off" />
+      <select id="sort">
+        <option value="name">Sort: by name</option>
+        <option value="warming">Sort: most warming</option>
+        <option value="cooling">Sort: least warming</option>
+        <option value="wetter">Sort: getting wetter</option>
+        <option value="drier">Sort: getting drier</option>
+      </select>
+      <span id="result-count" style="color:var(--muted);font-size:0.9rem"></span>
+    </div>
+
+    <div id="park-grid" class="grid">
+      {withStripes.map((p) => {
+        const slope = p.headline_trends?.tmean_c?.slope_per_year ?? null;
+        const psig = p.headline_trends?.tmean_c?.significant_95 ?? false;
+        const wetSlope = p.headline_trends?.prcp_mm?.slope_per_year ?? null;
+        return (
+          <a
+            class="card park-card"
+            href={`${base}parks/${p.slug}`}
+            data-name={p.unit_name.toLowerCase()}
+            data-state={(p.state ?? "").toLowerCase()}
+            data-slope={slope ?? 0}
+            data-prcp-slope={wetSlope ?? 0}
+          >
+            <span class="park-state">{p.state}</span>
+            <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
+            <span class="trend-line">
+              Mean temp: <strong>{fmtSlope(slope)}°C/yr</strong>
+              {psig ? " ✓" : ""}
+            </span>
+            <div class="stripes">
+              {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
+            </div>
+          </a>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="container section">
+    <span class="kicker">Why this matters</span>
+    <h2>Protected, but not immune</h2>
+    <p style="max-width:720px">
+      National parks were set aside to preserve scenic and ecological
+      heritage — but they can't be fenced off from the climate. This
+      project pulls the science out of research journals and into one
+      place: every park's temperature, precipitation, snowpack, and
+      evaporation record, from 1980 through today, with Mann-Kendall
+      trend tests and Theil-Sen slopes applied consistently across units.
+    </p>
+    <div class="note">
+      <strong>Researchers:</strong> the full pre-processed data is
+      available as Parquet and CSV per park, and the analysis pipeline is
+      reproducible from a single command. See the
+      <a href={base + "researchers"}>researchers page</a>.
+    </div>
+  </section>
+</Base>
+
+<script>
+  const grid = document.getElementById("park-grid")!;
+  const cards = Array.from(grid.querySelectorAll<HTMLAnchorElement>(".park-card"));
+  const searchEl = document.getElementById("search") as HTMLInputElement;
+  const sortEl = document.getElementById("sort") as HTMLSelectElement;
+  const countEl = document.getElementById("result-count")!;
+
+  function apply() {
+    const q = searchEl.value.trim().toLowerCase();
+    const sort = sortEl.value;
+    const visible: HTMLAnchorElement[] = [];
+    for (const c of cards) {
+      const match = !q || c.dataset.name!.includes(q) || c.dataset.state!.includes(q);
+      c.style.display = match ? "" : "none";
+      if (match) visible.push(c);
+    }
+    countEl.textContent = `${visible.length} park${visible.length === 1 ? "" : "s"}`;
+    const bySlope = (a: HTMLAnchorElement, b: HTMLAnchorElement) =>
+      parseFloat(b.dataset.slope!) - parseFloat(a.dataset.slope!);
+    const byPrcp = (a: HTMLAnchorElement, b: HTMLAnchorElement) =>
+      parseFloat(b.dataset.prcpSlope!) - parseFloat(a.dataset.prcpSlope!);
+    const byName = (a: HTMLAnchorElement, b: HTMLAnchorElement) =>
+      a.dataset.name!.localeCompare(b.dataset.name!);
+    let sorted = visible.slice();
+    if (sort === "warming") sorted.sort(bySlope);
+    else if (sort === "cooling") sorted.sort((a, b) => -bySlope(a, b));
+    else if (sort === "wetter") sorted.sort(byPrcp);
+    else if (sort === "drier") sorted.sort((a, b) => -byPrcp(a, b));
+    else sorted.sort(byName);
+    sorted.forEach((c) => grid.appendChild(c));
+  }
+  searchEl.addEventListener("input", apply);
+  sortEl.addEventListener("change", apply);
+  apply();
+</script>
