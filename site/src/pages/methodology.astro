@@ -1,0 +1,141 @@
+---
+import Base from "../layouts/Base.astro";
+const base = import.meta.env.BASE_URL;
+---
+<Base title="Methodology — NPS Open Climate Data">
+  <section class="container section">
+    <a href={base} style="font-size:0.9rem">← Home</a>
+    <span class="kicker" style="margin-top:0.8rem;display:block">Methodology</span>
+    <h1>How these numbers are made</h1>
+    <p style="max-width:720px;color:var(--muted)">
+      This project's goal is to make climate-change evidence for US
+      National Parks as auditable as possible: every number on the site
+      can be traced back to a published satellite/reanalysis dataset, a
+      boundary polygon from USGS, and a specific statistical test run on
+      the aggregated daily series.
+    </p>
+
+    <h2>Inputs</h2>
+    <ul>
+      <li>
+        <strong>DAYMET v4</strong> (NASA/ORNL) — 1 km daily gridded weather,
+        1980–present, for CONUS + Hawaii + Puerto Rico. We pull
+        <code>prcp</code> (mm), <code>tmax</code> (°C), <code>tmin</code>
+        (°C), <code>srad</code> (W/m²), <code>swe</code> (kg/m²),
+        <code>vp</code> (Pa).
+      </li>
+      <li>
+        <strong>ERA5-Land daily aggregated</strong> (ECMWF / Copernicus) —
+        ~11 km daily reanalysis, 1950–present, globally. Used for all
+        variables on Alaskan, American-Samoan, and Virgin-Islands parks
+        (outside DAYMET's domain), and for variables DAYMET doesn't
+        carry (evaporation, wind, snow depth). Bands:
+        <code>temperature_2m{ "{,_min,_max}" }</code>,
+        <code>total_precipitation_sum</code>,
+        <code>snowfall_sum</code>, <code>snowmelt_sum</code>,
+        <code>snow_cover</code>, <code>snow_depth</code>,
+        <code>total_evaporation_sum</code>, <code>potential_evaporation_sum</code>.
+      </li>
+      <li>
+        <strong>USGS PAD-US v20 proclamation</strong> — official park
+        boundaries. We match by <code>Unit_Nm</code> with alias handling
+        for Alaskan "National Park and Preserve" units, and restrict to
+        NPS-managed polygons.
+      </li>
+    </ul>
+
+    <h2>Earth Engine pipeline</h2>
+    <p>
+      For each park we load the PAD-US feature collection, split disjoint
+      sub-units (e.g. Saguaro NP's Rincon and Tucson districts or the five
+      islands of Channel Islands NP), and reduce each dataset over the
+      geometry with <code>ee.Reducer.mean()</code> at the native grid
+      scale (1 km DAYMET, 11 km ERA5-Land) using
+      <code>bestEffort=True</code> and <code>maxPixels=1e13</code>. Daily
+      means (non-flow bands) and daily sums (flow bands ending in
+      <code>_sum</code>) are preserved as documented by ECMWF/Copernicus.
+      Exports are chunked in 5-year windows to stay under Earth Engine's
+      interactive response limits, with end dates treated as
+      <em>exclusive</em> (the EE convention).
+    </p>
+
+    <h2>Unit conversions</h2>
+    <ul>
+      <li>ERA5 temperatures: Kelvin → °C by subtracting 273.15.</li>
+      <li>ERA5 precipitation / snowfall / snowmelt: metres → mm by ×1000.</li>
+      <li>ERA5 evaporation fluxes: sign-flipped before the ×1000, so
+          reported PET/AET are positive mm/day.</li>
+      <li>DAYMET SWE: kg/m² is numerically equal to mm of liquid water.</li>
+    </ul>
+
+    <h2>Statistical tests</h2>
+    <ul>
+      <li>
+        <strong>Annual aggregation</strong>: calendar year. Sums for
+        precipitation, snowfall, evapotranspiration; means for temperature
+        and radiation. Years with fewer than 330 valid daily observations
+        are dropped to avoid partial-year bias.
+      </li>
+      <li>
+        <strong>Seasonal aggregation</strong>: DJF / MAM / JJA / SON, with
+        December assigned to the following year's DJF.
+      </li>
+      <li>
+        <strong>Anomalies</strong>: reference-period mean and standard
+        deviation computed over 1981–2010. z-scores drive the climate
+        stripes on the home and park pages.
+      </li>
+      <li>
+        <strong>Mann–Kendall rank test</strong> with tie correction and
+        normal-approximation p-value, applied to the annual series (n ≥ 10).
+      </li>
+      <li>
+        <strong>Theil–Sen slope estimator</strong>: the median of all
+        pairwise year-over-year slopes. Robust to outliers and more
+        appropriate than OLS when residuals are not normal.
+      </li>
+    </ul>
+
+    <div class="note">
+      <strong>Why Theil–Sen + Mann–Kendall?</strong> These non-parametric
+      tests don't require normality or homoscedastic residuals — a
+      conservative choice for short-to-medium climate series which often
+      have skewed distributions (precipitation, snow) and mild
+      autocorrelation. For longer-horizon inference we recommend applying
+      autocorrelation corrections (e.g. the Hamed–Rao MK variant).
+    </div>
+
+    <h2>Multipart parks</h2>
+    <p>
+      A few parks span geographically disjoint polygons. For these we
+      compute one series per polygon (using <code>ee.Geometry.geometries()</code>)
+      and also a unioned park-wide series. Both are exported; the per-part
+      series is accessible via the download links and the summary JSON.
+    </p>
+
+    <h2>Known limitations</h2>
+    <ul>
+      <li>Bias: gridded datasets have documented systematic biases in
+          complex terrain (mountain parks). Treat absolute values with
+          care and focus on trends.</li>
+      <li>Reference period (1981–2010) is WMO-standard but slightly
+          asymmetric within our 1980–present record.</li>
+      <li>Park-wide means smooth real within-park gradients; researchers
+          needing pixel-level series should use Earth Engine directly
+          with this package's helpers.</li>
+    </ul>
+
+    <h2>Citation</h2>
+    <ul>
+      <li>
+        Thornton, M. M. et al. (2022). <em>Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4.</em> ORNL DAAC.
+      </li>
+      <li>
+        Muñoz Sabater, J. (2019). <em>ERA5-Land hourly data from 1950 to present.</em> Copernicus Climate Change Service (C3S) CDS.
+      </li>
+      <li>
+        U.S. Geological Survey, Gap Analysis Project. <em>PAD-US: Protected Areas Database of the United States v2.0.</em>
+      </li>
+    </ul>
+  </section>
+</Base>

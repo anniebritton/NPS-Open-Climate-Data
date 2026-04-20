@@ -1,0 +1,102 @@
+---
+import Base from "../layouts/Base.astro";
+import carbon from "../../public/data/carbon.json";
+const base = import.meta.env.BASE_URL;
+
+const kg = (g: number) => (g / 1000).toFixed(2);
+const car_km_per_g = 1 / 120;  // ~120 gCO2/km, typical ICE car
+const rows = [
+  ["Earth Engine processing (one-time)", carbon.ee_processing_g, "63 parks × 9 five-year chunks × ~2 CPU-min each"],
+  ["Data egress from EE to local (one-time)", carbon.ee_egress_g, "~13 GB of daily DAYMET+ERA5 tables"],
+  ["Local statistical analysis (one-time)", carbon.local_analysis_g, "Annual aggregates, MK tests, Theil-Sen slopes"],
+  ["Claude API usage while building site (one-time)", carbon.claude_api_g, "~300k input + ~60k output tokens"],
+];
+const buildTotal = carbon.total_build_g;
+---
+<Base title="Carbon footprint — NPS Open Climate Data">
+  <section class="container section">
+    <a href={base} style="font-size:0.9rem">← Home</a>
+    <span class="kicker" style="margin-top:0.8rem;display:block">Transparency</span>
+    <h1>What did this site cost the climate?</h1>
+    <p style="max-width:720px;color:var(--muted)">
+      A climate dashboard that doesn't show its own footprint would be a
+      bit ironic. These numbers are order-of-magnitude estimates of the
+      CO₂-equivalent emissions associated with producing the data,
+      building the site, hosting it, and viewing it. Every assumption is
+      listed below so you can audit or tune them.
+    </p>
+
+    <div class="trend-grid" style="margin-top:1.5rem">
+      <div class="trend-card">
+        <div class="var-label">One-time build</div>
+        <div class="slope">{kg(buildTotal)}<span class="unit">kg CO₂e</span></div>
+        <div class="detail">≈ { (buildTotal * car_km_per_g).toFixed(1) } km in an average petrol car.</div>
+      </div>
+      <div class="trend-card cool">
+        <div class="var-label">Hosting per month</div>
+        <div class="slope">{kg(carbon.hosting_per_month_g)}<span class="unit">kg CO₂e</span></div>
+        <div class="detail">At ~10,000 monthly page views.</div>
+      </div>
+      <div class="trend-card cool">
+        <div class="var-label">Per page view</div>
+        <div class="slope">{carbon.per_view_g.toFixed(3)}<span class="unit">g CO₂e</span></div>
+        <div class="detail">A 60-second read on a phone.</div>
+      </div>
+    </div>
+
+    <h2>Where it comes from</h2>
+    <table class="data">
+      <thead>
+        <tr><th>Source</th><th style="text-align:right">gCO₂e</th><th>Notes</th></tr>
+      </thead>
+      <tbody>
+        {rows.map(([label, g, note]: any) => (
+          <tr>
+            <td>{label}</td>
+            <td style="text-align:right;font-feature-settings:'tnum'">{Number(g).toFixed(1)}</td>
+            <td style="color:var(--muted)">{note}</td>
+          </tr>
+        ))}
+        <tr>
+          <td><strong>Total one-time build</strong></td>
+          <td style="text-align:right"><strong>{buildTotal.toFixed(1)}</strong></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2>Assumptions</h2>
+    <p style="color:var(--muted)">
+      Electricity is converted to CO₂e using a global-average grid intensity
+      of <strong>{carbon.assumptions.grid_intensity_g_per_kWh} g/kWh</strong>
+      (between Google Cloud's ~300 g and the global 2024 average of ~480 g).
+      Tune this in <code>nps_climate_data/carbon.py</code>.
+    </p>
+    <table class="data">
+      <tbody>
+        <tr><td>Earth Engine CPU</td><td>{carbon.assumptions.ee_cpu_min_per_park_chunk} min/park/chunk × {carbon.assumptions.ee_chunks_per_park} chunks × {carbon.assumptions.ee_Wh_per_cpu_hr} Wh/CPU-hr</td></tr>
+        <tr><td>Egress</td><td>{carbon.assumptions.raw_MB_per_park} MB/park × {carbon.assumptions.egress_Wh_per_GB} Wh/GB</td></tr>
+        <tr><td>Local analysis</td><td>{carbon.assumptions.local_cpu_sec_per_park}s/park × {carbon.assumptions.local_power_W} W</td></tr>
+        <tr><td>Claude API</td><td>{carbon.assumptions.claude_input_Wh_per_kt} Wh / 1k input tok, {carbon.assumptions.claude_output_Wh_per_kt} Wh / 1k output tok</td></tr>
+        <tr><td>GitHub Pages</td><td>{carbon.assumptions.pages_Wh_per_GB} Wh/GB served</td></tr>
+        <tr><td>Page view</td><td>{carbon.assumptions.view_seconds}s × {carbon.assumptions.view_device_W} W + {carbon.assumptions.view_MB} MB transfer</td></tr>
+      </tbody>
+    </table>
+
+    <div class="note" style="margin-top:1.5rem">
+      <strong>Why this matters.</strong> Digital infrastructure for climate
+      research is not free. By publishing pre-computed aggregates and
+      trends instead of asking every visitor to run their own Earth
+      Engine jobs, we amortise a one-time ~{kg(buildTotal)} kg build
+      across tens of thousands of readers, for <em>&lt; 1 g</em> of CO₂e
+      per visit.
+    </div>
+
+    <h2>Updating the estimate</h2>
+    <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`from nps_climate_data.carbon import estimate
+estimate(n_parks=63,
+         claude_input_tokens=300_000,
+         claude_output_tokens=60_000,
+         monthly_views=10_000)`}</pre>
+  </section>
+</Base>

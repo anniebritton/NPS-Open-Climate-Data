@@ -1,0 +1,72 @@
+---
+import Base from "../layouts/Base.astro";
+const base = import.meta.env.BASE_URL;
+---
+<Base title="Researchers — NPS Open Climate Data">
+  <section class="container section">
+    <a href={base} style="font-size:0.9rem">← Home</a>
+    <span class="kicker" style="margin-top:0.8rem;display:block">For researchers</span>
+    <h1>Data, code, and pipelines you can cite</h1>
+    <p style="max-width:720px;color:var(--muted)">
+      Everything visualised on this site is open. The raw daily series,
+      the analysis code, the dataset definitions, and the statistical
+      pipeline all live in a single MIT-licensed repository. You can
+      re-run it, change the boundary source, swap in PRISM or GRIDMET,
+      and regenerate the whole site with one command.
+    </p>
+
+    <h2>Downloads</h2>
+    <ul>
+      <li><strong>Per park JSON summary</strong>: <code>{base}data/parks/&lt;slug&gt;.json</code> — annual + seasonal series, trends, anomalies, stripes.</li>
+      <li><strong>Per park daily CSV (gzip)</strong>: <code>{base}data/raw/&lt;slug&gt;/&lt;slug&gt;.csv.gz</code> — daily values, all canonical variables.</li>
+      <li><strong>Parquet + GeoJSON boundaries</strong>: attached to the
+        latest <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/releases">GitHub release</a>.</li>
+    </ul>
+
+    <h2>Reproducing the analysis</h2>
+    <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`git clone https://github.com/anniebritton/NPS-Open-Climate-Data
+cd NPS-Open-Climate-Data
+pip install -e .
+
+# 1. Export daily data for every national park (requires EE auth).
+earthengine authenticate
+python scripts/01_export_all_parks.py --start 1980-01-01
+
+# 2. Build annual/seasonal aggregates, trend tests, site JSON.
+python scripts/02_build_site_data.py
+
+# 3. Build and preview the static site locally.
+cd site && npm install && npm run dev
+`}</pre>
+
+    <h2>Programmatic access</h2>
+    <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`import ee, nps_climate_data as nps
+ee.Initialize()
+
+# One park, one date range:
+df = nps.get_data("Glacier National Park", "2020-01-01", "2025-01-01")
+
+# Full-history fetch with multipart handling (dict of sub-unit -> DataFrame):
+per_unit = nps.get_park_data("saguaro")`}</pre>
+
+    <h2>Citing</h2>
+    <div class="note">
+      <strong>Suggested citation:</strong><br />
+      Britton, A. (2026). <em>NPS Open Climate Data: Pre-processed
+      climate trends for all US National Parks.</em> Derived from DAYMET v4 and
+      ERA5-Land via Google Earth Engine, with boundaries from USGS PAD-US
+      v20. MIT license.
+    </div>
+
+    <h2>Known extensions we'd welcome</h2>
+    <ul>
+      <li>PRISM and GRIDMET datasets for CONUS (higher-resolution dew
+          point, wind, minimum humidity).</li>
+      <li>Autocorrelation-corrected MK tests (Hamed &amp; Rao 1998).</li>
+      <li>Per-pixel trend maps inside the park boundary, not just the
+          areal mean.</li>
+      <li>National Monuments, National Recreation Areas, and other NPS
+          units beyond the 63 designated National Parks.</li>
+    </ul>
+  </section>
+</Base>
