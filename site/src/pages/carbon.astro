@@ -6,13 +6,28 @@ const base = import.meta.env.BASE_URL;
 const kg = (g: number) => (g / 1000).toFixed(2);
 const car_km_per_g = 1 / 120;  // ~120 gCO2/km, typical ICE car
 const info = (carbon as any).build_info ?? null;
-const claudeInK = info ? Math.round(info.claude_input_tokens / 1000) : 300;
-const claudeOutK = info ? Math.round(info.claude_output_tokens / 1000) : 60;
+const n_commits = info?.commit_count ?? 0;
+const a = (carbon as any).assumptions ?? {};
+
+// Reconstruct cumulative token totals from assumptions so the table note
+// shows actual numbers rather than baseline-only figures.
+const claudeInK  = Math.round((a.claude_in_per_commit  ?? 50_000) * n_commits / 1000
+                             + (a.claude_in_baseline   ?? 300_000) / 1000);
+const claudeOutK = Math.round((a.claude_out_per_commit ?? 10_000) * n_commits / 1000
+                             + (a.claude_out_baseline  ?? 60_000)  / 1000);
+const ciRuns = n_commits * (a.ci_runs_per_commit ?? 2);
+
 const rows = [
-  ["Earth Engine processing (one-time)", carbon.ee_processing_g, "63 parks × 9 five-year chunks × ~2 CPU-min each"],
-  ["Data egress from EE to local (one-time)", carbon.ee_egress_g, "~13 GB of daily DAYMET+ERA5 tables"],
-  ["Local statistical analysis (one-time)", carbon.local_analysis_g, "Annual aggregates, MK tests, Theil-Sen slopes"],
-  ["Claude API usage while building site (cumulative)", carbon.claude_api_g, `~${claudeInK}k input + ~${claudeOutK}k output tokens`],
+  ["Earth Engine processing (one-time)", carbon.ee_processing_g,
+   `63 parks × ~${a.ee_cpu_min_per_park ?? 2} CPU-min each, serverless EE tasks`],
+  ["Data egress from EE to Drive (one-time)", carbon.ee_egress_g,
+   "~13 GB of daily DAYMET + ERA5 tables"],
+  ["Local statistical analysis (one-time)", carbon.local_analysis_g,
+   "Annual aggregates, MK tests, Theil-Sen slopes"],
+  ["Claude API — all dev sessions to date", carbon.claude_api_g,
+   `~${claudeInK}k input + ~${claudeOutK}k output tokens across ${n_commits} commits`],
+  ["GitHub Actions CI — all builds to date", (carbon as any).ci_actions_g,
+   `${ciRuns} workflow runs × ~${a.ci_minutes_per_run ?? 4} min on ${a.ci_vcpus ?? 2}-vCPU runner`],
 ];
 const buildTotal = carbon.total_build_g;
 const generatedAt = info?.generated_at ? new Date(info.generated_at) : null;
@@ -33,10 +48,12 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
 
     {info && (
       <div class="note" style="margin-top:1rem">
-        <strong>This build</strong> — regenerated on every merge to{" "}
-        <code>main</code>. Commit{" "}
-        <a href={`https://github.com/anniebritton/NPS-Open-Climate-Data/commit/${info.commit}`}><code>{info.commit}</code></a>
-        {" "}({info.commit_count} total commits). Generated {generatedPretty}.
+        <strong>Cumulative to this build</strong> — this estimate grows with
+        every commit. Claude API usage and GitHub Actions CI runs are tallied
+        across all <strong>{info.commit_count}</strong> commits to the repo,
+        not just the most recent one. Current commit:{" "}
+        <a href={`https://github.com/anniebritton/NPS-Open-Climate-Data/commit/${info.commit}`}><code>{info.commit}</code></a>.
+        Generated {generatedPretty}.
         Boundary coverage: {info.boundary_sources?.real_padus_polygons ?? 0} real PAD-US polygons,{" "}
         {info.boundary_sources?.circle_approximations ?? 0} circle approximations.
       </div>
@@ -44,13 +61,13 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
 
     <div class="trend-grid" style="margin-top:1.5rem">
       <div class="trend-card">
-        <div class="var-label">One-time build</div>
-        <div class="slope">{kg(buildTotal)}<span class="unit">kg CO₂e</span></div>
-        <div class="detail">≈ { (buildTotal * car_km_per_g).toFixed(1) } km in an average petrol car.</div>
+        <div class="var-label">Cumulative project cost</div>
+        <div class="slope">{buildTotal.toFixed(0)}<span class="unit">g CO₂e</span></div>
+        <div class="detail">≈ { (buildTotal * car_km_per_g).toFixed(1) } km in an average gas car.</div>
       </div>
       <div class="trend-card cool">
         <div class="var-label">Hosting per month</div>
-        <div class="slope">{kg(carbon.hosting_per_month_g)}<span class="unit">kg CO₂e</span></div>
+        <div class="slope">{carbon.hosting_per_month_g.toFixed(0)}<span class="unit">g CO₂e</span></div>
         <div class="detail">At ~10,000 monthly page views.</div>
       </div>
       <div class="trend-card cool">
@@ -61,6 +78,11 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
     </div>
 
     <h2>Where it comes from</h2>
+    <p style="color:var(--muted);max-width:680px">
+      The EE export and local analysis are one-time costs. Claude API usage
+      and CI builds accumulate with every commit — each new conversation and
+      every push to <code>main</code> is included in the running total.
+    </p>
     <table class="data">
       <thead>
         <tr><th>Source</th><th style="text-align:right">gCO₂e</th><th>Notes</th></tr>
@@ -74,7 +96,7 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
           </tr>
         ))}
         <tr>
-          <td><strong>Total one-time build</strong></td>
+          <td><strong>Total cumulative</strong></td>
           <td style="text-align:right"><strong>{buildTotal.toFixed(1)}</strong></td>
           <td></td>
         </tr>
@@ -84,18 +106,19 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
     <h2>Assumptions</h2>
     <p style="color:var(--muted)">
       Electricity is converted to CO₂e using a global-average grid intensity
-      of <strong>{carbon.assumptions.grid_intensity_g_per_kWh} g/kWh</strong>
+      of <strong>{a.grid_intensity_g_per_kWh} g/kWh</strong>
       (between Google Cloud's ~300 g and the global 2024 average of ~480 g).
-      Tune this in <code>nps_climate_data/carbon.py</code>.
+      Tune any of these in <code>nps_climate_data/carbon.py</code>.
     </p>
     <table class="data">
       <tbody>
-        <tr><td>Earth Engine CPU</td><td>{carbon.assumptions.ee_cpu_min_per_park_chunk} min/park/chunk × {carbon.assumptions.ee_chunks_per_park} chunks × {carbon.assumptions.ee_Wh_per_cpu_hr} Wh/CPU-hr</td></tr>
-        <tr><td>Egress</td><td>{carbon.assumptions.raw_MB_per_park} MB/park × {carbon.assumptions.egress_Wh_per_GB} Wh/GB</td></tr>
-        <tr><td>Local analysis</td><td>{carbon.assumptions.local_cpu_sec_per_park}s/park × {carbon.assumptions.local_power_W} W</td></tr>
-        <tr><td>Claude API</td><td>{carbon.assumptions.claude_input_Wh_per_kt} Wh / 1k input tok, {carbon.assumptions.claude_output_Wh_per_kt} Wh / 1k output tok</td></tr>
-        <tr><td>GitHub Pages</td><td>{carbon.assumptions.pages_Wh_per_GB} Wh/GB served</td></tr>
-        <tr><td>Page view</td><td>{carbon.assumptions.view_seconds}s × {carbon.assumptions.view_device_W} W + {carbon.assumptions.view_MB} MB transfer</td></tr>
+        <tr><td>Earth Engine CPU</td><td>{a.ee_cpu_min_per_park} min/park × {a.ee_Wh_per_cpu_hr} Wh/CPU-hr (serverless tasks)</td></tr>
+        <tr><td>Egress</td><td>{a.raw_MB_per_park} MB/park × {a.egress_Wh_per_GB} Wh/GB</td></tr>
+        <tr><td>Local analysis</td><td>{a.local_cpu_sec_per_park}s/park × {a.local_power_W} W</td></tr>
+        <tr><td>Claude API (per commit)</td><td>baseline {Math.round((a.claude_in_baseline ?? 300000)/1000)}k in + {Math.round((a.claude_out_baseline ?? 60000)/1000)}k out, then +{Math.round((a.claude_in_per_commit ?? 50000)/1000)}k in / +{Math.round((a.claude_out_per_commit ?? 10000)/1000)}k out per commit — at {a.claude_input_Wh_per_kt} Wh/1k in, {a.claude_output_Wh_per_kt} Wh/1k out</td></tr>
+        <tr><td>GitHub Actions CI</td><td>{a.ci_runs_per_commit} runs/commit × {a.ci_minutes_per_run} min × {a.ci_vcpus} vCPUs × {a.ci_W_per_vcpu} W/vCPU</td></tr>
+        <tr><td>GitHub Pages</td><td>{a.pages_Wh_per_GB} Wh/GB served</td></tr>
+        <tr><td>Page view</td><td>{a.view_seconds}s × {a.view_device_W} W + {a.view_MB} MB transfer</td></tr>
       </tbody>
     </table>
 
@@ -103,16 +126,13 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
       <strong>Why this matters.</strong> Digital infrastructure for climate
       research is not free. By publishing pre-computed aggregates and
       trends instead of asking every visitor to run their own Earth
-      Engine jobs, we amortise a one-time ~{kg(buildTotal)} kg build
+      Engine jobs, we amortize a cumulative ~{buildTotal.toFixed(0)} g project cost
       across tens of thousands of readers, for <em>&lt; 1 g</em> of CO₂e
       per visit.
     </div>
 
-    <h2>Updating the estimate</h2>
+    <h2>Rerunning the estimate</h2>
     <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`from nps_climate_data.carbon import estimate
-estimate(n_parks=63,
-         claude_input_tokens=300_000,
-         claude_output_tokens=60_000,
-         monthly_views=10_000)`}</pre>
+estimate(n_parks=63, n_commits=42, monthly_views=10_000)`}</pre>
   </section>
 </Base>
