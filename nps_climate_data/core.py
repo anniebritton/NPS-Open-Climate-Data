@@ -71,12 +71,20 @@ def make_export_task(
     Tasks run server-side; no interactive response-size limits apply.
     """
     fc = _reduce_to_table(_merged_ic(start_date, end_date, datasets), geom, scale)
+    # Without explicit selectors, EE infers CSV columns from one feature's
+    # schema and silently drops properties from features with different
+    # schemas — which is exactly what our merged DAYMET+ERA5 collection
+    # produces (one dataset per image, so one dataset's props per feature).
+    selectors = ["date"] + [
+        f"{ds['name']}_{band}" for ds in datasets for band in ds["bands"]
+    ]
     return ee.batch.Export.table.toDrive(
         collection=fc,
         description=description,
         folder=drive_folder,
         fileNamePrefix=file_prefix,
         fileFormat="CSV",
+        selectors=selectors,
     )
 
 
