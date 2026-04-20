@@ -198,7 +198,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         datasets.push({
           label: `Theil–Sen trend (${slope >= 0 ? "+" : ""}${slope.toFixed(3)}/yr)`,
           data: trendY,
-          borderColor: "#4d2623",
+          borderColor: "#0d0d0c",
           borderDash: [6, 4],
           pointRadius: 0,
           fill: false,
@@ -219,10 +219,10 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
     }
 
     const years = summary.annual.map((r) => r.year);
-    lineChart("chart-tmean", years, summary.annual.map((r) => r.tmean_c), "Mean temp (°C)", "#b0532e", summary.headline_trends?.tmean_c);
-    lineChart("chart-prcp", years, summary.annual.map((r) => r.prcp_mm), "Precip (mm)", "#2c6487", summary.headline_trends?.prcp_mm);
+    lineChart("chart-tmean", years, summary.annual.map((r) => r.tmean_c), "Mean temp (°C)", "#b5613b", summary.headline_trends?.tmean_c);
+    lineChart("chart-prcp", years, summary.annual.map((r) => r.prcp_mm), "Precip (mm)", "#4a7fa5", summary.headline_trends?.prcp_mm);
     if (summary.annual[0]?.swe_mm !== undefined) {
-      lineChart("chart-swe", years, summary.annual.map((r) => r.swe_mm), "SWE (mm)", "#3a6e8a", null);
+      lineChart("chart-swe", years, summary.annual.map((r) => r.swe_mm), "SWE (mm)", "#2d5a7a", null);
     }
 
     // map — single park view with a fill shaded by its own warming slope.
@@ -261,12 +261,12 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
           }
           // For multipart parks, vary fill lightness so sub-units read as distinct.
           let idx = 0;
-          const subShades = ["#89982b", "#e8b08c", "#6a95c6", "#4d2623", "#a8c4e8"];
+          const subShades = ["#2a6041", "#b5613b", "#4a7fa5", "#7a3c20", "#8ab5d4"];
           const layer = L.geoJSON(geo, {
             style: () => {
               const style = summary.multipart
-                ? { color: "#2f2e1c", weight: 2, fillColor: subShades[idx % subShades.length], fillOpacity: 0.55 }
-                : { color: "#2f2e1c", weight: 2, fillColor: warmFill, fillOpacity: 0.8 };
+                ? { color: "#0d0d0c", weight: 1.5, fillColor: subShades[idx % subShades.length], fillOpacity: 0.55 }
+                : { color: "#0d0d0c", weight: 1.5, fillColor: warmFill, fillOpacity: 0.8 };
               idx += 1;
               return style;
             },

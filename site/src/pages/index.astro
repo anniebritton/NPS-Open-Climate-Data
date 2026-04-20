@@ -44,18 +44,28 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 ---
 <Base title="NPS Open Climate Data — Climate Trends in America's National Parks">
   <section class="hero">
-    <span class="kicker" style="color:var(--sun)">Open Climate Data · Since 1980</span>
-    <h1>The story of climate change, park by park</h1>
-    <p>
-      Every one of the 63 US National Parks, with its own time series of
-      temperature, precipitation, and snow — reduced from satellite-era
-      reanalysis, tested for statistical trends, and ready to download.
-    </p>
-    <div class="hero-stats">
-      <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
-      <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
-      <div class="stat"><span class="num">+{meanSlope.toFixed(3)}°C</span><span class="lbl">Mean warming / yr</span></div>
-      <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Parks with significant warming</span></div>
+    <svg class="hero-arc" viewBox="0 0 520 520" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M 520,0 A 520,520 0 0 1 0,520" stroke="#0d0d0c" stroke-width="2.5" fill="none" opacity="0.13"/>
+      <path d="M 430,0 A 430,430 0 0 1 0,430" stroke="#0d0d0c" stroke-width="1" fill="none" opacity="0.06"/>
+    </svg>
+    <div class="hero-content">
+      <span class="kicker">Open Climate Data · Since 1980</span>
+      <h1>The story of climate<br/>change, park by park</h1>
+      <p>
+        Every one of the 63 US National Parks, with its own time series of
+        temperature, precipitation, and snow — reduced from satellite-era
+        reanalysis, tested for statistical trends, and ready to download.
+      </p>
+      <div class="hero-cta">
+        <a href={`${base}#parks`} class="btn btn-filled">Explore Parks</a>
+        <a href={`${base}researchers`} class="btn">Download Data</a>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
+        <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
+        <div class="stat"><span class="num">+{meanSlope.toFixed(3)}°C</span><span class="lbl">Mean warming / yr</span></div>
+        <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Significant warming</span></div>
+      </div>
     </div>
   </section>
 
@@ -191,10 +201,10 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
       .then((geo) => {
         const layer = L.geoJSON(geo, {
           style: (f) => ({
-            color: "#2f2e1c",
-            weight: 1.2,
+            color: "#0d0d0c",
+            weight: 1,
             fillColor: rampColor(f.properties.tmean_slope),
-            fillOpacity: 0.85,
+            fillOpacity: 0.82,
           }),
           onEachFeature: (f, lyr) => {
             const p = f.properties;
@@ -203,8 +213,8 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
               : "no trend data";
             lyr.bindTooltip(`<strong>${p.unit_name}</strong><br/>${slopeStr}`, { sticky: true });
             lyr.on("click", () => { window.location.href = `${base}parks/${p.slug}`; });
-            lyr.on("mouseover", () => lyr.setStyle({ weight: 2.4, color: "#4d2623" }));
-            lyr.on("mouseout", () => lyr.setStyle({ weight: 1.2, color: "#2f2e1c" }));
+            lyr.on("mouseover", () => lyr.setStyle({ weight: 2, color: "#0d0d0c" }));
+            lyr.on("mouseout", () => lyr.setStyle({ weight: 1, color: "#0d0d0c" }));
           },
         }).addTo(map);
         // Don't auto-fit: Alaska + Samoa pull the view out to uselessness.
