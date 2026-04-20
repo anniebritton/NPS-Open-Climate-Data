@@ -164,8 +164,8 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
     // Clamp to ±0.04 °C/yr; red for warming, blue for cooling.
     const v = Math.max(-0.04, Math.min(0.04, slope)) / 0.04;
     const stops = v < 0
-      ? [[-1, [27, 58, 102]], [-0.5, [94, 132, 170]], [0, [239, 230, 210]]]
-      : [[0, [239, 230, 210]], [0.5, [208, 134, 99]], [1, [122, 28, 28]]];
+      ? [[-1, [61, 97, 137]], [-0.5, [168, 196, 232]], [0, [240, 227, 211]]]
+      : [[0, [240, 227, 211]], [0.5, [232, 176, 140]], [1, [77, 38, 35]]];
     let a = stops[0], b = stops[stops.length - 1];
     for (let i = 0; i < stops.length - 1; i++) {
       if (v >= stops[i][0] && v <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
@@ -191,7 +191,7 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
       .then((geo) => {
         const layer = L.geoJSON(geo, {
           style: (f) => ({
-            color: "#1f3b2a",
+            color: "#2f2e1c",
             weight: 1.2,
             fillColor: rampColor(f.properties.tmean_slope),
             fillOpacity: 0.85,
@@ -203,8 +203,8 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
               : "no trend data";
             lyr.bindTooltip(`<strong>${p.unit_name}</strong><br/>${slopeStr}`, { sticky: true });
             lyr.on("click", () => { window.location.href = `${base}parks/${p.slug}`; });
-            lyr.on("mouseover", () => lyr.setStyle({ weight: 2.4, color: "#7d3718" }));
-            lyr.on("mouseout", () => lyr.setStyle({ weight: 1.2, color: "#1f3b2a" }));
+            lyr.on("mouseover", () => lyr.setStyle({ weight: 2.4, color: "#4d2623" }));
+            lyr.on("mouseout", () => lyr.setStyle({ weight: 1.2, color: "#2f2e1c" }));
           },
         }).addTo(map);
         // Don't auto-fit: Alaska + Samoa pull the view out to uselessness.

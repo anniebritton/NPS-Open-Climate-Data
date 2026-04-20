@@ -9,8 +9,8 @@ export function stripeColor(z: number | null | undefined): string {
   // Two-sided ramp centred on warm cream.
   // Cool: #1b3a66 -> #9cb9d2 -> #efe6d2 -> #d08663 -> #7a1c1c (warm)
   const stops = v < 0
-    ? [[-3, [27, 58, 102]], [-1.5, [94, 132, 170]], [0, [239, 230, 210]]]
-    : [[0, [239, 230, 210]], [1.5, [208, 134, 99]], [3, [122, 28, 28]]];
+    ? [[-3, [61, 97, 137]], [-1.5, [168, 196, 232]], [0, [240, 227, 211]]]
+    : [[0, [240, 227, 211]], [1.5, [232, 176, 140]], [3, [77, 38, 35]]];
   let a = stops[0], b = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
     if (v >= (stops[i][0] as number) && v <= (stops[i + 1][0] as number)) {
