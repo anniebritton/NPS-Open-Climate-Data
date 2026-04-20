@@ -8,21 +8,25 @@
  */
 
 :root {
-  --forest: #1f3b2a;
-  --forest-ink: #10261a;
-  --pine: #2d5a3d;
-  --canyon: #b0532e;
-  --canyon-deep: #7d3718;
-  --lake: #2c6487;
-  --lake-deep: #173d56;
-  --sun: #e4a732;
-  --sandstone: #efe6d2;
-  --paper: #f7f1e1;
-  --ink: #1a1a1a;
-  --muted: #5a5245;
-  --rule: rgba(26, 26, 26, 0.15);
-  --warm: #c86c3d;
-  --cool: #3a6e8a;
+  /* Desert palette — cholla cactus on red sandstone. Dark olive for primary
+   * chrome, cactus green for accent, peach-to-brown for warm data, sky/ice
+   * blue for cool data and card surfaces. */
+  --forest: #2f2e1c;        /* dark olive (primary dark: nav, ink accents) */
+  --forest-ink: #1a1910;    /* even darker olive */
+  --pine: #89982b;          /* cactus green (accent / positive chips) */
+  --canyon: #e8b08c;        /* desert peach */
+  --canyon-deep: #4d2623;   /* deep burgundy-brown */
+  --lake: #6a95c6;          /* medium sky derived from palette */
+  --lake-deep: #3d6189;     /* deeper sky */
+  --sun: #89982b;           /* cactus green as the sunny accent */
+  --sandstone: #f0e3d3;     /* warm cream card surface */
+  --paper: #f7ece0;         /* desert paper background */
+  --ink: #2a2418;           /* warm near-black */
+  --muted: #6b5c4c;         /* warm grey for secondary text */
+  --rule: rgba(42, 36, 24, 0.15);
+  --warm: #e8b08c;          /* peach, for warm-trend accents */
+  --cool: #a8c4e8;          /* sky blue, for cool-trend accents */
+  --ice: #d7dfee;           /* pale ice, backdrop tint */
   --max-w: 1180px;
 }
 
@@ -43,8 +47,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background-image:
-    radial-gradient(circle at 10% 20%, rgba(47, 92, 62, 0.04) 0 1px, transparent 2px),
-    radial-gradient(circle at 80% 70%, rgba(176, 83, 46, 0.035) 0 1px, transparent 2px);
+    radial-gradient(circle at 10% 20%, rgba(47, 46, 28, 0.05) 0 1px, transparent 2px),
+    radial-gradient(circle at 80% 70%, rgba(232, 176, 140, 0.05) 0 1px, transparent 2px);
   background-size: 140px 140px, 180px 180px;
   z-index: -1;
 }
@@ -82,13 +86,26 @@ a:hover { color: var(--canyon-deep); }
 }
 .nav a { color: var(--paper); text-decoration: none; }
 .nav a:hover { color: var(--sun); }
-.nav-brand { font-weight: 700; font-size: 1.05rem; letter-spacing: 0.02em; }
+.nav-brand {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+.nav-logo {
+  height: 26px;
+  width: auto;
+  display: inline-block;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,0.15));
+}
 .nav-links { display: flex; gap: 1.2rem; font-size: 0.95rem; }
 
 .hero {
   background:
-    linear-gradient(180deg, rgba(31, 59, 42, 0.92), rgba(31, 59, 42, 0.82)),
-    radial-gradient(60% 80% at 50% 100%, rgba(228, 167, 50, 0.35), transparent 70%);
+    linear-gradient(180deg, rgba(47, 46, 28, 0.94), rgba(47, 46, 28, 0.82)),
+    radial-gradient(60% 80% at 50% 100%, rgba(232, 176, 140, 0.45), transparent 70%);
   color: var(--paper);
   padding: 3.5rem 1.4rem 4rem;
   text-align: center;
@@ -286,11 +303,11 @@ canvas { max-width: 100%; }
   margin-top: 0.3rem;
   background: linear-gradient(
     to right,
-    rgb(27, 58, 102) 0%,
-    rgb(94, 132, 170) 25%,
-    rgb(239, 230, 210) 50%,
-    rgb(208, 134, 99) 75%,
-    rgb(122, 28, 28) 100%
+    rgb(61, 97, 137) 0%,
+    rgb(168, 196, 232) 25%,
+    rgb(240, 227, 211) 50%,
+    rgb(232, 176, 140) 75%,
+    rgb(77, 38, 35) 100%
   );
 }
 .legend-ticks {

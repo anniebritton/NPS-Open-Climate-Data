@@ -65,21 +65,52 @@ def _load_headline_slopes() -> dict[str, dict]:
     return out
 
 
+def _is_real_boundary(path: Path) -> bool:
+    """A per-park file already on disk is 'real' unless it's one our own
+    circle generator wrote (marked with properties.approximate == True)."""
+    if not path.exists():
+        return False
+    try:
+        obj = json.loads(path.read_text())
+        feats = obj.get("features") or []
+        if not feats:
+            return False
+        # If any feature is explicitly flagged approximate, it's a circle.
+        return not any((f.get("properties") or {}).get("approximate") for f in feats)
+    except Exception:
+        return False
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     slopes = _load_headline_slopes()
 
     features: list[dict] = []
-    written = 0
+    filled = 0
+    kept = 0
     for park in get_parks():
         slug = park["slug"]
+        dst = OUT_DIR / f"{slug}.geojson"
+        headline = slopes.get(slug, {})
+
+        if _is_real_boundary(dst):
+            # Upstream fetcher already put a real polygon here. Just merge
+            # the fresh warming-slope properties onto its first feature and
+            # feed it into the combined overview.
+            obj = json.loads(dst.read_text())
+            if obj.get("features"):
+                obj["features"][0].setdefault("properties", {}).update(headline)
+                dst.write_text(json.dumps(obj))
+                features.append(obj["features"][0])
+                kept += 1
+                continue
+
         geo = PARK_GEOGRAPHY.get(slug)
         if geo is None:
             print(f"  ! no geography for {slug}, skipping")
             continue
         lat, lon, area = geo
         coords = circle_polygon(lat, lon, area)
-        headline = slopes.get(slug, {})
 
         props = {
             "slug": slug,
@@ -99,13 +130,15 @@ def main() -> None:
                 "properties": props,
             }],
         }
-        (OUT_DIR / f"{slug}.geojson").write_text(json.dumps(single))
+        dst.write_text(json.dumps(single))
         features.append(single["features"][0])
-        written += 1
+        filled += 1
 
     combined = {"type": "FeatureCollection", "features": features}
     (OUT_DIR / "all_parks.geojson").write_text(json.dumps(combined))
-    print(f"Wrote {written} park boundaries + all_parks.geojson to {OUT_DIR}")
+    print(
+        f"Boundaries: kept {kept} real, filled {filled} with circles; wrote all_parks.geojson."
+    )
 
 
 if __name__ == "__main__":

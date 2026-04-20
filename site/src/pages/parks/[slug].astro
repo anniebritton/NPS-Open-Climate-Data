@@ -198,7 +198,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         datasets.push({
           label: `Theil–Sen trend (${slope >= 0 ? "+" : ""}${slope.toFixed(3)}/yr)`,
           data: trendY,
-          borderColor: "#7d3718",
+          borderColor: "#4d2623",
           borderDash: [6, 4],
           pointRadius: 0,
           fill: false,
@@ -240,15 +240,15 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         const v = Math.max(-0.04, Math.min(0.04, slope)) / 0.04;
         if (v >= 0) {
           const t = v;
-          const r = Math.round(239 + (122 - 239) * t);
-          const g = Math.round(230 + (28 - 230) * t);
-          const b = Math.round(210 + (28 - 210) * t);
+          const r = Math.round(240 + (77 - 240) * t);
+          const g = Math.round(227 + (38 - 227) * t);
+          const b = Math.round(211 + (35 - 211) * t);
           return `rgb(${r},${g},${b})`;
         }
         const t = -v;
-        const r = Math.round(239 + (27 - 239) * t);
-        const g = Math.round(230 + (58 - 230) * t);
-        const b = Math.round(210 + (102 - 210) * t);
+        const r = Math.round(240 + (61 - 240) * t);
+        const g = Math.round(227 + (97 - 227) * t);
+        const b = Math.round(211 + (137 - 211) * t);
         return `rgb(${r},${g},${b})`;
       })();
 
@@ -261,12 +261,12 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
           }
           // For multipart parks, vary fill lightness so sub-units read as distinct.
           let idx = 0;
-          const subShades = ["#e4a732", "#b0532e", "#2c6487", "#2d5a3d", "#7d3718"];
+          const subShades = ["#89982b", "#e8b08c", "#6a95c6", "#4d2623", "#a8c4e8"];
           const layer = L.geoJSON(geo, {
             style: () => {
               const style = summary.multipart
-                ? { color: "#1f3b2a", weight: 2, fillColor: subShades[idx % subShades.length], fillOpacity: 0.55 }
-                : { color: "#1f3b2a", weight: 2, fillColor: warmFill, fillOpacity: 0.8 };
+                ? { color: "#2f2e1c", weight: 2, fillColor: subShades[idx % subShades.length], fillOpacity: 0.55 }
+                : { color: "#2f2e1c", weight: 2, fillColor: warmFill, fillOpacity: 0.8 };
               idx += 1;
               return style;
             },

@@ -20,6 +20,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Fetch NPS arrowhead logo (Wikimedia Commons, PD file)
+        run: |
+          curl -sS -L \
+            -A "NPS-Open-Climate-Data-Build/1.0 (https://github.com/anniebritton/NPS-Open-Climate-Data)" \
+            -o site/public/nps-logo.svg \
+            "https://upload.wikimedia.org/wikipedia/commons/6/68/US-NationalParkService-Logo.svg"
+          # Sanity-check the download looks like SVG; otherwise remove so the
+          # layout falls back cleanly to the text alt.
+          if ! head -c 200 site/public/nps-logo.svg | grep -q -i 'svg'; then
+            echo "::warning::logo fetch did not return SVG; falling back"
+            rm -f site/public/nps-logo.svg
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -34,7 +47,6 @@ jobs:
         run: |
           PYTHONPATH=. python scripts/03_generate_demo_data.py
           PYTHONPATH=. python scripts/02_build_site_data.py
-          PYTHONPATH=. python scripts/04_write_carbon.py
           mkdir -p site/public/data
           cp -r data/site/* site/public/data/
           mkdir -p site/public/data/raw
@@ -44,8 +56,15 @@ jobs:
             cp "$d"*.csv site/public/data/raw/$slug/
             gzip -f site/public/data/raw/$slug/*.csv
           done
-          # Boundaries run last — they pull warming slopes from parks.json.
+          # Try PAD-US web services first for real polygons; whatever it
+          # can't resolve, 05 fills in with circles. Both run after
+          # 02_build_site_data so warming slopes are available to merge
+          # into GeoJSON properties.
+          PYTHONPATH=. python scripts/06_fetch_padus_boundaries.py || true
           PYTHONPATH=. python scripts/05_generate_boundaries.py
+          # 04 runs last — it records commit count, timestamp, and how many
+          # real vs circle boundaries this build ended up with.
+          PYTHONPATH=. python scripts/04_write_carbon.py
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
