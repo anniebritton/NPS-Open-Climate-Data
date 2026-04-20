@@ -4,6 +4,25 @@ Switch from one-off local exports (Option A) to a scheduled GitHub
 Actions workflow that re-runs the Earth Engine pipeline on its own —
 no local EE install needed, data stays fresh, site auto-redeploys.
 
+## Pending from Option A
+
+- [ ] **Clone the repo locally** and run the first real EE export:
+      ```bash
+      git clone https://github.com/anniebritton/NPS-Open-Climate-Data
+      cd NPS-Open-Climate-Data
+      pip install earthengine-api pandas numpy pyarrow
+      pip install -e .
+      earthengine authenticate
+      # Smoke-test one park first:
+      PYTHONPATH=. python scripts/01_export_all_parks.py \
+          --start 2020-01-01 --end 2025-01-01 --slugs yellowstone
+      # Then the full batch:
+      PYTHONPATH=. python scripts/01_export_all_parks.py --start 1980-01-01
+      PYTHONPATH=. python scripts/02_build_site_data.py
+      ```
+      Then commit `data/raw/` to a `data` branch (or attach Parquet to a
+      GitHub Release) and point the deploy workflow at it.
+
 ## Prerequisites on your side
 
 - [ ] **Create a Google Cloud project** (or reuse an existing one with
