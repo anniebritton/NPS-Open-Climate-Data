@@ -111,6 +111,18 @@ Parks with disjoint geometry (Saguaro, Channel Islands, Kings Canyon,
 etc.) are split by `ee.Geometry.geometries()` so each polygon gets its
 own time series, in addition to the union-level summary.
 
+## Authors
+
+- **Annie Britton** — project lead, analysis design, site
+- **Ian Pritchard** — contributor
+
+## Citing
+
+> Britton, A., & Pritchard, I. (2026). *NPS Open Climate Data:
+> Pre-processed climate trends for all US National Parks.* Derived from
+> DAYMET v4 and ERA5-Land via Google Earth Engine, with boundaries from
+> USGS PAD-US v20. MIT license.
+
 ## License
 
 MIT. See `LICENSE`.
