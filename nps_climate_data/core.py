@@ -45,6 +45,41 @@ def _reduce_to_table(
     return merged_ic.map(_reduce)
 
 
+def _merged_ic(start_date: str, end_date: str, datasets: list[dict]) -> ee.ImageCollection:
+    per_ds = [_process_dataset(ds, start_date, end_date) for ds in datasets]
+    merged = per_ds[0]
+    for ic in per_ds[1:]:
+        merged = merged.merge(ic)
+    return merged
+
+
+def make_export_task(
+    park_name: str,
+    start_date: str,
+    end_date: str,
+    geom: ee.Geometry,
+    scale: int,
+    datasets: list[dict],
+    description: str,
+    drive_folder: str,
+    file_prefix: str,
+) -> ee.batch.Task:
+    """Create an EE batch export task for a park or sub-unit.
+
+    The task exports a FeatureCollection (one row per day) as CSV to
+    Google Drive. Call ``.start()`` on the returned task to submit it.
+    Tasks run server-side; no interactive response-size limits apply.
+    """
+    fc = _reduce_to_table(_merged_ic(start_date, end_date, datasets), geom, scale)
+    return ee.batch.Export.table.toDrive(
+        collection=fc,
+        description=description,
+        folder=drive_folder,
+        fileNamePrefix=file_prefix,
+        fileFormat="CSV",
+    )
+
+
 def get_data(
     park_name: str,
     start_date: str,
@@ -56,6 +91,10 @@ def get_data(
 ) -> pd.DataFrame:
     """Fetch daily climate data for a park and return as DataFrame.
 
+    Uses the synchronous EE interactive API (``getInfo``). Suitable for
+    small queries; for full 1980-present runs use ``make_export_task``
+    via the batch module instead.
+
     If ``aoi_geom`` is provided it overrides the park boundary lookup;
     useful when iterating over multipart sub-units.
     """
@@ -66,15 +105,10 @@ def get_data(
         aoi_geom = aoi_fc.geometry()
 
     use_datasets = datasets if datasets is not None else DATASETS
-    # Note: ee.ImageCollection.filterDate treats ``end_date`` as an EXCLUSIVE
-    # upper bound, so pass e.g. '1985-01-01' to include all of 1984.
-    per_ds = [_process_dataset(ds, start_date, end_date) for ds in use_datasets]
-    merged = per_ds[0]
-    for ic in per_ds[1:]:
-        merged = merged.merge(ic)
-
     print(f"Fetching data for {park_name} from {start_date} to {end_date}...")
-    reduced = _reduce_to_table(merged, aoi_geom, scale)
+    reduced = _reduce_to_table(
+        _merged_ic(start_date, end_date, use_datasets), aoi_geom, scale
+    )
 
     features = reduced.getInfo()["features"]
     if not features:
@@ -99,7 +133,7 @@ def get_park_data(
     start_date: str = "1980-01-01",
     end_date: str | None = None,
 ) -> dict[str, pd.DataFrame]:
-    """High-level fetch keyed by park slug.
+    """High-level interactive fetch keyed by park slug.
 
     Returns a mapping of sub-unit label -> DataFrame. For single-part parks
     the mapping has a single entry keyed 'all'.
@@ -109,7 +143,6 @@ def get_park_data(
         raise ValueError(f"Unknown park slug: {slug}")
 
     if end_date is None:
-        # filterDate end is EXCLUSIVE, so tomorrow captures all of today.
         end_date = (pd.Timestamp.utcnow().normalize() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 
     aoi_fc = get_park_boundary(park["unit_name"])
