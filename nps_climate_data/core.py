@@ -78,6 +78,8 @@ def make_export_task(
     selectors = ["date"] + [
         f"{ds['name']}_{band}" for ds in datasets for band in ds["bands"]
     ]
+    print(f"  [export] {description}: {len(selectors)} columns "
+          f"({', '.join(selectors[:3])}, ..., {selectors[-1]})")
     return ee.batch.Export.table.toDrive(
         collection=fc,
         description=description,
