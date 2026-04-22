@@ -15,9 +15,9 @@ dist/
 # ARE committed so the deployed site has real data without running EE in CI.
 data/raw/
 data/site/
+data/PADUS4_1Geodatabase/
 site/public/data/raw/
 site/public/data/carbon.json
-site/public/data/boundaries/
 site/public/nps-logo.svg
 
 # Site build output

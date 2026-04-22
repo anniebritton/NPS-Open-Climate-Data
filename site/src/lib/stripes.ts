@@ -1,16 +1,15 @@
 /**
- * Hawkins climate-stripes color ramp: cool blue -> warm red through
- * off-white. Accepts a z-score-like value (typically -3 .. +3) and
- * returns a CSS rgb() string.
+ * Hawkins climate-stripes color ramp: traditional blue -> white -> red
+ * (ColorBrewer RdBu diverging). Accepts a z-score-like value
+ * (typically -3 .. +3) and returns a CSS rgb() string.
  */
 export function stripeColor(z: number | null | undefined): string {
-  if (z == null || Number.isNaN(z)) return "#e8e3d3";
+  if (z == null || Number.isNaN(z)) return "#f7f7f7";
   const v = Math.max(-3, Math.min(3, z));
-  // Two-sided ramp centered on warm cream.
-  // Cool: #1b3a66 -> #9cb9d2 -> #efe6d2 -> #d08663 -> #7a1c1c (warm)
+  // RdBu 7-class: deep blue -> mid blue -> off-white -> red -> deep red
   const stops = v < 0
-    ? [[-3, [61, 97, 137]], [-1.5, [168, 196, 232]], [0, [240, 227, 211]]]
-    : [[0, [240, 227, 211]], [1.5, [232, 176, 140]], [3, [77, 38, 35]]];
+    ? [[-3, [5, 48, 97]], [-1.5, [67, 147, 195]], [0, [247, 247, 247]]]
+    : [[0, [247, 247, 247]], [1.5, [214, 96, 77]], [3, [103, 0, 31]]];
   let a = stops[0], b = stops[stops.length - 1];
   for (let i = 0; i < stops.length - 1; i++) {
     if (v >= (stops[i][0] as number) && v <= (stops[i + 1][0] as number)) {

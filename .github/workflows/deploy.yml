@@ -47,16 +47,16 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy pandas pyarrow
 
-      - name: Build dynamic site data (boundaries + carbon)
+      - name: Build dynamic site data (merge slopes, carbon)
         run: |
-          # Park JSON summaries live in site/public/data/parks/ already — they
-          # were generated locally from the real EE pipeline and committed,
-          # because EE auth + a 2–4 hr task run isn't feasible in CI.
+          # Park JSON summaries and real PAD-US boundaries live under
+          # site/public/data/ already — generated locally and committed
+          # because neither EE (2–4 hr) nor the 2 GB PAD-US GDB is feasible
+          # in CI.
           #
-          # This step builds only the parts that should regenerate per commit:
-          # boundaries (external USGS + circle fallback) and the carbon
-          # estimate (which scales with git history and timestamps).
-          PYTHONPATH=. python scripts/06_fetch_padus_boundaries.py || true
+          # 05 merges fresh warming-slope props onto the committed real
+          # polygons and writes all_parks.geojson. 04 records the carbon
+          # estimate (grows with git history / timestamps).
           PYTHONPATH=. python scripts/05_generate_boundaries.py
           PYTHONPATH=. python scripts/04_write_carbon.py
 
