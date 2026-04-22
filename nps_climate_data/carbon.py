@@ -37,10 +37,11 @@ GRID_INTENSITY_G_PER_KWH = 400.0
 EE_CPU_MIN_PER_PARK = 2.0
 EE_WH_PER_CPU_HR = 15.0
 
-# Egress: ~200 MB raw CSV per park (pre-compression). 63 parks ~ 13 GB.
-# Estimate 50 Wh / GB end-to-end (Aslan et al., 2017, updated).
+# Egress: measured ~5.7 MB uncompressed CSV per park (from the actual
+# 2026 full batch: 361 MB for 63 parks across 45 years of daily values).
+# Round to 6 MB. Estimate 50 Wh / GB end-to-end (Aslan et al., 2017).
 EGRESS_WH_PER_GB = 50.0
-RAW_MB_PER_PARK = 200.0
+RAW_MB_PER_PARK = 6.0
 
 # Local Python analysis: trend tests, aggregates. ~30s CPU per park at
 # ~20 W laptop draw.
@@ -64,7 +65,9 @@ CLAUDE_OUT_BASELINE = 60_000
 # workflow. The ubuntu-latest runner is a 2-vCPU Azure VM; we budget ~4 min
 # of wall-clock compute per run at ~12.5 W per vCPU (CPU + cooling + overhead).
 CI_RUNS_PER_COMMIT = 2           # deploy.yml + tests.yml
-CI_MINUTES_PER_RUN = 4.0
+# Measured ~45-90s wall-clock per run on this repo (the deploy job is the
+# longer of the two). Round to 1.5 min.
+CI_MINUTES_PER_RUN = 1.5
 CI_VCPUS = 2
 CI_W_PER_VCPU = 12.5
 
@@ -73,10 +76,13 @@ CI_W_PER_VCPU = 12.5
 PAGES_WH_PER_GB_SERVED = 50.0
 
 # Average page view on the user's browser: ~1 minute, phone at 2 W, plus
-# ~5 MB of network transfer.
+# ~500 KB of network transfer (measured: per-park JSON ~175 KB,
+# boundary GeoJSON ~30 KB, park-map PNG ~70 KB, plus Chart.js/Leaflet
+# from a CDN cache hit on repeat visits). 0.5 MB is a realistic amortised
+# figure for users browsing a few parks.
 VIEW_SECONDS = 60.0
 VIEW_DEVICE_W = 2.0
-VIEW_MB = 5.0
+VIEW_MB = 0.5
 
 
 def _wh_to_g(wh: float) -> float:

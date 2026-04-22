@@ -39,9 +39,10 @@ GDB = REPO / "data" / "PADUS4_1Geodatabase" / "PADUS4_1Geodatabase.gdb"
 LAYER = "PADUS4_1Proclamation"
 OUT_DIR = REPO / "site" / "public" / "data" / "boundaries"
 
-# Simplify tolerance in PAD-US native CRS (metres). 200 m drops ~95% of
-# vertices while staying invisible at the zoom levels this site uses.
-SIMPLIFY_M = 200
+# Simplify tolerance in PAD-US native CRS (metres). 50 m preserves
+# coastal and ridge detail that's visible at per-park zoom levels.
+# Too high and Acadia's islands smooth into blobs.
+SIMPLIFY_M = 50
 
 
 def _aliases_for(unit_name: str) -> list[str]:

@@ -43,6 +43,43 @@ const warmingParks = parks.filter(
 ).length;
 const startYear = Math.min(...parks.map((p) => p.period?.start_year ?? 1980));
 const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
+
+// 2-letter state codes in parks.json → full names, so card search accepts
+// either "UT" or "Utah". Multi-state parks (e.g. "CA,NV") are expanded.
+const STATE_NAMES: Record<string, string> = {
+  AK: "Alaska", AL: "Alabama", AR: "Arkansas", AS: "American Samoa",
+  AZ: "Arizona", CA: "California", CO: "Colorado", CT: "Connecticut",
+  DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii",
+  IA: "Iowa", ID: "Idaho", IL: "Illinois", IN: "Indiana",
+  KS: "Kansas", KY: "Kentucky", LA: "Louisiana", MA: "Massachusetts",
+  MD: "Maryland", ME: "Maine", MI: "Michigan", MN: "Minnesota",
+  MO: "Missouri", MS: "Mississippi", MT: "Montana", NC: "North Carolina",
+  ND: "North Dakota", NE: "Nebraska", NH: "New Hampshire", NJ: "New Jersey",
+  NM: "New Mexico", NV: "Nevada", NY: "New York", OH: "Ohio",
+  OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", PR: "Puerto Rico",
+  RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee",
+  TX: "Texas", UT: "Utah", VA: "Virginia", VI: "Virgin Islands",
+  VT: "Vermont", WA: "Washington", WI: "Wisconsin", WV: "West Virginia",
+  WY: "Wyoming",
+};
+function stateSearchKey(code: string): string {
+  // "CA,NV" → "ca nv california nevada"
+  const codes = code.split(/[,/]/).map((s) => s.trim()).filter(Boolean);
+  const words = codes.flatMap((c) => [c.toLowerCase(), (STATE_NAMES[c] || "").toLowerCase()]);
+  return words.filter(Boolean).join(" ");
+}
+
+// Compute slope positions for the creative warming swarm.
+const parkSlopes = parks.map((p) => ({
+  slug: p.slug,
+  unit_name: p.unit_name,
+  state: p.state,
+  slopeF: cDeltaToF(p.headline_trends?.tmean_c?.slope_per_year) ?? null,
+  sig: p.headline_trends?.tmean_c?.significant_95 ?? false,
+})).filter((x) => x.slopeF != null) as { slug: string; unit_name: string; state: string; slopeF: number; sig: boolean }[];
+const SWARM_CLAMP_F = 0.072;  // ±0.072 °F/yr — matches the old ramp scale
+const swarmMin = Math.max(-SWARM_CLAMP_F, Math.min(...parkSlopes.map((p) => p.slopeF)));
+const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slopeF)));
 ---
 <Base title="Open Climate Data — Climate Trends in US National Parks">
   <section class="hero">
@@ -96,27 +133,39 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
       <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
       <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
       <div class="stat"><span class="num">+{meanSlopeF.toFixed(3)}°F</span><span class="lbl">Mean warming / yr</span></div>
-      <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Significant warming</span></div>
+      <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Parks with significant warming</span></div>
     </div>
   </section>
 
   <section class="container section" id="map-overview">
     <span class="kicker">Warming at a glance</span>
-    <h2>Every park, colored by its warming trend</h2>
+    <h2>Every park on the map — see each one's warming below</h2>
     <p style="color:var(--muted);max-width:720px">
-      Each park is plotted at its approximate location and shaded by its
-      annual-mean-temperature Theil–Sen slope. Redder means more warming
-      per year; paler means flatter. Hover for the exact slope, click to
-      open the park's time series. Polygon shapes are approximate until
-      the PAD-US export runs — the full boundary lives in each park's
-      GitHub release.
+      All 63 National Parks with their real PAD-US boundaries. Hover a
+      park for its warming rate; click to open the full time series.
     </p>
     <div id="overview-map" style="height:520px"></div>
-    <div class="legend" aria-hidden="true">
-      <span class="legend-label">Annual mean temperature slope (°F/yr)</span>
-      <div class="legend-ramp"></div>
-      <div class="legend-ticks">
-        <span>−0.07</span><span>0</span><span>+0.07</span>
+
+    <div class="swarm-wrap">
+      <span class="kicker" style="display:block;margin-bottom:0.35rem">
+        Annual mean temperature slope, park by park
+      </span>
+      <p style="color:var(--muted);font-size:0.85rem;max-width:640px;margin-bottom:1rem">
+        One dot per park. Position = warming rate (°F per year). Color reinforces
+        position, blue → red. Parks stacked vertically where multiple share a slope
+        value. Filled dots are significant at the 95% level.
+      </p>
+      <div class="swarm" aria-hidden="true">
+        <svg id="swarm-svg" viewBox="0 0 1000 120" preserveAspectRatio="none"
+             width="100%" height="120"></svg>
+        <div class="swarm-axis">
+          <span>−0.07</span>
+          <span>−0.035</span>
+          <span style="color:var(--ink)">0</span>
+          <span>+0.035</span>
+          <span>+0.07</span>
+        </div>
+        <div class="swarm-axis-label">°F / yr</div>
       </div>
     </div>
   </section>
@@ -153,23 +202,21 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
             class="card park-card"
             href={`${base}parks/${p.slug}`}
             data-name={p.unit_name.toLowerCase()}
-            data-state={(p.state ?? "").toLowerCase()}
+            data-state={stateSearchKey(p.state ?? "")}
             data-slope={slope ?? 0}
             data-prcp-slope={wetSlope ?? 0}
           >
-            <span class="park-state">{p.state}</span>
-            <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
-            {p.silhouette ? (
-              <svg class="park-silhouette" viewBox="0 0 100 46" aria-hidden="true">
-                <path d={p.silhouette} fill={slope != null ? (slope > 0 ? "var(--canyon)" : "var(--lake)") : "var(--muted)"} fill-opacity="0.55" stroke="var(--forest)" stroke-width="1"/>
-              </svg>
-            ) : null}
-            <span class="trend-line">
-              Mean temp: <strong>{fmtSlope(slope)}°F/yr</strong>
-              {psig ? " ✓" : ""}
-            </span>
-            <div class="stripes">
-              {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
+            <div class="park-map" style={`background-image:url(${base}data/park-maps/${p.slug}.png)`}></div>
+            <div class="park-card-body">
+              <span class="park-state">{p.state}</span>
+              <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
+              <span class="trend-line">
+                Mean temp: <strong>{fmtSlope(slope)}°F/yr</strong>
+                {psig ? " ✓" : ""}
+              </span>
+              <div class="stripes">
+                {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
+              </div>
             </div>
           </a>
         );
@@ -199,30 +246,11 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script define:vars={{ base }} is:inline>
-  // National overview map — 63 parks shaded by warming slope.
-  // GeoJSON properties carry tmean_slope in °C/yr; convert to °F/yr for
-  // both the ramp and the tooltip so the site is consistent end-to-end.
+<script define:vars={{ base, parkSlopes, swarmClamp: 0.072 }} is:inline>
+  // National overview map — all 63 parks in a single neutral fill. Dot-swarm
+  // below the map carries the warming-slope signal, so the map is free to
+  // just be "where each park is."
   const cDeltaToF = (c) => (c == null || Number.isNaN(c)) ? null : c * 9 / 5;
-  function rampColor(slopeF) {
-    if (slopeF == null || Number.isNaN(slopeF)) return "#c9c3b0";
-    // Clamp to ±0.072 °F/yr (≈ ±0.04 °C/yr); red for warming, blue for cooling.
-    const v = Math.max(-0.072, Math.min(0.072, slopeF)) / 0.072;
-    // ColorBrewer RdBu diverging (deep blue → white → deep red) — matches
-    // the climate stripes palette for site-wide consistency.
-    const stops = v < 0
-      ? [[-1, [5, 48, 97]], [-0.5, [67, 147, 195]], [0, [247, 247, 247]]]
-      : [[0, [247, 247, 247]], [0.5, [214, 96, 77]], [1, [103, 0, 31]]];
-    let a = stops[0], b = stops[stops.length - 1];
-    for (let i = 0; i < stops.length - 1; i++) {
-      if (v >= stops[i][0] && v <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
-    }
-    const t = (v - a[0]) / ((b[0] - a[0]) || 1);
-    const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * t);
-    const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * t);
-    const bb = Math.round(a[1][2] + (b[1][2] - a[1][2]) * t);
-    return `rgb(${r},${g},${bb})`;
-  }
 
   const mapEl = document.getElementById("overview-map");
   if (mapEl && window.L) {
@@ -236,12 +264,12 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
     fetch(`${base}data/boundaries/all_parks.geojson`)
       .then((r) => r.json())
       .then((geo) => {
-        const layer = L.geoJSON(geo, {
-          style: (f) => ({
-            color: "#0d0d0c",
+        L.geoJSON(geo, {
+          style: () => ({
+            color: "#1e1e1e",
             weight: 1,
-            fillColor: rampColor(cDeltaToF(f.properties.tmean_slope)),
-            fillOpacity: 0.82,
+            fillColor: "#ff603a",
+            fillOpacity: 0.58,
           }),
           onEachFeature: (f, lyr) => {
             const p = f.properties;
@@ -251,13 +279,92 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
               : "no trend data";
             lyr.bindTooltip(`<strong>${p.unit_name}</strong><br/>${slopeStr}`, { sticky: true });
             lyr.on("click", () => { window.location.href = `${base}parks/${p.slug}`; });
-            lyr.on("mouseover", () => lyr.setStyle({ weight: 2, color: "#0d0d0c" }));
-            lyr.on("mouseout", () => lyr.setStyle({ weight: 1, color: "#0d0d0c" }));
+            lyr.on("mouseover", () => lyr.setStyle({ weight: 2, fillOpacity: 0.78 }));
+            lyr.on("mouseout", () => lyr.setStyle({ weight: 1, fillOpacity: 0.58 }));
           },
         }).addTo(map);
-        // Don't auto-fit: Alaska + Samoa pull the view out to uselessness.
       })
       .catch(() => {});
+  }
+
+  // "Warming at a glance" dot-swarm legend — one dot per park, positioned
+  // along a slope axis, colored by the same RdBu ramp the stripes use.
+  // Dots collide-resolve vertically so overlapping slopes stack legibly.
+  function rampColor(slopeF) {
+    if (slopeF == null || Number.isNaN(slopeF)) return "#c9c3b0";
+    const v = Math.max(-swarmClamp, Math.min(swarmClamp, slopeF)) / swarmClamp;
+    const stops = v < 0
+      ? [[-1, [5, 48, 97]], [-0.5, [67, 147, 195]], [0, [247, 247, 247]]]
+      : [[0, [247, 247, 247]], [0.5, [214, 96, 77]], [1, [103, 0, 31]]];
+    let a = stops[0], b = stops[stops.length - 1];
+    for (let i = 0; i < stops.length - 1; i++) {
+      if (v >= stops[i][0] && v <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+    }
+    const t = (v - a[0]) / ((b[0] - a[0]) || 1);
+    const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * t);
+    const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * t);
+    const bb = Math.round(a[1][2] + (b[1][2] - a[1][2]) * t);
+    return `rgb(${r},${g},${bb})`;
+  }
+  const swarmSvg = document.getElementById("swarm-svg");
+  if (swarmSvg && parkSlopes) {
+    const W = 1000, H = 120;
+    const margin = { left: 16, right: 16, top: 12, bottom: 34 };
+    const xScale = (slope) => {
+      const clamped = Math.max(-swarmClamp, Math.min(swarmClamp, slope));
+      const t = (clamped + swarmClamp) / (2 * swarmClamp);
+      return margin.left + t * (W - margin.left - margin.right);
+    };
+    const baselineY = H - margin.bottom;
+    const dotR = 5;
+
+    // Gridlines + zero tick
+    const svgNS = "http://www.w3.org/2000/svg";
+    for (const frac of [0, 0.25, 0.5, 0.75, 1]) {
+      const x = margin.left + frac * (W - margin.left - margin.right);
+      const line = document.createElementNS(svgNS, "line");
+      line.setAttribute("x1", x); line.setAttribute("x2", x);
+      line.setAttribute("y1", margin.top);
+      line.setAttribute("y2", baselineY);
+      line.setAttribute("stroke", frac === 0.5 ? "#1e1e1e" : "#d9d5c8");
+      line.setAttribute("stroke-width", frac === 0.5 ? "1" : "0.5");
+      line.setAttribute("stroke-dasharray", frac === 0.5 ? "none" : "2 3");
+      swarmSvg.appendChild(line);
+    }
+
+    // Sort by slope so collision resolution is stable left→right
+    const sorted = parkSlopes.slice().sort((a, b) => a.slopeF - b.slopeF);
+    const placed = [];
+    for (const park of sorted) {
+      const x = xScale(park.slopeF);
+      // Find the lowest y that doesn't collide with a placed dot within 2*r
+      let y = baselineY;
+      const collision = () => placed.some((q) => {
+        const dx = q.x - x;
+        const dy = q.y - y;
+        return (dx * dx + dy * dy) < (2 * dotR) * (2 * dotR);
+      });
+      while (collision() && y > margin.top + dotR) {
+        y -= dotR * 1.6;
+      }
+      placed.push({ x, y, ...park });
+    }
+
+    for (const p of placed) {
+      const dot = document.createElementNS(svgNS, "circle");
+      dot.setAttribute("cx", p.x);
+      dot.setAttribute("cy", p.y);
+      dot.setAttribute("r", dotR);
+      dot.setAttribute("fill", p.sig ? rampColor(p.slopeF) : "#ffffff");
+      dot.setAttribute("stroke", p.sig ? "#1e1e1e" : rampColor(p.slopeF));
+      dot.setAttribute("stroke-width", p.sig ? "1" : "1.8");
+      dot.style.cursor = "pointer";
+      const t = document.createElementNS(svgNS, "title");
+      t.textContent = `${p.unit_name} · ${p.slopeF >= 0 ? "+" : ""}${p.slopeF.toFixed(3)} °F/yr${p.sig ? " · significant" : ""}`;
+      dot.appendChild(t);
+      dot.addEventListener("click", () => { window.location.href = `${base}parks/${p.slug}`; });
+      swarmSvg.appendChild(dot);
+    }
   }
 </script>
 <script>
@@ -272,6 +379,8 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
     const sort = sortEl.value;
     const visible: HTMLAnchorElement[] = [];
     for (const c of cards) {
+      // data-state now carries both the 2-letter code AND the full state
+      // name(s), space-separated, so "Utah" and "UT" both match.
       const match = !q || c.dataset.name!.includes(q) || c.dataset.state!.includes(q);
       c.style.display = match ? "" : "none";
       if (match) visible.push(c);

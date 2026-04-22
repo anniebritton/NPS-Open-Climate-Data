@@ -54,8 +54,6 @@ const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
         not just the most recent one. Current commit:{" "}
         <a href={`https://github.com/anniebritton/NPS-Open-Climate-Data/commit/${info.commit}`}><code>{info.commit}</code></a>.
         Generated {generatedPretty}.
-        Boundary coverage: {info.boundary_sources?.real_padus_polygons ?? 0} real PAD-US polygons,{" "}
-        {info.boundary_sources?.circle_approximations ?? 0} circle approximations.
       </div>
     )}
 

@@ -220,14 +220,29 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
 }
 .card {
   background: var(--paper);
-  padding: 1.2rem;
   text-decoration: none;
   color: var(--ink);
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
   transition: background 0.12s;
+  overflow: hidden;
 }
+.park-card { padding: 0; }
+.park-card .park-map {
+  height: 110px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border-bottom: 1px solid var(--rule);
+}
+.park-card-body {
+  padding: 1rem 1.2rem 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+}
+.card:not(.park-card) { padding: 1.2rem; }
 .card:hover { background: var(--card); opacity: 1; }
 .card .park-name {
   font-family: "Fraunces", Georgia, serif;
@@ -382,6 +397,34 @@ canvas { max-width: 100%; }
   text-transform: uppercase;
   letter-spacing: 0.11em;
 }
+.swarm-wrap {
+  margin-top: 1.8rem;
+  padding: 1.2rem 1.4rem 1rem;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+}
+.swarm { width: 100%; }
+.swarm svg { display: block; margin-bottom: 0.15rem; }
+.swarm svg circle:hover { stroke-width: 2.5; }
+.swarm-axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  padding: 0 1rem;
+}
+.swarm-axis-label {
+  text-align: center;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.7rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin-top: 0.25rem;
+}
+
 .legend-ramp {
   height: 8px;
   border-radius: 2px;

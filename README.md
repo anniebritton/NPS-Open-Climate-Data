@@ -116,15 +116,21 @@ own time series, in addition to the union-level summary.
 
 ## Known issues / Open items
 
-- **4 parks missing climate data.** Gateway Arch, Indiana Dunes, New
-  River Gorge, and White Sands were skipped in the first full EE batch
-  because their boundary lookup failed — they were redesignated as
-  national parks between 2018 and 2020 and PAD-US lists some of them
-  under their prior designation. Aliases have been added to
-  `utils.py`; re-submitting the EE tasks for just these slugs (see
-  `pipeline.ipynb`, A2-full with `slugs=[...]`) will fill the gap.
-  Their boundaries are already on the site (from PAD-US 4.1 GDB), only
-  the climate time-series are absent.
+- **Re-run EE pipeline with current PAD-US.** Four parks (Gateway
+  Arch, Indiana Dunes, New River Gorge, White Sands) were skipped in
+  the first full EE batch because their boundary lookup failed — they
+  were redesignated as national parks 2018-2020. The underlying cause
+  is likely that `nps_climate_data/utils.py` currently queries
+  `USGS/GAP/PAD-US/v20` (EE catalog), which pre-dates those
+  redesignations. We now have **PAD-US 4.1** locally (site/public/data/
+  boundaries/ has all 63 real polygons). Options to fix:
+  a) Point `utils.get_park_boundary()` at a newer PAD-US EE asset if
+     one exists;
+  b) Upload PAD-US 4.1 proclamation layer as an EE asset (one-time);
+  c) Simplest — have `core.py` accept geometry directly from the
+     committed GeoJSON files rather than querying EE for it.
+  Then re-run the full batch (or just the 4 missing slugs) via
+  `pipeline.ipynb` A2-full.
 - **3 tiny-island parks have no temperature signal.** American Samoa,
   Dry Tortugas, and Virgin Islands fall inside ERA5-Land pixels that
   are sea-masked because the land fraction is too low for the ~11 km

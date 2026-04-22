@@ -80,16 +80,22 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
       Daily {summary.multipart ? "per-unit" : "park-wide"} climate series
       from <strong>{period.start_year}</strong> to <strong>{period.end_year}</strong>,
       reduced from DAYMET v4 {summary.state.includes("AK") || summary.state === "AS" || summary.state === "VI" ? "/ ERA5-Land" : "+ ERA5-Land"}
-      over the park boundary (USGS PAD-US v20).
+      over the real PAD-US 4.1 park boundary.
     </p>
 
-    <div class="stripes-full" title="Annual mean temperature anomaly, 1981-2010 baseline">
-      {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
-    </div>
-    <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.82rem;">
-      <span>{period.start_year}</span>
-      <span style="font-style:italic">Climate stripes · annual mean temperature, 1981–2010 baseline</span>
-      <span>{period.end_year}</span>
+    <div class="map-beside-stripes" style="margin-top:1.4rem">
+      <div id="map" data-slug={summary.slug}></div>
+      <div class="stripes-column">
+        <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
+          Annual mean temperature · {period.start_year}–{period.end_year}
+        </div>
+        <div class="stripes-full">
+          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
+        </div>
+        <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.78rem">
+          <span>{period.start_year}</span><span>{period.end_year}</span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -160,30 +166,6 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
       </table>
     </section>
   ) : null}
-
-  <section class="container section">
-    <h2>Park boundary &amp; climate stripes</h2>
-    <p style="color:var(--muted);max-width:720px">
-      The park outline on the left, annual warming/cooling pattern on the
-      right. {summary.multipart ? "Sub-units of this park are drawn in distinct shades." : ""}
-      Polygon shown is approximate until the full PAD-US export runs — exact
-      geometry is in the <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/releases">GitHub release</a>.
-    </p>
-    <div class="map-beside-stripes">
-      <div id="map" data-slug={summary.slug}></div>
-      <div class="stripes-column">
-        <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
-          Annual mean temperature · {period.start_year}–{period.end_year}
-        </div>
-        <div class="stripes-full">
-          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
-        </div>
-        <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.78rem">
-          <span>{period.start_year}</span><span>{period.end_year}</span>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <section class="container section">
     <h2>Download the data</h2>
