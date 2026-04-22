@@ -29,6 +29,25 @@ PADUS_UNIT_ALIASES: dict[str, list[str]] = {
         "Hawai'i Volcanoes National Park",
     ],
     "Haleakala National Park": ["Haleakala National Park", "Haleakalā National Park"],
+    # Parks recently redesignated (2018-2020). PAD-US v20 may list them
+    # under either the new or prior designation.
+    "Gateway Arch National Park": [
+        "Gateway Arch National Park",
+        "Jefferson National Expansion Memorial",
+    ],
+    "Indiana Dunes National Park": [
+        "Indiana Dunes National Park",
+        "Indiana Dunes National Lakeshore",
+    ],
+    "New River Gorge National Park": [
+        "New River Gorge National Park",
+        "New River Gorge National Park and Preserve",
+        "New River Gorge National River",
+    ],
+    "White Sands National Park": [
+        "White Sands National Park",
+        "White Sands National Monument",
+    ],
 }
 
 
