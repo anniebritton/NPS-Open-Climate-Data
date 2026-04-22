@@ -167,12 +167,13 @@ own time series, in addition to the union-level summary.
   interactive auth. Stash the key at `~/.config/gcloud/ee-service-account.json`,
   make `utils.py` prefer `ee.ServiceAccountCredentials` when
   `GOOGLE_APPLICATION_CREDENTIALS` is set.
-- **Interactive methodology page.** Rebuild `/methodology` from a
-  plain-text wall into a step-by-step pipeline walk-through: clickable
-  nodes for load → filter → reduceRegion → canonicalise → aggregate →
-  MK/Theil-Sen, each with a tiny visual of the data shape at that
-  stage. Keep a worked example (Acadia) at the bottom as a
-  scrollytelling sequence.
+- **Methodology page — interactive depth.** The page is no longer a
+  wall of text: it has a pipeline diagram, sticky TOC, and numbered
+  step cards. Still open: make the pipeline-diagram nodes clickable,
+  with each expanding into a tiny visual of the data shape at that
+  stage (daily raw → reduced mean → annual aggregate → trend line),
+  and append an Acadia worked-example scrollytelling sequence at the
+  bottom that walks through every step with real numbers.
 
 ## Reporting issues
 
