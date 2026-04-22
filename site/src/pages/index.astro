@@ -31,13 +31,17 @@ const withStripes = parks.map((p) => {
   return { ...p, stripeColors: stripes, silhouette: loadSilhouette(p.slug) };
 });
 
-// Aggregate headline stat: average tmean slope across all parks.
-// Slopes come from the pipeline in °C/yr; display as °F/yr for US audiences.
-const slopes = parks
-  .map((p) => p.headline_trends?.tmean_c?.slope_per_year)
-  .filter((v) => typeof v === "number");
-const meanSlopeC = slopes.reduce((a, b) => a + b, 0) / (slopes.length || 1);
-const meanSlopeF = cDeltaToF(meanSlopeC) ?? 0;
+// Aggregate headline stat: average total temperature change across all
+// parks since each park's record began (~1980). Slope × (n_years − 1)
+// is precomputed as `total_change` in the pipeline JSON. Expressed as
+// a full-record delta instead of a per-year slope, the number is more
+// tangible — "+2.7 °F since 1980" beats "+0.06 °F per year" for a
+// general audience.
+const totalChangesC = parks
+  .map((p) => p.headline_trends?.tmean_c?.total_change)
+  .filter((v): v is number => typeof v === "number");
+const meanTotalChangeC = totalChangesC.reduce((a, b) => a + b, 0) / (totalChangesC.length || 1);
+const meanTotalChangeF = cDeltaToF(meanTotalChangeC) ?? 0;
 const warmingParks = parks.filter(
   (p) => (p.headline_trends?.tmean_c?.significant_95 ?? false) && p.headline_trends.tmean_c.slope_per_year > 0,
 ).length;
@@ -132,7 +136,7 @@ const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slo
     <div class="hero-stats">
       <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
       <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
-      <div class="stat"><span class="num">+{meanSlopeF.toFixed(3)}°F</span><span class="lbl">Mean warming / yr</span></div>
+      <div class="stat"><span class="num">+{meanTotalChangeF.toFixed(1)}°F</span><span class="lbl">Average warming since {startYear}</span></div>
       <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Parks with significant warming</span></div>
     </div>
   </section>
