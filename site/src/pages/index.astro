@@ -31,20 +31,6 @@ const withStripes = parks.map((p) => {
   return { ...p, stripeColors: stripes, silhouette: loadSilhouette(p.slug) };
 });
 
-// Aggregate headline stat: average total temperature change across all
-// parks since each park's record began (~1980). Slope × (n_years − 1)
-// is precomputed as `total_change` in the pipeline JSON. Expressed as
-// a full-record delta instead of a per-year slope, the number is more
-// tangible — "+2.7 °F since 1980" beats "+0.06 °F per year" for a
-// general audience.
-const totalChangesC = parks
-  .map((p) => p.headline_trends?.tmean_c?.total_change)
-  .filter((v): v is number => typeof v === "number");
-const meanTotalChangeC = totalChangesC.reduce((a, b) => a + b, 0) / (totalChangesC.length || 1);
-const meanTotalChangeF = cDeltaToF(meanTotalChangeC) ?? 0;
-const warmingParks = parks.filter(
-  (p) => (p.headline_trends?.tmean_c?.significant_95 ?? false) && p.headline_trends.tmean_c.slope_per_year > 0,
-).length;
 const startYear = Math.min(...parks.map((p) => p.period?.start_year ?? 1980));
 const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 
@@ -180,22 +166,12 @@ function sparklinePath(series: { value: number | null }[]): string {
         </div>
       </div>
     </div>
-    <div class="hero-stats">
-      <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
-      <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
-      <div class="stat"><span class="num">+{meanTotalChangeF.toFixed(1)}°F</span><span class="lbl">Average warming since {startYear}</span></div>
-      <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Parks with significant warming</span></div>
-    </div>
   </section>
 
   <section class="container section" id="map-overview">
     <span class="kicker">Warming at a glance</span>
     <h2>Every park on the map — see each one's warming below</h2>
-    <p style="color:var(--muted);max-width:720px">
-      All 63 National Parks with their real PAD-US boundaries. Hover a
-      park for its warming rate; click to open the full time series.
-    </p>
-    <div id="overview-map" style="height:520px"></div>
+    <div id="overview-map" style="height:520px;margin-top:1.2rem"></div>
 
     <div class="swarm-wrap">
       <span class="kicker" style="display:block;margin-bottom:0.35rem">
@@ -292,8 +268,8 @@ function sparklinePath(series: { value: number | null }[]): string {
             {p.silhouette ? (
               <svg class="park-silhouette" viewBox="0 0 100 46" aria-hidden="true">
                 <path d={p.silhouette}
-                      fill="var(--muted)" fill-opacity="0.3"
-                      stroke="var(--ink)" stroke-width="1.2"/>
+                      fill="var(--ink)" fill-opacity="0.55"
+                      stroke="none"/>
               </svg>
             ) : null}
             <div class="park-headline">
