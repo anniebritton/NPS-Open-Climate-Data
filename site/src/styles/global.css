@@ -49,6 +49,10 @@ html, body {
   line-height: 1.65;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
 h1, h2, h3 {
   font-family: "Fraunces", Georgia, serif;
   font-weight: 700;

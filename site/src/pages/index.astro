@@ -160,10 +160,10 @@ function sparklinePath(series: { value: number | null }[]): string {
             C 718,212 732,228 748,248
             C 754,258 757,265 760,380"/>
         </defs>
-        <use href="#ridge" stroke="#0d0d0c" stroke-width="1.4" stroke-opacity="0.50" fill="none"/>
-        <use href="#ridge" transform="translate(0,40)" stroke="#0d0d0c" stroke-width="1.0" stroke-opacity="0.26" fill="none"/>
-        <use href="#ridge" transform="translate(0,76)" stroke="#0d0d0c" stroke-width="0.8" stroke-opacity="0.15" fill="none"/>
-        <use href="#ridge" transform="translate(0,108)" stroke="#0d0d0c" stroke-width="0.7" stroke-opacity="0.08" fill="none"/>
+        <use href="#ridge" stroke="#2a6041" stroke-width="1.4" stroke-opacity="0.60" fill="none"/>
+        <use href="#ridge" transform="translate(0,40)" stroke="#2a6041" stroke-width="1.0" stroke-opacity="0.34" fill="none"/>
+        <use href="#ridge" transform="translate(0,76)" stroke="#2a6041" stroke-width="0.8" stroke-opacity="0.20" fill="none"/>
+        <use href="#ridge" transform="translate(0,108)" stroke="#2a6041" stroke-width="0.7" stroke-opacity="0.11" fill="none"/>
       </svg>
       <div class="hero-content">
         <span class="kicker">Open Climate Data · Since 1980</span>
@@ -419,89 +419,45 @@ function sparklinePath(series: { value: number | null }[]): string {
   if (swarmSvg && parkSwarm && parkSwarm.length) {
     const W = 1000;
     const margin = { left: 20, right: 20, top: 14, bottom: 34 };
-    const ROW_H = 110;
+    const LINE_STEP = 13;
+    const REGION_HEADER = 22;
+    const LANE_PAD_TOP = 2;
+    const LANE_PAD_BOTTOM = 10;
     const REGION_LABEL_Y_OFFSET = 11;
-    const ROW_MID_OFFSET = 60;
     const PAD_X = 3, PAD_Y = 1;
     const FONT_SIZE = 11;
     const svgNS = "http://www.w3.org/2000/svg";
 
-    const presentRegions = REGION_ORDER.filter((r) => parkSwarm.some((p) => p.region === r));
-    const H = margin.top + presentRegions.length * ROW_H + margin.bottom;
-
-    // Size the SVG for the computed height.
-    swarmSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    swarmSvg.setAttribute("height", String(H));
-
+    const presentRegions = REGION_ORDER
+      .filter((r) => parkSwarm.some((p) => p.region === r))
+      .slice()
+      .sort((a, b) => a.localeCompare(b));
     const domain = swarmMaxF - swarmMinF;
     const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
 
-    // Integer gridlines span the entire chart area; skip 0.
-    if (swarmAxis) swarmAxis.innerHTML = "";
-    for (let v = swarmMinF; v <= swarmMaxF; v++) {
-      const x = xScale(v);
-      if (v !== 0) {
-        const line = document.createElementNS(svgNS, "line");
-        line.setAttribute("x1", x); line.setAttribute("x2", x);
-        line.setAttribute("y1", margin.top);
-        line.setAttribute("y2", H - margin.bottom);
-        line.setAttribute("stroke", "#e2e0dc");
-        line.setAttribute("stroke-width", "0.5");
-        line.setAttribute("stroke-dasharray", "2 3");
-        swarmSvg.appendChild(line);
-      }
-      if (swarmAxis) {
-        const span = document.createElement("span");
-        span.textContent = v === 0 ? "0" : `+${v}°F`;
-        span.style.position = "absolute";
-        span.style.left = `${(x / W) * 100}%`;
-        span.style.transform = "translateX(-50%)";
-        swarmAxis.appendChild(span);
-      }
-    }
+    // Two stacking groups so gridlines/separators paint behind labels
+    // regardless of DOM insertion order.
+    const gridGroup = document.createElementNS(svgNS, "g");
+    const labelGroup = document.createElementNS(svgNS, "g");
+    swarmSvg.appendChild(gridGroup);
+    swarmSvg.appendChild(labelGroup);
 
     const tooltip = document.getElementById("swarm-tooltip");
     const swarmWrap = swarmSvg.parentElement;
 
-    // One horizontal lane per region, populated left-to-right by warming.
-    // Within a lane, labels nudge above/below the centerline only if
-    // overlapping — most rows sit on a single clean line.
-    presentRegions.forEach((region, i) => {
-      const rowTopY = margin.top + i * ROW_H;
-      const rowBottomY = rowTopY + ROW_H;
-      const rowMidY = rowTopY + ROW_MID_OFFSET;
+    // Pass 1 — measure + collide per region. Each label greedily picks
+    // the sub-row (0, -1, +1, -2, +2, …) closest to the midline that
+    // doesn't overlap any previously placed label. No vertical bounds
+    // yet, so the lane expands as tall as the densest cluster demands.
+    const layouts = [];
+    let cumulativeY = margin.top;
 
-      // Region label (kicker-style) above the row
-      const regionLabel = document.createElementNS(svgNS, "text");
-      regionLabel.setAttribute("x", String(margin.left));
-      regionLabel.setAttribute("y", String(rowTopY + REGION_LABEL_Y_OFFSET));
-      regionLabel.setAttribute("font-family", "Space Grotesk, sans-serif");
-      regionLabel.setAttribute("font-size", "9.5");
-      regionLabel.setAttribute("font-weight", "500");
-      regionLabel.setAttribute("letter-spacing", "1.6");
-      regionLabel.setAttribute("fill", "#6e6760");
-      regionLabel.textContent = region.toUpperCase();
-      swarmSvg.appendChild(regionLabel);
-
-      // Row separator at bottom (skip after the last row)
-      if (i < presentRegions.length - 1) {
-        const sep = document.createElementNS(svgNS, "line");
-        sep.setAttribute("x1", margin.left);
-        sep.setAttribute("x2", W - margin.right);
-        sep.setAttribute("y1", rowBottomY);
-        sep.setAttribute("y2", rowBottomY);
-        sep.setAttribute("stroke", "#eeece7");
-        sep.setAttribute("stroke-width", "0.5");
-        swarmSvg.appendChild(sep);
-      }
-
+    for (const region of presentRegions) {
       const parksInRow = parkSwarm
         .filter((p) => p.region === region)
         .sort((a, b) => a.totalF - b.totalF);
-      const placedInRow = [];
-      const subSteps = [0, -12, 12, -24, 24, -36, 36];
-      const rowUpper = rowTopY + REGION_LABEL_Y_OFFSET + 12;
-      const rowLower = rowBottomY - 6;
+      const placed = [];
+      let minRow = 0, maxRow = 0;
 
       for (const park of parksInRow) {
         const x = xScale(park.totalF);
@@ -516,26 +472,26 @@ function sparklinePath(series: { value: number | null }[]): string {
         text.setAttribute("fill", labelColor(park.totalF, swarmMinF, swarmMaxF));
         text.setAttribute("fill-opacity", park.sig ? "1" : "0.55");
         text.textContent = shortName(park.unit_name);
-        swarmSvg.appendChild(text);
+        labelGroup.appendChild(text);
         const w = Math.max(24, text.getComputedTextLength());
         const h = FONT_SIZE + 2;
 
-        let y = rowMidY;
-        for (const step of subSteps) {
-          const testY = rowMidY + step;
-          if (testY - h / 2 < rowUpper) continue;
-          if (testY + h / 2 > rowLower) continue;
-          const hit = placedInRow.some((q) => !(
+        let chosenRow = 0;
+        for (let k = 0; k < 400; k++) {
+          const row = k === 0 ? 0 : (k % 2 === 1 ? -Math.ceil(k / 2) : Math.ceil(k / 2));
+          const relY = row * LINE_STEP;
+          const hit = placed.some((q) => !(
             x + w / 2 + PAD_X < q.x - q.w / 2 ||
             x - w / 2 - PAD_X > q.x + q.w / 2 ||
-            testY + h / 2 + PAD_Y < q.y - q.h / 2 ||
-            testY - h / 2 - PAD_Y > q.y + q.h / 2
+            relY + h / 2 + PAD_Y < q.relY - q.h / 2 ||
+            relY - h / 2 - PAD_Y > q.relY + q.h / 2
           ));
-          if (!hit) { y = testY; break; }
+          if (!hit) { chosenRow = row; break; }
         }
-        text.setAttribute("x", String(x));
-        text.setAttribute("y", String(y));
-        placedInRow.push({ x, y, w, h });
+        const relY = chosenRow * LINE_STEP;
+        placed.push({ park, text, x, w, h, relY });
+        if (chosenRow < minRow) minRow = chosenRow;
+        if (chosenRow > maxRow) maxRow = chosenRow;
 
         const tipLabel = `${park.unit_name} · +${park.totalF.toFixed(2)} °F${park.sig ? " · significant" : ""}`;
         text.addEventListener("mousemove", (e) => {
@@ -551,7 +507,75 @@ function sparklinePath(series: { value: number | null }[]): string {
         });
         text.addEventListener("click", () => { window.location.href = `${base}parks/${park.slug}`; });
       }
-    });
+
+      const rowCount = maxRow - minRow + 1;
+      const laneHeight = REGION_HEADER + LANE_PAD_TOP + rowCount * LINE_STEP + LANE_PAD_BOTTOM;
+      const laneTopY = cumulativeY;
+      const laneBottomY = laneTopY + laneHeight;
+      const midlineY = laneTopY + REGION_HEADER + LANE_PAD_TOP + LINE_STEP / 2 + (-minRow) * LINE_STEP;
+      layouts.push({ region, placed, laneTopY, laneBottomY, midlineY });
+      cumulativeY = laneBottomY;
+    }
+
+    const H = cumulativeY + margin.bottom;
+    swarmSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    swarmSvg.setAttribute("height", String(H));
+
+    // Pass 2 — integer gridlines span the full chart now that H is known.
+    if (swarmAxis) swarmAxis.innerHTML = "";
+    for (let v = swarmMinF; v <= swarmMaxF; v++) {
+      const x = xScale(v);
+      if (v !== 0) {
+        const line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", x); line.setAttribute("x2", x);
+        line.setAttribute("y1", margin.top);
+        line.setAttribute("y2", H - margin.bottom);
+        line.setAttribute("stroke", "#e2e0dc");
+        line.setAttribute("stroke-width", "0.5");
+        line.setAttribute("stroke-dasharray", "2 3");
+        gridGroup.appendChild(line);
+      }
+      if (swarmAxis) {
+        const span = document.createElement("span");
+        span.textContent = v === 0 ? "0" : `+${v}°F`;
+        span.style.position = "absolute";
+        span.style.left = `${(x / W) * 100}%`;
+        span.style.transform = "translateX(-50%)";
+        swarmAxis.appendChild(span);
+      }
+    }
+
+    // Pass 3 — region headers, separators, and final label positions.
+    for (let i = 0; i < layouts.length; i++) {
+      const { region, placed, laneTopY, laneBottomY, midlineY } = layouts[i];
+
+      const regionLabel = document.createElementNS(svgNS, "text");
+      regionLabel.setAttribute("x", String(margin.left));
+      regionLabel.setAttribute("y", String(laneTopY + REGION_LABEL_Y_OFFSET));
+      regionLabel.setAttribute("font-family", "Space Grotesk, sans-serif");
+      regionLabel.setAttribute("font-size", "9.5");
+      regionLabel.setAttribute("font-weight", "500");
+      regionLabel.setAttribute("letter-spacing", "1.6");
+      regionLabel.setAttribute("fill", "#6e6760");
+      regionLabel.textContent = region.toUpperCase();
+      gridGroup.appendChild(regionLabel);
+
+      if (i < layouts.length - 1) {
+        const sep = document.createElementNS(svgNS, "line");
+        sep.setAttribute("x1", margin.left);
+        sep.setAttribute("x2", W - margin.right);
+        sep.setAttribute("y1", laneBottomY);
+        sep.setAttribute("y2", laneBottomY);
+        sep.setAttribute("stroke", "#eeece7");
+        sep.setAttribute("stroke-width", "0.5");
+        gridGroup.appendChild(sep);
+      }
+
+      for (const info of placed) {
+        info.text.setAttribute("x", String(info.x));
+        info.text.setAttribute("y", String(midlineY + info.relY));
+      }
+    }
   }
 </script>
 <script>
