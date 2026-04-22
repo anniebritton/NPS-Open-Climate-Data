@@ -200,13 +200,14 @@ function sparklinePath(series: { value: number | null }[]): string {
         Total warming per park, {startYear}–{endYear}
       </span>
       <p style="color:var(--muted);font-size:0.85rem;max-width:640px;margin-bottom:1rem">
-        One dot per park, positioned by total temperature change since {startYear}.
-        Darker red = more warming. Dots stack vertically where multiple parks
-        share a value. Filled dots are statistically significant at the 95% level.
+        Every park, positioned by its total temperature change since {startYear}.
+        Darker red = more warming. Italic, dimmer names are not statistically
+        significant at the 95% level. Names stack vertically where parks
+        share a value — hover for details, click to open.
       </p>
       <div class="swarm">
-        <svg id="swarm-svg" viewBox="0 0 1000 120" preserveAspectRatio="none"
-             width="100%" height="120"></svg>
+        <svg id="swarm-svg" viewBox="0 0 1000 200" preserveAspectRatio="xMidYMid meet"
+             width="100%" height="200"></svg>
         <div class="swarm-axis" id="swarm-axis"></div>
         <div class="swarm-axis-label">°F since {startYear}</div>
         <div id="swarm-tooltip" class="swarm-tooltip" role="tooltip"></div>
@@ -361,15 +362,15 @@ function sparklinePath(series: { value: number | null }[]): string {
       .catch(() => {});
   }
 
-  // Park-by-park swarm — one dot per park, positioned by total warming
-  // in °F since ~1980. Axis is scaled to the actual data range so dots
-  // fill the width legibly (every park warmed, so a ± axis wasted half
-  // its space). Colour ramp is sequential warm (off-white → deep red)
-  // rather than diverging, because zero-crossings aren't meaningful here.
-  function rampColor(valueF, minF, maxF) {
-    if (valueF == null || Number.isNaN(valueF)) return "#c9c3b0";
+  // Park-by-park swarm — every park's name, positioned by total warming
+  // in °F since ~1980. Text labels replace dots so the chart reads as a
+  // list instead of anonymous marks. Color ramp stays warm-sequential
+  // but starts at terracotta (not near-white) so low-warming labels are
+  // still legible on the near-white page background.
+  function labelColor(valueF, minF, maxF) {
+    if (valueF == null || Number.isNaN(valueF)) return "#8a8480";
     const t = Math.max(0, Math.min(1, (valueF - minF) / Math.max(1e-6, maxF - minF)));
-    const stops = [[0, [247, 240, 230]], [0.5, [214, 96, 77]], [1, [103, 0, 31]]];
+    const stops = [[0, [181, 97, 59]], [0.55, [170, 55, 45]], [1, [103, 0, 31]]];
     let a = stops[0], b = stops[stops.length - 1];
     for (let i = 0; i < stops.length - 1; i++) {
       if (t >= stops[i][0] && t <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
@@ -380,15 +381,19 @@ function sparklinePath(series: { value: number | null }[]): string {
     const bb = Math.round(a[1][2] + (b[1][2] - a[1][2]) * tt);
     return `rgb(${r},${g},${bb})`;
   }
+  // Strip trailing "National Park [and Preserve]" so labels stay short.
+  function shortName(n) {
+    return n.replace(/ National Park and Preserve$/, "")
+            .replace(/ National Park$/, "");
+  }
   const swarmSvg = document.getElementById("swarm-svg");
   const swarmAxis = document.getElementById("swarm-axis");
   if (swarmSvg && parkSwarm && parkSwarm.length) {
-    const W = 1000, H = 120;
-    const margin = { left: 20, right: 20, top: 12, bottom: 34 };
+    const W = 1000, H = 200;
+    const margin = { left: 20, right: 20, top: 16, bottom: 34 };
     const domain = swarmMaxF - swarmMinF;
     const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
-    const baselineY = H - margin.bottom;
-    const dotR = 5;
+    const baselineY = H - margin.bottom - 7;
     const svgNS = "http://www.w3.org/2000/svg";
 
     // Integer gridlines at every whole °F; populate the axis labels to match.
@@ -398,8 +403,8 @@ function sparklinePath(series: { value: number | null }[]): string {
       const line = document.createElementNS(svgNS, "line");
       line.setAttribute("x1", x); line.setAttribute("x2", x);
       line.setAttribute("y1", margin.top);
-      line.setAttribute("y2", baselineY);
-      line.setAttribute("stroke", v === 0 ? "#1e1e1e" : "#d9d5c8");
+      line.setAttribute("y2", H - margin.bottom);
+      line.setAttribute("stroke", v === 0 ? "#1e1e1e" : "#e2e0dc");
       line.setAttribute("stroke-width", v === 0 ? "1" : "0.5");
       line.setAttribute("stroke-dasharray", v === 0 ? "none" : "2 3");
       swarmSvg.appendChild(line);
@@ -415,50 +420,61 @@ function sparklinePath(series: { value: number | null }[]): string {
       }
     }
 
-    // Sort by total so collision resolution is stable left→right
-    const sorted = parkSwarm.slice().sort((a, b) => a.totalF - b.totalF);
-    const placed = [];
-    for (const park of sorted) {
-      const x = xScale(park.totalF);
-      let y = baselineY;
-      const collision = () => placed.some((q) => {
-        const dx = q.x - x;
-        const dy = q.y - y;
-        return (dx * dx + dy * dy) < (2 * dotR) * (2 * dotR);
-      });
-      while (collision() && y > margin.top + dotR) {
-        y -= dotR * 1.6;
-      }
-      placed.push({ x, y, ...park });
-    }
-
     const tooltip = document.getElementById("swarm-tooltip");
     const swarmWrap = swarmSvg.parentElement;
 
-    for (const p of placed) {
-      const color = rampColor(p.totalF, swarmMinF, swarmMaxF);
-      const dot = document.createElementNS(svgNS, "circle");
-      dot.setAttribute("cx", p.x);
-      dot.setAttribute("cy", p.y);
-      dot.setAttribute("r", dotR);
-      dot.setAttribute("fill", p.sig ? color : "#ffffff");
-      dot.setAttribute("stroke", p.sig ? "#1e1e1e" : color);
-      dot.setAttribute("stroke-width", p.sig ? "1" : "1.8");
-      dot.style.cursor = "pointer";
-      const label = `${p.unit_name} · +${p.totalF.toFixed(2)} °F${p.sig ? " · significant" : ""}`;
-      dot.addEventListener("mousemove", (e) => {
+    // Build labels left-to-right; each one stacks upward until it no
+    // longer overlaps a previously placed label's bounding box.
+    const sorted = parkSwarm.slice().sort((a, b) => a.totalF - b.totalF);
+    const placed = [];
+    const PAD_X = 3, PAD_Y = 1;
+    const FONT_SIZE = 11;
+    const LINE_STEP = 13;
+
+    for (const park of sorted) {
+      const x = xScale(park.totalF);
+      const text = document.createElementNS(svgNS, "text");
+      text.setAttribute("class", "park-label");
+      text.setAttribute("text-anchor", "middle");
+      text.setAttribute("dominant-baseline", "middle");
+      text.setAttribute("font-size", String(FONT_SIZE));
+      text.setAttribute("font-family", "Space Grotesk, sans-serif");
+      text.setAttribute("font-weight", park.sig ? "600" : "400");
+      text.setAttribute("font-style", park.sig ? "normal" : "italic");
+      text.setAttribute("fill", labelColor(park.totalF, swarmMinF, swarmMaxF));
+      text.setAttribute("fill-opacity", park.sig ? "1" : "0.55");
+      text.textContent = shortName(park.unit_name);
+      swarmSvg.appendChild(text);
+      const w = Math.max(24, text.getComputedTextLength());
+      const h = FONT_SIZE + 2;
+
+      let y = baselineY;
+      const hit = () => placed.some((q) => !(
+        x + w / 2 + PAD_X < q.x - q.w / 2 ||
+        x - w / 2 - PAD_X > q.x + q.w / 2 ||
+        y + h / 2 + PAD_Y < q.y - q.h / 2 ||
+        y - h / 2 - PAD_Y > q.y + q.h / 2
+      ));
+      while (hit() && y - LINE_STEP > margin.top + h / 2) {
+        y -= LINE_STEP;
+      }
+      text.setAttribute("x", String(x));
+      text.setAttribute("y", String(y));
+      placed.push({ x, y, w, h });
+
+      const tipLabel = `${park.unit_name} · +${park.totalF.toFixed(2)} °F${park.sig ? " · significant" : ""}`;
+      text.addEventListener("mousemove", (e) => {
         if (!tooltip || !swarmWrap) return;
         const rect = swarmWrap.getBoundingClientRect();
-        tooltip.textContent = label;
+        tooltip.textContent = tipLabel;
         tooltip.style.left = (e.clientX - rect.left) + "px";
         tooltip.style.top = (e.clientY - rect.top) + "px";
         tooltip.classList.add("active");
       });
-      dot.addEventListener("mouseleave", () => {
+      text.addEventListener("mouseleave", () => {
         if (tooltip) tooltip.classList.remove("active");
       });
-      dot.addEventListener("click", () => { window.location.href = `${base}parks/${p.slug}`; });
-      swarmSvg.appendChild(dot);
+      text.addEventListener("click", () => { window.location.href = `${base}parks/${park.slug}`; });
     }
   }
 </script>

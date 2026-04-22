@@ -519,10 +519,14 @@ canvas { max-width: 100%; }
 }
 .swarm { width: 100%; position: relative; }
 .swarm svg { display: block; margin-bottom: 0.15rem; }
-.swarm svg circle {
-  transition: stroke-width 150ms var(--ease-out), r 150ms var(--ease-out);
+.swarm svg .park-label {
+  cursor: pointer;
+  transition: fill-opacity 150ms var(--ease-out);
 }
-.swarm svg circle:hover { stroke-width: 2.5; r: 6.5; }
+.swarm svg .park-label:hover {
+  fill-opacity: 1 !important;
+  text-decoration: underline;
+}
 .swarm-tooltip {
   position: absolute;
   pointer-events: none;
@@ -753,7 +757,7 @@ table.data th {
   .chip, .chip:active,
   .toggle-chip, .toggle-chip:active,
   .downloads a, .downloads a:active,
-  .swarm svg circle, .swarm svg circle:hover {
+  .swarm svg .park-label, .swarm svg .park-label:hover {
     transition: none !important;
     transform: none !important;
   }
