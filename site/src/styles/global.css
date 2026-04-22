@@ -33,6 +33,10 @@
   --ice:         #dce8f0;
 
   --max-w: 1200px;
+
+  /* Custom easing curves — built-in CSS easings are too weak. */
+  --ease-out:    cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
 html, body {
@@ -56,7 +60,7 @@ h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.05; margin: 0 0 0.5re
 h2 { font-size: 1.8rem; margin: 2.8rem 0 0.7rem; line-height: 1.2; }
 h3 { font-size: 1.1rem; margin: 1.4rem 0 0.4rem; }
 
-a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+a { color: var(--accent); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 2px; transition: color 150ms ease; }
 a:hover { color: var(--canyon-deep); opacity: 1; }
 
 .container { max-width: var(--max-w); margin: 0 auto; padding: 0 2rem; }
@@ -208,9 +212,10 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   display: inline-block;
   cursor: pointer;
   line-height: 1;
-  transition: background 0.15s, color 0.15s;
+  transition: background 150ms ease, color 150ms ease, transform 160ms var(--ease-out);
 }
 .btn:hover { background: var(--ink); color: var(--paper); opacity: 1; }
+.btn:active { transform: scale(0.97); }
 .btn-filled { background: var(--ink); color: var(--paper); }
 .btn-filled:hover { background: transparent; color: var(--ink); }
 
@@ -231,17 +236,20 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  transition: background 200ms var(--ease-out), transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
   will-change: transform;
 }
 .park-card { position: relative; }
-.park-card:hover {
-  background: var(--card);
-  opacity: 1;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(13, 13, 12, 0.07);
-  z-index: 2;
+@media (hover: hover) and (pointer: fine) {
+  .park-card:hover {
+    background: var(--card);
+    opacity: 1;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(13, 13, 12, 0.07);
+    z-index: 2;
+  }
 }
+.park-card:active { transform: translateY(0) scale(0.99); }
 .card .park-card-top { display: flex; flex-direction: column; gap: 0.2rem; }
 .card .park-name {
   font-family: "Fraunces", Georgia, serif;
@@ -300,7 +308,8 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   gap: 1px;
   overflow: hidden;
   opacity: 1;
-  transition: opacity 0.2s ease;
+  filter: blur(0);
+  transition: opacity 220ms var(--ease-out), filter 220ms var(--ease-out);
 }
 .card .stripes div { flex: 1; }
 .card .park-sparkline {
@@ -309,10 +318,13 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   width: 100%;
   height: 100%;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  filter: blur(2px);
+  transition: opacity 220ms var(--ease-out), filter 220ms var(--ease-out);
 }
-.park-card:hover .stripes { opacity: 0; }
-.park-card:hover .park-sparkline { opacity: 1; }
+@media (hover: hover) and (pointer: fine) {
+  .park-card:hover .stripes { opacity: 0; filter: blur(2px); }
+  .park-card:hover .park-sparkline { opacity: 1; filter: blur(0); }
+}
 
 /* ── Region chips + toggles ── */
 .region-chips {
@@ -332,9 +344,10 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   border: 1px solid var(--rule);
   border-radius: 9999px;
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out);
 }
 .chip:hover { border-color: var(--ink); }
+.chip:active { transform: scale(0.97); }
 .chip.active {
   background: var(--ink);
   color: var(--paper);
@@ -351,9 +364,10 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   font-size: 0.76rem;
   cursor: pointer;
   user-select: none;
-  transition: background 0.12s, border-color 0.12s;
+  transition: background 150ms ease, border-color 150ms ease, transform 160ms var(--ease-out);
 }
 .toggle-chip:hover { border-color: var(--ink); }
+.toggle-chip:active { transform: scale(0.97); }
 .toggle-chip input {
   appearance: none;
   width: 14px;
@@ -505,7 +519,10 @@ canvas { max-width: 100%; }
 }
 .swarm { width: 100%; position: relative; }
 .swarm svg { display: block; margin-bottom: 0.15rem; }
-.swarm svg circle:hover { stroke-width: 2.5; }
+.swarm svg circle {
+  transition: stroke-width 150ms var(--ease-out), r 150ms var(--ease-out);
+}
+.swarm svg circle:hover { stroke-width: 2.5; r: 6.5; }
 .swarm-tooltip {
   position: absolute;
   pointer-events: none;
@@ -518,7 +535,7 @@ canvas { max-width: 100%; }
   white-space: nowrap;
   transform: translate(-50%, -130%);
   opacity: 0;
-  transition: opacity 0.12s;
+  transition: opacity 125ms var(--ease-out);
   z-index: 5;
 }
 .swarm-tooltip.active { opacity: 1; }
@@ -618,9 +635,10 @@ canvas { max-width: 100%; }
   text-decoration: none;
   color: var(--ink);
   background: var(--paper);
-  transition: border-color 0.13s, background 0.13s, color 0.13s;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 160ms var(--ease-out);
 }
 .downloads a:hover { border-color: var(--ink); background: var(--ink); color: var(--paper); opacity: 1; }
+.downloads a:active { transform: scale(0.97); }
 
 /* ── Climate stripes bar ── */
 .stripes-full {
@@ -721,6 +739,25 @@ table.data th {
   color: var(--muted);
   font-weight: 500;
   background: var(--card);
+}
+
+/* ── Leaflet park layers ── */
+.leaflet-interactive {
+  transition: fill-opacity 150ms var(--ease-out), stroke-width 150ms var(--ease-out);
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .card, .park-card, .park-card:hover,
+  .btn, .btn:active,
+  .chip, .chip:active,
+  .toggle-chip, .toggle-chip:active,
+  .downloads a, .downloads a:active,
+  .swarm svg circle, .swarm svg circle:hover {
+    transition: none !important;
+    transform: none !important;
+  }
+  .park-card:hover { box-shadow: none; }
 }
 
 /* ── Responsive ── */
