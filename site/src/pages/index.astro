@@ -171,7 +171,10 @@ function sparklinePath(series: { value: number | null }[]): string {
   <section class="container section" id="map-overview">
     <span class="kicker">Warming at a glance</span>
     <h2>Every park on the map — see each one's warming below</h2>
-    <div id="overview-map" style="height:520px;margin-top:1.2rem"></div>
+    <p style="color:var(--muted);max-width:720px">
+      Hover a park for its warming rate; click to open the full time series.
+    </p>
+    <div id="overview-map" style="height:520px"></div>
 
     <div class="swarm-wrap">
       <span class="kicker" style="display:block;margin-bottom:0.35rem">
