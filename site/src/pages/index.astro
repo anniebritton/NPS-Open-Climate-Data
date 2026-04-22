@@ -419,7 +419,7 @@ function sparklinePath(series: { value: number | null }[]): string {
     const margin = { left: 20, right: 20, top: 16, bottom: 34 };
     const domain = swarmMaxF - swarmMinF;
     const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
-    const baselineY = H - margin.bottom - 7;
+    const midlineY = (margin.top + (H - margin.bottom)) / 2;
     const svgNS = "http://www.w3.org/2000/svg";
 
     // Integer gridlines at every whole °F; populate the axis labels to match.
@@ -452,13 +452,37 @@ function sparklinePath(series: { value: number | null }[]): string {
     const tooltip = document.getElementById("swarm-tooltip");
     const swarmWrap = swarmSvg.parentElement;
 
-    // Build labels left-to-right; each one stacks upward until it no
-    // longer overlaps a previously placed label's bounding box.
+    // Build labels left-to-right; each one is placed at the y closest to
+    // the midline where it doesn't overlap a previously placed label —
+    // search alternates above and below the midline so dense clusters
+    // fan out symmetrically instead of stacking into a tall column.
     const sorted = parkSwarm.slice().sort((a, b) => a.totalF - b.totalF);
     const placed = [];
     const PAD_X = 3, PAD_Y = 1;
     const FONT_SIZE = 11;
     const LINE_STEP = 13;
+    const yTopBound = margin.top;
+    const yBotBound = H - margin.bottom - 2;
+
+    function overlapsAny(x, y, w, h) {
+      return placed.some((q) => !(
+        x + w / 2 + PAD_X < q.x - q.w / 2 ||
+        x - w / 2 - PAD_X > q.x + q.w / 2 ||
+        y + h / 2 + PAD_Y < q.y - q.h / 2 ||
+        y - h / 2 - PAD_Y > q.y + q.h / 2
+      ));
+    }
+    function findY(x, w, h) {
+      // k = 0, -1, +1, -2, +2, -3, +3 … walking outward from midline.
+      for (let k = 0; k < 80; k++) {
+        const step = k === 0 ? 0
+          : (k % 2 === 1 ? -Math.ceil(k / 2) : Math.ceil(k / 2));
+        const y = midlineY + step * LINE_STEP;
+        if (y - h / 2 < yTopBound || y + h / 2 > yBotBound) continue;
+        if (!overlapsAny(x, y, w, h)) return y;
+      }
+      return midlineY;
+    }
 
     for (const park of sorted) {
       const x = xScale(park.totalF);
@@ -477,16 +501,7 @@ function sparklinePath(series: { value: number | null }[]): string {
       const w = Math.max(24, text.getComputedTextLength());
       const h = FONT_SIZE + 2;
 
-      let y = baselineY;
-      const hit = () => placed.some((q) => !(
-        x + w / 2 + PAD_X < q.x - q.w / 2 ||
-        x - w / 2 - PAD_X > q.x + q.w / 2 ||
-        y + h / 2 + PAD_Y < q.y - q.h / 2 ||
-        y - h / 2 - PAD_Y > q.y + q.h / 2
-      ));
-      while (hit() && y - LINE_STEP > margin.top + h / 2) {
-        y -= LINE_STEP;
-      }
+      const y = findY(x, w, h);
       text.setAttribute("x", String(x));
       text.setAttribute("y", String(y));
       placed.push({ x, y, w, h });
