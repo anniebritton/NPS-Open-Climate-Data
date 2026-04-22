@@ -206,8 +206,8 @@ function sparklinePath(series: { value: number | null }[]): string {
         share a value — hover for details, click to open.
       </p>
       <div class="swarm">
-        <svg id="swarm-svg" viewBox="0 0 1000 200" preserveAspectRatio="xMidYMid meet"
-             width="100%" height="200"></svg>
+        <svg id="swarm-svg" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet"
+             width="100%" height="300"></svg>
         <div class="swarm-axis" id="swarm-axis"></div>
         <div class="swarm-axis-label">°F since {startYear}</div>
         <div id="swarm-tooltip" class="swarm-tooltip" role="tooltip"></div>
@@ -370,7 +370,14 @@ function sparklinePath(series: { value: number | null }[]): string {
   function labelColor(valueF, minF, maxF) {
     if (valueF == null || Number.isNaN(valueF)) return "#8a8480";
     const t = Math.max(0, Math.min(1, (valueF - minF) / Math.max(1e-6, maxF - minF)));
-    const stops = [[0, [181, 97, 59]], [0.55, [170, 55, 45]], [1, [103, 0, 31]]];
+    // Yellow-gold → orange → red → deep maroon. All four stops are
+    // dark enough to stay readable on the near-white page (#fcfcfc).
+    const stops = [
+      [0.00, [186, 135, 20]],
+      [0.33, [205, 100, 20]],
+      [0.66, [180, 40, 35]],
+      [1.00, [103, 10, 25]],
+    ];
     let a = stops[0], b = stops[stops.length - 1];
     for (let i = 0; i < stops.length - 1; i++) {
       if (t >= stops[i][0] && t <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
@@ -389,7 +396,7 @@ function sparklinePath(series: { value: number | null }[]): string {
   const swarmSvg = document.getElementById("swarm-svg");
   const swarmAxis = document.getElementById("swarm-axis");
   if (swarmSvg && parkSwarm && parkSwarm.length) {
-    const W = 1000, H = 200;
+    const W = 1000, H = 300;
     const margin = { left: 20, right: 20, top: 16, bottom: 34 };
     const domain = swarmMaxF - swarmMinF;
     const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
@@ -397,17 +404,20 @@ function sparklinePath(series: { value: number | null }[]): string {
     const svgNS = "http://www.w3.org/2000/svg";
 
     // Integer gridlines at every whole °F; populate the axis labels to match.
+    // Skip the line at 0 — the axis label alone anchors it.
     if (swarmAxis) swarmAxis.innerHTML = "";
     for (let v = swarmMinF; v <= swarmMaxF; v++) {
       const x = xScale(v);
-      const line = document.createElementNS(svgNS, "line");
-      line.setAttribute("x1", x); line.setAttribute("x2", x);
-      line.setAttribute("y1", margin.top);
-      line.setAttribute("y2", H - margin.bottom);
-      line.setAttribute("stroke", v === 0 ? "#1e1e1e" : "#e2e0dc");
-      line.setAttribute("stroke-width", v === 0 ? "1" : "0.5");
-      line.setAttribute("stroke-dasharray", v === 0 ? "none" : "2 3");
-      swarmSvg.appendChild(line);
+      if (v !== 0) {
+        const line = document.createElementNS(svgNS, "line");
+        line.setAttribute("x1", x); line.setAttribute("x2", x);
+        line.setAttribute("y1", margin.top);
+        line.setAttribute("y2", H - margin.bottom);
+        line.setAttribute("stroke", "#e2e0dc");
+        line.setAttribute("stroke-width", "0.5");
+        line.setAttribute("stroke-dasharray", "2 3");
+        swarmSvg.appendChild(line);
+      }
 
       if (swarmAxis) {
         const span = document.createElement("span");
