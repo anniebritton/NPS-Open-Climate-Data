@@ -386,13 +386,15 @@ canvas { max-width: 100%; }
   height: 8px;
   border-radius: 2px;
   margin-top: 0.35rem;
+  /* ColorBrewer RdBu diverging — matches the home-page map ramp and the
+     climate stripes palette. */
   background: linear-gradient(
     to right,
-    rgb(61, 97, 137) 0%,
-    rgb(168, 196, 232) 25%,
-    rgb(233, 230, 224) 50%,
-    rgb(181, 97, 59) 75%,
-    rgb(122, 60, 32) 100%
+    rgb(5, 48, 97) 0%,
+    rgb(67, 147, 195) 25%,
+    rgb(247, 247, 247) 50%,
+    rgb(214, 96, 77) 75%,
+    rgb(103, 0, 31) 100%
   );
 }
 .legend-ticks {

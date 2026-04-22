@@ -208,9 +208,11 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
     if (slopeF == null || Number.isNaN(slopeF)) return "#c9c3b0";
     // Clamp to ±0.072 °F/yr (≈ ±0.04 °C/yr); red for warming, blue for cooling.
     const v = Math.max(-0.072, Math.min(0.072, slopeF)) / 0.072;
+    // ColorBrewer RdBu diverging (deep blue → white → deep red) — matches
+    // the climate stripes palette for site-wide consistency.
     const stops = v < 0
-      ? [[-1, [61, 97, 137]], [-0.5, [168, 196, 232]], [0, [240, 227, 211]]]
-      : [[0, [240, 227, 211]], [0.5, [232, 176, 140]], [1, [77, 38, 35]]];
+      ? [[-1, [5, 48, 97]], [-0.5, [67, 147, 195]], [0, [247, 247, 247]]]
+      : [[0, [247, 247, 247]], [0.5, [214, 96, 77]], [1, [103, 0, 31]]];
     let a = stops[0], b = stops[stops.length - 1];
     for (let i = 0; i < stops.length - 1; i++) {
       if (v >= stops[i][0] && v <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }

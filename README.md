@@ -25,12 +25,15 @@ nps_climate_data/        # Python package
   carbon.py              # Footprint estimator (EE + local + Claude + hosting)
 
 scripts/
-  01_export_all_parks.py # Run the EE batch export (needs credentials)
+  01_export_all_parks.py # Submit EE batch export tasks (needs credentials)
   02_build_site_data.py  # Build analysis summaries
   03_generate_demo_data.py # Synthetic data for demoing the site
   04_write_carbon.py     # Dump carbon.json for the site
-  05_generate_boundaries.py # Approx. park-boundary GeoJSONs for the maps
+  05_generate_boundaries.py # Merge headline slopes; fallback to circles
+  06_extract_padus_from_gdb.py # Real polygons from local PAD-US 4.1 GDB
+  07_download_from_drive.py # Pull completed EE exports from Google Drive
 
+pipeline.ipynb           # End-to-end notebook (recommended entry point)
 site/                    # Astro static site, deployed to GitHub Pages
 tests/                   # pytest suite (no network / no EE required)
 .github/workflows/       # CI + GH Pages deploy
@@ -110,6 +113,35 @@ The suite covers:
 Parks with disjoint geometry (Saguaro, Channel Islands, Kings Canyon,
 etc.) are split by `ee.Geometry.geometries()` so each polygon gets its
 own time series, in addition to the union-level summary.
+
+## Known issues / Open items
+
+- **4 parks missing climate data.** Gateway Arch, Indiana Dunes, New
+  River Gorge, and White Sands were skipped in the first full EE batch
+  because their boundary lookup failed — they were redesignated as
+  national parks between 2018 and 2020 and PAD-US lists some of them
+  under their prior designation. Aliases have been added to
+  `utils.py`; re-submitting the EE tasks for just these slugs (see
+  `pipeline.ipynb`, A2-full with `slugs=[...]`) will fill the gap.
+  Their boundaries are already on the site (from PAD-US 4.1 GDB), only
+  the climate time-series are absent.
+- **3 tiny-island parks have no temperature signal.** American Samoa,
+  Dry Tortugas, and Virgin Islands fall inside ERA5-Land pixels that
+  are sea-masked because the land fraction is too low for the ~11 km
+  native grid, and DAYMET doesn't cover the offshore islands. The
+  parks render on the overview map but their per-park temperature
+  charts are empty. Fix options: pull from ERA5-Single-Levels (which
+  isn't land-masked), nearest-neighbour an adjacent coastal pixel, or
+  switch to MERRA-2.
+- **Raw CSV download links will 404.** The gzipped per-park CSVs total
+  ~134 MB, too large to commit. Per-park pages link to
+  `/data/raw/<slug>/<slug>.csv.gz` but those files aren't shipped.
+  Fix: host the CSVs on a GitHub Release or a static bucket and update
+  the link target.
+- **`03_generate_demo_data.py` is deprecated.** The deployed site now
+  uses real committed data; the synthetic-data path in the notebook
+  has been removed. The script still works for anyone who wants a
+  quick preview without EE, but it's not part of the main flow.
 
 ## Authors
 
