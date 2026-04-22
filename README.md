@@ -174,6 +174,27 @@ own time series, in addition to the union-level summary.
   stage. Keep a worked example (Acadia) at the bottom as a
   scrollytelling sequence.
 
+## Reporting issues
+
+Bug reports, data questions, and feature requests all go on GitHub:
+**<https://github.com/anniebritton/NPS-Open-Climate-Data/issues>**
+
+Before opening a new issue, please
+[search existing issues](https://github.com/anniebritton/NPS-Open-Climate-Data/issues?q=is%3Aissue)
+to avoid duplicates. When you [file a new one](https://github.com/anniebritton/NPS-Open-Climate-Data/issues/new),
+the more of the following you can include, the faster it gets resolved:
+
+- **Site bug** — the page URL, your browser + OS, and a screenshot or
+  the browser console output.
+- **Data / trend question** — the park slug and variable (e.g.
+  `yellowstone`, `tmean_c`), plus a link to the per-park page.
+- **Pipeline / reproducibility** — the exact command that failed, your
+  Python version, and whether you were running the Earth Engine batch
+  or the `03_generate_demo_data.py` demo path.
+
+Pull requests are welcome. For non-trivial changes, open an issue
+first so we can agree on scope before you invest the time.
+
 ## Authors
 
 - **Annie Britton** — project lead, analysis design, site
