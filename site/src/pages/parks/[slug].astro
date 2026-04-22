@@ -170,19 +170,15 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
   <section class="container section">
     <h2>Download the data</h2>
     <p style="color:var(--muted)">
-      Daily raw series (1980–{period.end_year}) and analysis summary, all open-licensed.
+      Everything on this page is open-licensed. The summary JSON is
+      served directly; the daily raw CSVs (~2 MB gzipped each) are too
+      large to commit to the repo — for now, run the EE pipeline
+      locally via <code>pipeline.ipynb</code>.
     </p>
     <div class="downloads">
-      <a href={`${base}data/raw/${summary.slug}/${summary.slug}.csv.gz`} download>Daily CSV (gzip)</a>
       <a href={`${base}data/parks/${summary.slug}.json`} download>Summary JSON</a>
-      {summary.multipart && summary.parts.map((p: string) => (
-        <a href={`${base}data/raw/${summary.slug}/${summary.slug}_${p}.csv.gz`} download>CSV · {p}</a>
-      ))}
+      <a href={`${base}data/boundaries/${summary.slug}.geojson`} download>Boundary GeoJSON</a>
     </div>
-    <p style="color:var(--muted);font-size:0.82rem;margin-top:0.4rem">
-      Parquet downloads and full boundary GeoJSON are attached to the
-      <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/releases">GitHub release</a>.
-    </p>
     <p style="color:var(--muted);font-size:0.88rem;margin-top:1rem">
       Citation: {summary.unit_name} climate series, Open Climate Data — US National Parks,
       derived from DAYMET v4 (Thornton et al.) and ERA5-Land (Muñoz-Sabater et al.).

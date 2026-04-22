@@ -17,25 +17,40 @@ const base = import.meta.env.BASE_URL;
 
     <h2>Downloads</h2>
     <ul>
-      <li><strong>Per park JSON summary</strong>: <code>{base}data/parks/&lt;slug&gt;.json</code> — annual + seasonal series, trends, anomalies, stripes.</li>
-      <li><strong>Per park daily CSV (gzip)</strong>: <code>{base}data/raw/&lt;slug&gt;/&lt;slug&gt;.csv.gz</code> — daily values, all canonical variables.</li>
-      <li><strong>Parquet + GeoJSON boundaries</strong>: attached to the
-        latest <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/releases">GitHub release</a>.</li>
+      <li><strong>Per-park JSON summary</strong>: <code>{base}data/parks/&lt;slug&gt;.json</code> — annual + seasonal series, trends, anomalies, stripes. Temperatures are stored in °C (SI); the site converts to °F at render.</li>
+      <li><strong>Park boundary GeoJSON</strong>: <code>{base}data/boundaries/&lt;slug&gt;.geojson</code> — real PAD-US 4.1 proclamation polygons, simplified to 50 m.</li>
+      <li><strong>Combined overview</strong>: <code>{base}data/boundaries/all_parks.geojson</code> — every park's polygon plus its headline warming slopes as properties.</li>
+      <li><strong>Per-park daily CSV (gzip)</strong>: we generate these (~134 MB total) but they aren't currently hosted. Run the pipeline locally or reach out.</li>
     </ul>
 
     <h2>Reproducing the analysis</h2>
+    <p style="color:var(--muted);max-width:720px">
+      The full end-to-end flow — auth, EE task submission, download from
+      Drive, analysis, and site build — lives in <code>pipeline.ipynb</code>
+      at the repo root. A condensed terminal version:
+    </p>
     <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`git clone https://github.com/anniebritton/NPS-Open-Climate-Data
 cd NPS-Open-Climate-Data
 pip install -e .
 
-# 1. Export daily data for every national park (requires EE auth).
-earthengine authenticate
+# 1. Submit serverless EE export tasks (needs a GCP project with EE enabled).
+#    Runs on Google's servers; close the laptop after submit.
+python -c "import ee; ee.Authenticate(auth_mode='localhost'); ee.Initialize(project='YOUR_PROJECT')"
 python scripts/01_export_all_parks.py --start 1980-01-01
 
-# 2. Build annual/seasonal aggregates, trend tests, site JSON.
+# 2. When the tasks show COMPLETED at code.earthengine.google.com/tasks,
+#    pull the CSVs from Drive (needs gcloud ADC with Drive scope).
+python scripts/07_download_from_drive.py --drive-folder NPS_Climate_Data
+
+# 3. Aggregate, run trend tests, write site JSON.
 python scripts/02_build_site_data.py
 
-# 3. Build and preview the static site locally.
+# 4. Extract real PAD-US boundaries from a local v4.1 GDB (optional —
+#    committed boundaries are already in the repo).
+python scripts/06_extract_padus_from_gdb.py
+python scripts/05_generate_boundaries.py
+
+# 5. Build and preview the static site locally.
 cd site && npm install && npm run dev
 `}</pre>
 
@@ -55,7 +70,7 @@ per_unit = nps.get_park_data("saguaro")`}</pre>
       Britton, A., &amp; Pritchard, I. (2026). <em>Open Climate Data — US National Parks:
       Pre-processed climate trends for all US National Parks.</em> Derived
       from DAYMET v4 and ERA5-Land via Google Earth Engine, with
-      boundaries from USGS PAD-US v20. MIT license.
+      boundaries from USGS PAD-US 4.1. MIT license.
     </div>
 
     <h2>Contributors</h2>

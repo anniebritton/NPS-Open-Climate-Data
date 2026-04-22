@@ -37,26 +37,37 @@ const base = import.meta.env.BASE_URL;
         <code>total_evaporation_sum</code>, <code>potential_evaporation_sum</code>.
       </li>
       <li>
-        <strong>USGS PAD-US v20 proclamation</strong> — official park
-        boundaries. We match by <code>Unit_Nm</code> with alias handling
-        for Alaskan "National Park and Preserve" units, and restrict to
-        NPS-managed polygons.
+        <strong>USGS PAD-US 4.1 proclamation</strong> — official park
+        boundaries, extracted from the published File Geodatabase. We
+        match by <code>Unit_Nm</code> with alias handling for Alaskan
+        "National Park and Preserve" units and for the four parks
+        redesignated between 2018 and 2020 (Gateway Arch, Indiana
+        Dunes, New River Gorge, White Sands). Features are restricted
+        to NPS-managed polygons, dissolved per park for multi-district
+        units, simplified to 50 m in the native Albers CRS, then
+        reprojected to WGS84.
       </li>
     </ul>
 
     <h2>Earth Engine pipeline</h2>
     <p>
-      For each park we load the PAD-US feature collection, split disjoint
-      sub-units (e.g. Saguaro NP's Rincon and Tucson districts or the five
-      islands of Channel Islands NP), and reduce each dataset over the
-      geometry with <code>ee.Reducer.mean()</code> at the native grid
-      scale (1 km DAYMET, 11 km ERA5-Land) using
-      <code>bestEffort=True</code> and <code>maxPixels=1e13</code>. Daily
-      means (non-flow bands) and daily sums (flow bands ending in
-      <code>_sum</code>) are preserved as documented by ECMWF/Copernicus.
-      Exports are chunked in 5-year windows to stay under Earth Engine's
-      interactive response limits, with end dates treated as
-      <em>exclusive</em> (the EE convention).
+      For each park we load the boundary, split disjoint sub-units
+      (e.g. Saguaro NP's Rincon and Tucson districts or the five
+      islands of Channel Islands NP), and reduce each dataset over
+      the geometry with <code>ee.Reducer.mean()</code> at the native
+      grid scale (1 km DAYMET, 11 km ERA5-Land) using
+      <code>bestEffort=True</code> and <code>maxPixels=1e13</code>.
+      Daily means (non-flow bands) and daily sums (flow bands ending
+      in <code>_sum</code>) are preserved as documented by
+      ECMWF/Copernicus.
+    </p>
+    <p>
+      Exports run as <strong>serverless Earth Engine batch tasks</strong>
+      (<code>ee.batch.Export.table.toDrive</code>) with an explicit
+      <code>selectors</code> list so the CSV writer emits one column
+      per dataset band — essential for our merged DAYMET + ERA5
+      collection. End dates are passed to <code>filterDate</code>
+      exclusively, the EE convention.
     </p>
 
     <h2>Unit conversions</h2>
@@ -134,7 +145,7 @@ const base = import.meta.env.BASE_URL;
         Muñoz Sabater, J. (2019). <em>ERA5-Land hourly data from 1950 to present.</em> Copernicus Climate Change Service (C3S) CDS.
       </li>
       <li>
-        U.S. Geological Survey, Gap Analysis Project. <em>PAD-US: Protected Areas Database of the United States v2.0.</em>
+        U.S. Geological Survey, Gap Analysis Project. <em>PAD-US 4.1: Protected Areas Database of the United States.</em>
       </li>
     </ul>
   </section>
