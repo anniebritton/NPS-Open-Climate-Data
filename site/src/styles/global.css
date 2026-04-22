@@ -392,14 +392,14 @@ canvas { max-width: 100%; }
 .swarm svg { display: block; margin-bottom: 0.15rem; }
 .swarm svg circle:hover { stroke-width: 2.5; }
 .swarm-axis {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 1.2em;
   font-family: "Space Grotesk", sans-serif;
   font-size: 0.72rem;
   color: var(--muted);
   letter-spacing: 0.02em;
-  padding: 0 1rem;
 }
+.swarm-axis span { white-space: nowrap; }
 .swarm-axis-label {
   text-align: center;
   font-family: "Space Grotesk", sans-serif;

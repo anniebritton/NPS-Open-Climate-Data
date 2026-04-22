@@ -124,7 +124,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
   <section class="container section">
     <h2>Time series</h2>
     <div class="chart-wrap">
-      <div class="title">Annual mean temperature (°F) + Theil–Sen trend</div>
+      <div class="title">Annual mean temperature (°F) with best-fit trend <span style="font-weight:400;color:var(--muted);font-size:0.72em">(Theil–Sen)</span></div>
       <canvas id="chart-tmean" height="260"></canvas>
     </div>
     <div class="chart-wrap">
@@ -207,7 +207,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         const intercept = trend.intercept;
         const trendY = years.map((y) => slope * y + intercept);
         datasets.push({
-          label: `Theil–Sen trend (${slope >= 0 ? "+" : ""}${slope.toFixed(3)}/yr)`,
+          label: `Best-fit trend (${slope >= 0 ? "+" : ""}${slope.toFixed(3)}/yr)`,
           data: trendY,
           borderColor: "#0d0d0c",
           borderDash: [6, 4],
@@ -245,23 +245,10 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         maxZoom: 14,
       }).addTo(map);
 
-      const slope = summary.headline_trends?.tmean_c?.slope_per_year ?? null;
-      const warmFill = (() => {
-        if (slope == null) return "#c9c3b0";
-        const v = Math.max(-0.04, Math.min(0.04, slope)) / 0.04;
-        if (v >= 0) {
-          const t = v;
-          const r = Math.round(240 + (77 - 240) * t);
-          const g = Math.round(227 + (38 - 227) * t);
-          const b = Math.round(211 + (35 - 211) * t);
-          return `rgb(${r},${g},${b})`;
-        }
-        const t = -v;
-        const r = Math.round(240 + (61 - 240) * t);
-        const g = Math.round(227 + (97 - 227) * t);
-        const b = Math.round(211 + (137 - 211) * t);
-        return `rgb(${r},${g},${b})`;
-      })();
+      // Neutral boundary styling everywhere on the site: muted fill,
+      // crisp dark outline. The map is a locator, not a data viz.
+      const NEUTRAL_FILL = "#c9c3b0";
+      const BOUNDARY_STROKE = "#1e1e1e";
 
       fetch(`${base}data/boundaries/${summary.slug}.geojson`)
         .then((r) => (r.ok ? r.json() : null))
@@ -270,17 +257,13 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
             mapEl.innerHTML = '<div style="padding:1rem;color:var(--muted)">Boundary GeoJSON not bundled yet; see GitHub for full boundaries.</div>';
             return;
           }
-          // For multipart parks, vary fill lightness so sub-units read as distinct.
-          let idx = 0;
-          const subShades = ["#2a6041", "#b5613b", "#4a7fa5", "#7a3c20", "#8ab5d4"];
           const layer = L.geoJSON(geo, {
-            style: () => {
-              const style = summary.multipart
-                ? { color: "#0d0d0c", weight: 1.5, fillColor: subShades[idx % subShades.length], fillOpacity: 0.55 }
-                : { color: "#0d0d0c", weight: 1.5, fillColor: warmFill, fillOpacity: 0.8 };
-              idx += 1;
-              return style;
-            },
+            style: () => ({
+              color: BOUNDARY_STROKE,
+              weight: 1.5,
+              fillColor: NEUTRAL_FILL,
+              fillOpacity: 0.5,
+            }),
           }).addTo(map);
           map.fitBounds(layer.getBounds(), { padding: [20, 20] });
         });

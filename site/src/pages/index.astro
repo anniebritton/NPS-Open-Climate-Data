@@ -73,17 +73,20 @@ function stateSearchKey(code: string): string {
   return words.filter(Boolean).join(" ");
 }
 
-// Compute slope positions for the creative warming swarm.
-const parkSlopes = parks.map((p) => ({
+// Data for the park-by-park swarm. Every US National Park in the record
+// warmed, so a slope-based ±axis wastes half its width on an empty
+// cooling side. Use total °F change instead (matches the headline stat)
+// and scale the axis to the actual data range, rounded up to the next
+// whole degree.
+const parkSwarm = parks.map((p) => ({
   slug: p.slug,
   unit_name: p.unit_name,
   state: p.state,
-  slopeF: cDeltaToF(p.headline_trends?.tmean_c?.slope_per_year) ?? null,
+  totalF: cDeltaToF(p.headline_trends?.tmean_c?.total_change) ?? null,
   sig: p.headline_trends?.tmean_c?.significant_95 ?? false,
-})).filter((x) => x.slopeF != null) as { slug: string; unit_name: string; state: string; slopeF: number; sig: boolean }[];
-const SWARM_CLAMP_F = 0.072;  // ±0.072 °F/yr — matches the old ramp scale
-const swarmMin = Math.max(-SWARM_CLAMP_F, Math.min(...parkSlopes.map((p) => p.slopeF)));
-const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slopeF)));
+})).filter((x) => x.totalF != null) as { slug: string; unit_name: string; state: string; totalF: number; sig: boolean }[];
+const swarmMaxF = Math.max(1, Math.ceil(Math.max(...parkSwarm.map((p) => p.totalF))));
+const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.totalF))));
 ---
 <Base title="Open Climate Data — Climate Trends in US National Parks">
   <section class="hero">
@@ -152,24 +155,18 @@ const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slo
 
     <div class="swarm-wrap">
       <span class="kicker" style="display:block;margin-bottom:0.35rem">
-        Annual mean temperature slope, park by park
+        Total warming per park, {startYear}–{endYear}
       </span>
       <p style="color:var(--muted);font-size:0.85rem;max-width:640px;margin-bottom:1rem">
-        One dot per park. Position = warming rate (°F per year). Color reinforces
-        position, blue → red. Parks stacked vertically where multiple share a slope
-        value. Filled dots are significant at the 95% level.
+        One dot per park, positioned by total temperature change since {startYear}.
+        Darker red = more warming. Dots stack vertically where multiple parks
+        share a value. Filled dots are statistically significant at the 95% level.
       </p>
       <div class="swarm" aria-hidden="true">
         <svg id="swarm-svg" viewBox="0 0 1000 120" preserveAspectRatio="none"
              width="100%" height="120"></svg>
-        <div class="swarm-axis">
-          <span>−0.07</span>
-          <span>−0.035</span>
-          <span style="color:var(--ink)">0</span>
-          <span>+0.035</span>
-          <span>+0.07</span>
-        </div>
-        <div class="swarm-axis-label">°F / yr</div>
+        <div class="swarm-axis" id="swarm-axis"></div>
+        <div class="swarm-axis-label">°F since {startYear}</div>
       </div>
     </div>
   </section>
@@ -254,7 +251,7 @@ const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slo
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script define:vars={{ base, parkSlopes, swarmClamp: 0.072 }} is:inline>
+<script define:vars={{ base, parkSwarm, swarmMinF, swarmMaxF }} is:inline>
   // National overview map — all 63 parks in a single neutral fill. Dot-swarm
   // below the map carries the warming-slope signal, so the map is free to
   // just be "where each park is."
@@ -276,8 +273,8 @@ const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slo
           style: () => ({
             color: "#1e1e1e",
             weight: 1,
-            fillColor: "#ff603a",
-            fillOpacity: 0.58,
+            fillColor: "#c9c3b0",
+            fillOpacity: 0.55,
           }),
           onEachFeature: (f, lyr) => {
             const p = f.properties;
@@ -287,65 +284,73 @@ const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slo
               : "no trend data";
             lyr.bindTooltip(`<strong>${p.unit_name}</strong><br/>${slopeStr}`, { sticky: true });
             lyr.on("click", () => { window.location.href = `${base}parks/${p.slug}`; });
-            lyr.on("mouseover", () => lyr.setStyle({ weight: 2, fillOpacity: 0.78 }));
-            lyr.on("mouseout", () => lyr.setStyle({ weight: 1, fillOpacity: 0.58 }));
+            lyr.on("mouseover", () => lyr.setStyle({ weight: 2, fillOpacity: 0.75 }));
+            lyr.on("mouseout", () => lyr.setStyle({ weight: 1, fillOpacity: 0.55 }));
           },
         }).addTo(map);
       })
       .catch(() => {});
   }
 
-  // "Warming at a glance" dot-swarm legend — one dot per park, positioned
-  // along a slope axis, colored by the same RdBu ramp the stripes use.
-  // Dots collide-resolve vertically so overlapping slopes stack legibly.
-  function rampColor(slopeF) {
-    if (slopeF == null || Number.isNaN(slopeF)) return "#c9c3b0";
-    const v = Math.max(-swarmClamp, Math.min(swarmClamp, slopeF)) / swarmClamp;
-    const stops = v < 0
-      ? [[-1, [5, 48, 97]], [-0.5, [67, 147, 195]], [0, [247, 247, 247]]]
-      : [[0, [247, 247, 247]], [0.5, [214, 96, 77]], [1, [103, 0, 31]]];
+  // Park-by-park swarm — one dot per park, positioned by total warming
+  // in °F since ~1980. Axis is scaled to the actual data range so dots
+  // fill the width legibly (every park warmed, so a ± axis wasted half
+  // its space). Colour ramp is sequential warm (off-white → deep red)
+  // rather than diverging, because zero-crossings aren't meaningful here.
+  function rampColor(valueF, minF, maxF) {
+    if (valueF == null || Number.isNaN(valueF)) return "#c9c3b0";
+    const t = Math.max(0, Math.min(1, (valueF - minF) / Math.max(1e-6, maxF - minF)));
+    const stops = [[0, [247, 240, 230]], [0.5, [214, 96, 77]], [1, [103, 0, 31]]];
     let a = stops[0], b = stops[stops.length - 1];
     for (let i = 0; i < stops.length - 1; i++) {
-      if (v >= stops[i][0] && v <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
+      if (t >= stops[i][0] && t <= stops[i + 1][0]) { a = stops[i]; b = stops[i + 1]; break; }
     }
-    const t = (v - a[0]) / ((b[0] - a[0]) || 1);
-    const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * t);
-    const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * t);
-    const bb = Math.round(a[1][2] + (b[1][2] - a[1][2]) * t);
+    const tt = (t - a[0]) / ((b[0] - a[0]) || 1);
+    const r = Math.round(a[1][0] + (b[1][0] - a[1][0]) * tt);
+    const g = Math.round(a[1][1] + (b[1][1] - a[1][1]) * tt);
+    const bb = Math.round(a[1][2] + (b[1][2] - a[1][2]) * tt);
     return `rgb(${r},${g},${bb})`;
   }
   const swarmSvg = document.getElementById("swarm-svg");
-  if (swarmSvg && parkSlopes) {
+  const swarmAxis = document.getElementById("swarm-axis");
+  if (swarmSvg && parkSwarm && parkSwarm.length) {
     const W = 1000, H = 120;
-    const margin = { left: 16, right: 16, top: 12, bottom: 34 };
-    const xScale = (slope) => {
-      const clamped = Math.max(-swarmClamp, Math.min(swarmClamp, slope));
-      const t = (clamped + swarmClamp) / (2 * swarmClamp);
-      return margin.left + t * (W - margin.left - margin.right);
-    };
+    const margin = { left: 20, right: 20, top: 12, bottom: 34 };
+    const domain = swarmMaxF - swarmMinF;
+    const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
     const baselineY = H - margin.bottom;
     const dotR = 5;
-
-    // Gridlines + zero tick
     const svgNS = "http://www.w3.org/2000/svg";
-    for (const frac of [0, 0.25, 0.5, 0.75, 1]) {
-      const x = margin.left + frac * (W - margin.left - margin.right);
+
+    // Integer gridlines at every whole °F; populate the axis labels to match.
+    if (swarmAxis) swarmAxis.innerHTML = "";
+    for (let v = swarmMinF; v <= swarmMaxF; v++) {
+      const x = xScale(v);
       const line = document.createElementNS(svgNS, "line");
       line.setAttribute("x1", x); line.setAttribute("x2", x);
       line.setAttribute("y1", margin.top);
       line.setAttribute("y2", baselineY);
-      line.setAttribute("stroke", frac === 0.5 ? "#1e1e1e" : "#d9d5c8");
-      line.setAttribute("stroke-width", frac === 0.5 ? "1" : "0.5");
-      line.setAttribute("stroke-dasharray", frac === 0.5 ? "none" : "2 3");
+      line.setAttribute("stroke", v === 0 ? "#1e1e1e" : "#d9d5c8");
+      line.setAttribute("stroke-width", v === 0 ? "1" : "0.5");
+      line.setAttribute("stroke-dasharray", v === 0 ? "none" : "2 3");
       swarmSvg.appendChild(line);
+
+      if (swarmAxis) {
+        const span = document.createElement("span");
+        span.textContent = `+${v}°F`;
+        if (v === 0) span.textContent = "0";
+        span.style.position = "absolute";
+        span.style.left = `${(x / W) * 100}%`;
+        span.style.transform = "translateX(-50%)";
+        swarmAxis.appendChild(span);
+      }
     }
 
-    // Sort by slope so collision resolution is stable left→right
-    const sorted = parkSlopes.slice().sort((a, b) => a.slopeF - b.slopeF);
+    // Sort by total so collision resolution is stable left→right
+    const sorted = parkSwarm.slice().sort((a, b) => a.totalF - b.totalF);
     const placed = [];
     for (const park of sorted) {
-      const x = xScale(park.slopeF);
-      // Find the lowest y that doesn't collide with a placed dot within 2*r
+      const x = xScale(park.totalF);
       let y = baselineY;
       const collision = () => placed.some((q) => {
         const dx = q.x - x;
@@ -359,16 +364,17 @@ const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slo
     }
 
     for (const p of placed) {
+      const color = rampColor(p.totalF, swarmMinF, swarmMaxF);
       const dot = document.createElementNS(svgNS, "circle");
       dot.setAttribute("cx", p.x);
       dot.setAttribute("cy", p.y);
       dot.setAttribute("r", dotR);
-      dot.setAttribute("fill", p.sig ? rampColor(p.slopeF) : "#ffffff");
-      dot.setAttribute("stroke", p.sig ? "#1e1e1e" : rampColor(p.slopeF));
+      dot.setAttribute("fill", p.sig ? color : "#ffffff");
+      dot.setAttribute("stroke", p.sig ? "#1e1e1e" : color);
       dot.setAttribute("stroke-width", p.sig ? "1" : "1.8");
       dot.style.cursor = "pointer";
       const t = document.createElementNS(svgNS, "title");
-      t.textContent = `${p.unit_name} · ${p.slopeF >= 0 ? "+" : ""}${p.slopeF.toFixed(3)} °F/yr${p.sig ? " · significant" : ""}`;
+      t.textContent = `${p.unit_name} · +${p.totalF.toFixed(2)} °F${p.sig ? " · significant" : ""}`;
       dot.appendChild(t);
       dot.addEventListener("click", () => { window.location.href = `${base}parks/${p.slug}`; });
       swarmSvg.appendChild(dot);
