@@ -6,8 +6,11 @@
  */
 
 :root {
-  --paper: #e9e6e0;
-  --card:  #f2efea;
+  /* Brighter warm cream — lifts the page off the old dingy-beige feel
+     while staying in the same editorial / nature palette. Cards stay
+     slightly brighter than paper so hover reads as "lift". */
+  --paper: #f7f3ea;
+  --card:  #fdfaf3;
   --ink:   #0d0d0c;
   --muted: #6e6760;
   --rule:  rgba(13, 13, 12, 0.1);
