@@ -517,6 +517,62 @@ canvas { max-width: 100%; }
   border: 1px solid var(--rule);
   background: var(--paper);
 }
+.swarm-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: flex-end;
+  margin-bottom: 0.8rem;
+  font-family: "Space Grotesk", sans-serif;
+}
+.swarm-legend-block { min-width: 0; }
+.swarm-legend-label {
+  display: block;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+.swarm-legend-bar {
+  height: 8px;
+  width: 220px;
+  border-radius: 2px;
+  /* Kept in sync with labelColor() stops in index.astro */
+  background: linear-gradient(
+    to right,
+    rgb(200, 155, 15) 0%,
+    rgb(220, 110, 20) 25%,
+    rgb(200, 55, 40) 50%,
+    rgb(130, 25, 40) 75%,
+    rgb(60, 10, 25) 100%
+  );
+}
+.swarm-legend-ticks {
+  display: flex;
+  justify-content: space-between;
+  width: 220px;
+  font-size: 0.66rem;
+  color: var(--muted);
+  font-feature-settings: "tnum";
+  margin-top: 0.25rem;
+}
+.swarm-legend-sig {
+  display: flex;
+  gap: 1.2rem;
+  align-items: baseline;
+  font-size: 0.82rem;
+  padding-bottom: 0.1rem;
+}
+.swarm-legend-ex.sig {
+  font-weight: 600;
+  color: rgb(180, 50, 40);
+}
+.swarm-legend-ex.not-sig {
+  font-style: italic;
+  color: rgb(180, 50, 40);
+  opacity: 0.55;
+}
 .swarm { width: 100%; position: relative; }
 .swarm svg { display: block; margin-bottom: 0.15rem; }
 .swarm svg .park-label {

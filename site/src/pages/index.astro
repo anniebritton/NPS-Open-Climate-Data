@@ -201,13 +201,29 @@ function sparklinePath(series: { value: number | null }[]): string {
       </span>
       <p style="color:var(--muted);font-size:0.85rem;max-width:640px;margin-bottom:1rem">
         Every park, positioned by its total temperature change since {startYear}.
-        Darker red = more warming. Italic, dimmer names are not statistically
-        significant at the 95% level. Names stack vertically where parks
-        share a value — hover for details, click to open.
+        Names stack vertically where parks share a value — hover for details,
+        click to open.
       </p>
+      <div class="swarm-legend">
+        <div class="swarm-legend-block">
+          <span class="swarm-legend-label">Total warming</span>
+          <div class="swarm-legend-bar" aria-hidden="true"></div>
+          <div class="swarm-legend-ticks">
+            <span>{swarmMinF === 0 ? "0" : `+${swarmMinF}`}°F</span>
+            <span>+{swarmMaxF}°F</span>
+          </div>
+        </div>
+        <div class="swarm-legend-block">
+          <span class="swarm-legend-label">Significance</span>
+          <div class="swarm-legend-sig">
+            <span class="swarm-legend-ex sig">Significant</span>
+            <span class="swarm-legend-ex not-sig">Not significant</span>
+          </div>
+        </div>
+      </div>
       <div class="swarm">
-        <svg id="swarm-svg" viewBox="0 0 1000 300" preserveAspectRatio="xMidYMid meet"
-             width="100%" height="300"></svg>
+        <svg id="swarm-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet"
+             width="100%" height="500"></svg>
         <div class="swarm-axis" id="swarm-axis"></div>
         <div class="swarm-axis-label">°F since {startYear}</div>
         <div id="swarm-tooltip" class="swarm-tooltip" role="tooltip"></div>
@@ -370,13 +386,16 @@ function sparklinePath(series: { value: number | null }[]): string {
   function labelColor(valueF, minF, maxF) {
     if (valueF == null || Number.isNaN(valueF)) return "#8a8480";
     const t = Math.max(0, Math.min(1, (valueF - minF) / Math.max(1e-6, maxF - minF)));
-    // Yellow-gold → orange → red → deep maroon. All four stops are
-    // dark enough to stay readable on the near-white page (#fcfcfc).
+    // Gold → amber → orange → red → maroon → near-black.
+    // Five stops give more visible hue movement across the range; every
+    // stop is still dark enough to read on the near-white page (#fcfcfc).
+    // Kept in sync with .swarm-legend-bar gradient in global.css.
     const stops = [
-      [0.00, [186, 135, 20]],
-      [0.33, [205, 100, 20]],
-      [0.66, [180, 40, 35]],
-      [1.00, [103, 10, 25]],
+      [0.00, [200, 155, 15]],
+      [0.25, [220, 110, 20]],
+      [0.50, [200, 55, 40]],
+      [0.75, [130, 25, 40]],
+      [1.00, [60, 10, 25]],
     ];
     let a = stops[0], b = stops[stops.length - 1];
     for (let i = 0; i < stops.length - 1; i++) {
@@ -396,7 +415,7 @@ function sparklinePath(series: { value: number | null }[]): string {
   const swarmSvg = document.getElementById("swarm-svg");
   const swarmAxis = document.getElementById("swarm-axis");
   if (swarmSvg && parkSwarm && parkSwarm.length) {
-    const W = 1000, H = 300;
+    const W = 1000, H = 500;
     const margin = { left: 20, right: 20, top: 16, bottom: 34 };
     const domain = swarmMaxF - swarmMinF;
     const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
