@@ -47,27 +47,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install numpy pandas pyarrow
 
-      - name: Generate data + site JSON
+      - name: Build dynamic site data (boundaries + carbon)
         run: |
-          PYTHONPATH=. python scripts/03_generate_demo_data.py
-          PYTHONPATH=. python scripts/02_build_site_data.py
-          mkdir -p site/public/data
-          cp -r data/site/* site/public/data/
-          mkdir -p site/public/data/raw
-          for d in data/raw/*/; do
-            slug=$(basename "$d")
-            mkdir -p site/public/data/raw/$slug
-            cp "$d"*.csv site/public/data/raw/$slug/
-            gzip -f site/public/data/raw/$slug/*.csv
-          done
-          # Try PAD-US web services first for real polygons; whatever it
-          # can't resolve, 05 fills in with circles. Both run after
-          # 02_build_site_data so warming slopes are available to merge
-          # into GeoJSON properties.
+          # Park JSON summaries live in site/public/data/parks/ already — they
+          # were generated locally from the real EE pipeline and committed,
+          # because EE auth + a 2–4 hr task run isn't feasible in CI.
+          #
+          # This step builds only the parts that should regenerate per commit:
+          # boundaries (external USGS + circle fallback) and the carbon
+          # estimate (which scales with git history and timestamps).
           PYTHONPATH=. python scripts/06_fetch_padus_boundaries.py || true
           PYTHONPATH=. python scripts/05_generate_boundaries.py
-          # 04 runs last — it records commit count, timestamp, and how many
-          # real vs circle boundaries this build ended up with.
           PYTHONPATH=. python scripts/04_write_carbon.py
 
       - name: Set up Node.js
