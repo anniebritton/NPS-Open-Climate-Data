@@ -6,11 +6,13 @@
  */
 
 :root {
-  /* Brighter warm cream — lifts the page off the old dingy-beige feel
+  /* Clean warm cream — lifts the page off the old dingy-beige feel
      while staying in the same editorial / nature palette. Cards stay
-     slightly brighter than paper so hover reads as "lift". */
-  --paper: #f7f3ea;
-  --card:  #fdfaf3;
+     slightly brighter than paper so hover reads as "lift". Sandstone
+     (used for code blocks) is just a shade darker than paper so
+     <pre> has contrast without the old beige showing through. */
+  --paper: #faf7ee;
+  --card:  #fffcf3;
   --ink:   #0d0d0c;
   --muted: #6e6760;
   --rule:  rgba(13, 13, 12, 0.1);
@@ -27,7 +29,7 @@
   --lake:        #4a7fa5;
   --lake-deep:   #2d5a7a;
   --sun:         #2a6041;
-  --sandstone:   #f2efea;
+  --sandstone:   #f1ede2;
   --ice:         #dce8f0;
 
   --max-w: 1200px;
@@ -391,9 +393,25 @@ canvas { max-width: 100%; }
   border: 1px solid var(--rule);
   background: var(--paper);
 }
-.swarm { width: 100%; }
+.swarm { width: 100%; position: relative; }
 .swarm svg { display: block; margin-bottom: 0.15rem; }
 .swarm svg circle:hover { stroke-width: 2.5; }
+.swarm-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 0.4rem 0.7rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.78rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transform: translate(-50%, -130%);
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 5;
+}
+.swarm-tooltip.active { opacity: 1; }
 .swarm-axis {
   position: relative;
   height: 1.2em;

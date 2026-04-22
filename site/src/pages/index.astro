@@ -162,11 +162,12 @@ const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.tota
         Darker red = more warming. Dots stack vertically where multiple parks
         share a value. Filled dots are statistically significant at the 95% level.
       </p>
-      <div class="swarm" aria-hidden="true">
+      <div class="swarm">
         <svg id="swarm-svg" viewBox="0 0 1000 120" preserveAspectRatio="none"
              width="100%" height="120"></svg>
         <div class="swarm-axis" id="swarm-axis"></div>
         <div class="swarm-axis-label">°F since {startYear}</div>
+        <div id="swarm-tooltip" class="swarm-tooltip" role="tooltip"></div>
       </div>
     </div>
   </section>
@@ -363,6 +364,9 @@ const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.tota
       placed.push({ x, y, ...park });
     }
 
+    const tooltip = document.getElementById("swarm-tooltip");
+    const swarmWrap = swarmSvg.parentElement;
+
     for (const p of placed) {
       const color = rampColor(p.totalF, swarmMinF, swarmMaxF);
       const dot = document.createElementNS(svgNS, "circle");
@@ -373,9 +377,18 @@ const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.tota
       dot.setAttribute("stroke", p.sig ? "#1e1e1e" : color);
       dot.setAttribute("stroke-width", p.sig ? "1" : "1.8");
       dot.style.cursor = "pointer";
-      const t = document.createElementNS(svgNS, "title");
-      t.textContent = `${p.unit_name} · +${p.totalF.toFixed(2)} °F${p.sig ? " · significant" : ""}`;
-      dot.appendChild(t);
+      const label = `${p.unit_name} · +${p.totalF.toFixed(2)} °F${p.sig ? " · significant" : ""}`;
+      dot.addEventListener("mousemove", (e) => {
+        if (!tooltip || !swarmWrap) return;
+        const rect = swarmWrap.getBoundingClientRect();
+        tooltip.textContent = label;
+        tooltip.style.left = (e.clientX - rect.left) + "px";
+        tooltip.style.top = (e.clientY - rect.top) + "px";
+        tooltip.classList.add("active");
+      });
+      dot.addEventListener("mouseleave", () => {
+        if (tooltip) tooltip.classList.remove("active");
+      });
       dot.addEventListener("click", () => { window.location.href = `${base}parks/${p.slug}`; });
       swarmSvg.appendChild(dot);
     }
