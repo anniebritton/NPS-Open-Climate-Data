@@ -224,10 +224,10 @@ function sparklinePath(series: { value: number | null }[]): string {
         </div>
       </div>
       <div class="swarm">
+        <div class="swarm-axis-label">°F since {startYear}</div>
+        <div class="swarm-axis" id="swarm-axis"></div>
         <svg id="swarm-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet"
              width="100%" height="500"></svg>
-        <div class="swarm-axis" id="swarm-axis"></div>
-        <div class="swarm-axis-label">°F since {startYear}</div>
         <div id="swarm-tooltip" class="swarm-tooltip" role="tooltip"></div>
       </div>
     </div>

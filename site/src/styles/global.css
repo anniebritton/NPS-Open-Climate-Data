@@ -619,8 +619,9 @@ canvas { max-width: 100%; }
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  margin-top: 0.25rem;
+  margin-bottom: 0.3rem;
 }
+.swarm-axis { margin-bottom: 0.5rem; }
 
 .legend-ramp {
   height: 8px;
