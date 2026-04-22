@@ -1,152 +1,301 @@
 ---
 import Base from "../layouts/Base.astro";
 const base = import.meta.env.BASE_URL;
+
+const tocItems = [
+  { id: "sources",      kicker: "Sources" },
+  { id: "pipeline",     kicker: "Pipeline" },
+  { id: "conversions",  kicker: "Units" },
+  { id: "tests",        kicker: "Statistics" },
+  { id: "multipart",    kicker: "Edge cases" },
+  { id: "limitations",  kicker: "Caveats" },
+  { id: "citations",    kicker: "Citations" },
+];
 ---
 <Base title="Methodology — Open Climate Data">
-  <section class="container section">
-    <a href={base} style="font-size:0.9rem">← Home</a>
+  <section class="container section method-hero">
+    <a href={base} class="method-back">← Home</a>
     <span class="kicker" style="margin-top:0.8rem;display:block">Methodology</span>
     <h1>How these numbers are made</h1>
-    <p style="max-width:720px;color:var(--muted)">
-      This project's goal is to make climate-change evidence for US
-      National Parks as auditable as possible: every number on the site
-      can be traced back to a published satellite/reanalysis dataset, a
-      boundary polygon from USGS, and a specific statistical test run on
-      the aggregated daily series.
+    <p class="method-lede">
+      Every number on the site is auditable: each traces back to a
+      published satellite or reanalysis dataset, a park boundary polygon
+      from USGS, and a specific statistical test run on the aggregated
+      daily series.
     </p>
 
-    <h2>Inputs</h2>
-    <ul>
-      <li>
-        <strong>DAYMET v4</strong> (NASA/ORNL) — 1 km daily gridded weather,
-        1980–present, for CONUS + Hawaii + Puerto Rico. We pull
-        <code>prcp</code> (mm), <code>tmax</code> (°C), <code>tmin</code>
-        (°C), <code>srad</code> (W/m²), <code>swe</code> (kg/m²),
-        <code>vp</code> (Pa).
-      </li>
-      <li>
-        <strong>ERA5-Land daily aggregated</strong> (ECMWF / Copernicus) —
-        ~11 km daily reanalysis, 1950–present, globally. Used for all
-        variables on Alaskan, American-Samoan, and Virgin-Islands parks
-        (outside DAYMET's domain), and for variables DAYMET doesn't
-        carry (evaporation, wind, snow depth). Bands:
-        <code>temperature_2m{ "{,_min,_max}" }</code>,
-        <code>total_precipitation_sum</code>,
-        <code>snowfall_sum</code>, <code>snowmelt_sum</code>,
-        <code>snow_cover</code>, <code>snow_depth</code>,
-        <code>total_evaporation_sum</code>, <code>potential_evaporation_sum</code>.
-      </li>
-      <li>
-        <strong>USGS PAD-US 4.1 proclamation</strong> — official park
-        boundaries, extracted from the published File Geodatabase. We
-        match by <code>Unit_Nm</code> with alias handling for Alaskan
-        "National Park and Preserve" units and for the four parks
-        redesignated between 2018 and 2020 (Gateway Arch, Indiana
-        Dunes, New River Gorge, White Sands). Features are restricted
-        to NPS-managed polygons, dissolved per park for multi-district
-        units, simplified to 50 m in the native Albers CRS, then
-        reprojected to WGS84.
-      </li>
-    </ul>
-
-    <h2>Earth Engine pipeline</h2>
-    <p>
-      For each park we load the boundary, split disjoint sub-units
-      (e.g. Saguaro NP's Rincon and Tucson districts or the five
-      islands of Channel Islands NP), and reduce each dataset over
-      the geometry with <code>ee.Reducer.mean()</code> at the native
-      grid scale (1 km DAYMET, 11 km ERA5-Land) using
-      <code>bestEffort=True</code> and <code>maxPixels=1e13</code>.
-      Daily means (non-flow bands) and daily sums (flow bands ending
-      in <code>_sum</code>) are preserved as documented by
-      ECMWF/Copernicus.
-    </p>
-    <p>
-      Exports run as <strong>serverless Earth Engine batch tasks</strong>
-      (<code>ee.batch.Export.table.toDrive</code>) with an explicit
-      <code>selectors</code> list so the CSV writer emits one column
-      per dataset band — essential for our merged DAYMET + ERA5
-      collection. End dates are passed to <code>filterDate</code>
-      exclusively, the EE convention.
-    </p>
-
-    <h2>Unit conversions</h2>
-    <ul>
-      <li>ERA5 temperatures: Kelvin → °C by subtracting 273.15.</li>
-      <li>ERA5 precipitation / snowfall / snowmelt: metres → mm by ×1000.</li>
-      <li>ERA5 evaporation fluxes: sign-flipped before the ×1000, so
-          reported PET/AET are positive mm/day.</li>
-      <li>DAYMET SWE: kg/m² is numerically equal to mm of liquid water.</li>
-    </ul>
-
-    <h2>Statistical tests</h2>
-    <ul>
-      <li>
-        <strong>Annual aggregation</strong>: calendar year. Sums for
-        precipitation, snowfall, evapotranspiration; means for temperature
-        and radiation. Years with fewer than 330 valid daily observations
-        are dropped to avoid partial-year bias.
-      </li>
-      <li>
-        <strong>Seasonal aggregation</strong>: DJF / MAM / JJA / SON, with
-        December assigned to the following year's DJF.
-      </li>
-      <li>
-        <strong>Anomalies</strong>: reference-period mean and standard
-        deviation computed over 1981–2010. z-scores drive the climate
-        stripes on the home and park pages.
-      </li>
-      <li>
-        <strong>Mann–Kendall rank test</strong> with tie correction and
-        normal-approximation p-value, applied to the annual series (n ≥ 10).
-      </li>
-      <li>
-        <strong>Theil–Sen slope estimator</strong>: the median of all
-        pairwise year-over-year slopes. Robust to outliers and more
-        appropriate than OLS when residuals are not normal.
-      </li>
-    </ul>
-
-    <div class="note">
-      <strong>Why Theil–Sen + Mann–Kendall?</strong> These non-parametric
-      tests don't require normality or homoscedastic residuals — a
-      conservative choice for short-to-medium climate series which often
-      have skewed distributions (precipitation, snow) and mild
-      autocorrelation. For longer-horizon inference we recommend applying
-      autocorrelation corrections (e.g. the Hamed–Rao MK variant).
+    <div class="method-flow" aria-label="Pipeline overview">
+      <div class="method-flow-node">
+        <span class="method-flow-step">01</span>
+        <span class="method-flow-title">Source</span>
+        <span class="method-flow-sub">DAYMET + ERA5-Land</span>
+      </div>
+      <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
+        <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="method-flow-node">
+        <span class="method-flow-step">02</span>
+        <span class="method-flow-title">Reduce</span>
+        <span class="method-flow-sub">at park boundary</span>
+      </div>
+      <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
+        <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="method-flow-node">
+        <span class="method-flow-step">03</span>
+        <span class="method-flow-title">Aggregate</span>
+        <span class="method-flow-sub">annual · seasonal</span>
+      </div>
+      <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
+        <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="method-flow-node">
+        <span class="method-flow-step">04</span>
+        <span class="method-flow-title">Test</span>
+        <span class="method-flow-sub">MK · Theil–Sen</span>
+      </div>
+      <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
+        <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="method-flow-node">
+        <span class="method-flow-step">05</span>
+        <span class="method-flow-title">Publish</span>
+        <span class="method-flow-sub">JSON · CSV · site</span>
+      </div>
     </div>
-
-    <h2>Multipart parks</h2>
-    <p>
-      A few parks span geographically disjoint polygons. For these we
-      compute one series per polygon (using <code>ee.Geometry.geometries()</code>)
-      and also a unioned park-wide series. Both are exported; the per-part
-      series is accessible via the download links and the summary JSON.
-    </p>
-
-    <h2>Known limitations</h2>
-    <ul>
-      <li>Bias: gridded datasets have documented systematic biases in
-          complex terrain (mountain parks). Treat absolute values with
-          care and focus on trends.</li>
-      <li>Reference period (1981–2010) is WMO-standard but slightly
-          asymmetric within our 1980–present record.</li>
-      <li>Park-wide means smooth real within-park gradients; researchers
-          needing pixel-level series should use Earth Engine directly
-          with this package's helpers.</li>
-    </ul>
-
-    <h2>Citation</h2>
-    <ul>
-      <li>
-        Thornton, M. M. et al. (2022). <em>Daymet: Daily Surface Weather Data on a 1-km Grid for North America, Version 4.</em> ORNL DAAC.
-      </li>
-      <li>
-        Muñoz Sabater, J. (2019). <em>ERA5-Land hourly data from 1950 to present.</em> Copernicus Climate Change Service (C3S) CDS.
-      </li>
-      <li>
-        U.S. Geological Survey, Gap Analysis Project. <em>PAD-US 4.1: Protected Areas Database of the United States.</em>
-      </li>
-    </ul>
   </section>
+
+  <div class="container method-body">
+    <aside class="method-toc">
+      <span class="method-toc-label">On this page</span>
+      <ol>
+        {tocItems.map((s) => (
+          <li data-target={s.id}><a href={`#${s.id}`}>{s.kicker}</a></li>
+        ))}
+      </ol>
+    </aside>
+
+    <div class="method-content">
+      <section id="sources" class="method-section">
+        <span class="method-num" aria-hidden="true">01</span>
+        <span class="kicker">Sources</span>
+        <h2>Three open datasets, fused</h2>
+        <p>
+          Temperature, precipitation, snowpack and radiation come from
+          two reanalysis-grade grids; park shapes come from USGS. Every
+          source is free and publicly re-downloadable.
+        </p>
+        <div class="method-source-grid">
+          <article class="source-card">
+            <span class="source-card-tag">DAYMET v4</span>
+            <h3>1 km daily weather</h3>
+            <p>
+              NASA/ORNL, 1980–present. Covers CONUS, Hawaii, Puerto Rico.
+              Bands: <code>prcp</code> (mm), <code>tmax</code>/<code>tmin</code> (°C),
+              <code>srad</code> (W/m²), <code>swe</code> (kg/m²), <code>vp</code> (Pa).
+            </p>
+          </article>
+          <article class="source-card">
+            <span class="source-card-tag">ERA5-Land</span>
+            <h3>~11 km global reanalysis</h3>
+            <p>
+              ECMWF/Copernicus, 1950–present. Fills gaps DAYMET can't:
+              parks in Alaska, American Samoa, and Virgin Islands,
+              plus evaporation, wind, and snow depth.
+            </p>
+          </article>
+          <article class="source-card">
+            <span class="source-card-tag">USGS PAD-US 4.1</span>
+            <h3>Official park boundaries</h3>
+            <p>
+              Matched by <code>Unit_Nm</code> with alias handling for
+              Alaskan "National Park and Preserve" units, dissolved per
+              park, simplified to 50 m in Albers, then reprojected to WGS84.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section id="pipeline" class="method-section">
+        <span class="method-num" aria-hidden="true">02</span>
+        <span class="kicker">Pipeline</span>
+        <h2>Reduced over every pixel in the boundary</h2>
+        <p>
+          For each park we load the boundary, split disjoint sub-units
+          (Saguaro's Rincon and Tucson districts; the five islands of
+          Channel Islands), and reduce each dataset over the geometry
+          with <code>ee.Reducer.mean()</code> at native grid scale —
+          1 km DAYMET, 11 km ERA5-Land — using <code>bestEffort=True</code>
+          and <code>maxPixels=1e13</code>.
+        </p>
+        <p>
+          Exports run as serverless Earth Engine batch tasks
+          (<code>ee.batch.Export.table.toDrive</code>) with an explicit
+          <code>selectors</code> list so the CSV writer emits one column
+          per band. End dates are passed to <code>filterDate</code>
+          exclusively, the EE convention.
+        </p>
+        <div class="note">
+          <strong>Flow bands keep their sum.</strong> Variables ending
+          in <code>_sum</code> (precipitation, snowfall, snowmelt,
+          evapotranspiration) are preserved as daily totals per
+          ECMWF/Copernicus convention; everything else is a daily mean.
+        </div>
+      </section>
+
+      <section id="conversions" class="method-section">
+        <span class="method-num" aria-hidden="true">03</span>
+        <span class="kicker">Units</span>
+        <h2>From SI to human-readable</h2>
+        <p>
+          All conversions happen in the display layer — raw pipeline
+          outputs stay strictly SI so Parquet/CSV consumers get
+          unambiguous values.
+        </p>
+        <ul class="method-list">
+          <li><span>ERA5 temperatures</span><span>K − 273.15 → °C</span></li>
+          <li><span>ERA5 precipitation, snowfall, snowmelt</span><span>m × 1000 → mm</span></li>
+          <li><span>ERA5 evaporation fluxes</span><span>sign-flip, × 1000 → positive mm/day</span></li>
+          <li><span>DAYMET SWE</span><span>kg/m² ≡ mm liquid water</span></li>
+          <li><span>Site display (temperature only)</span><span>°C → °F</span></li>
+        </ul>
+      </section>
+
+      <section id="tests" class="method-section">
+        <span class="method-num" aria-hidden="true">04</span>
+        <span class="kicker">Statistics</span>
+        <h2>Non-parametric trend tests</h2>
+        <p>
+          The methodology favours tests that don't assume normality or
+          homoscedastic residuals — a conservative choice for
+          short-to-medium climate series, which often have skewed
+          distributions (precipitation, snow) and mild autocorrelation.
+        </p>
+        <div class="method-tests">
+          <article class="method-test">
+            <span class="method-test-name">Mann–Kendall</span>
+            <p>
+              Rank test with tie correction and normal-approximation
+              p-value, applied to the annual series (n ≥ 10).
+            </p>
+          </article>
+          <article class="method-test">
+            <span class="method-test-name">Theil–Sen</span>
+            <p>
+              Slope estimator: the median of all pairwise year-over-year
+              slopes. Robust to outliers and more appropriate than OLS
+              when residuals aren't normal.
+            </p>
+          </article>
+          <article class="method-test">
+            <span class="method-test-name">Annual aggregation</span>
+            <p>
+              Calendar year. Sums for precipitation, snow, ET; means for
+              temperature and radiation. Years with fewer than 330 valid
+              daily observations are dropped to avoid partial-year bias.
+            </p>
+          </article>
+          <article class="method-test">
+            <span class="method-test-name">Seasonal aggregation</span>
+            <p>
+              DJF / MAM / JJA / SON, with December assigned to the
+              following year's DJF.
+            </p>
+          </article>
+          <article class="method-test">
+            <span class="method-test-name">Anomalies</span>
+            <p>
+              Reference-period mean and σ computed over 1981–2010 (WMO
+              standard). z-scores drive the climate stripes on the home
+              and park pages.
+            </p>
+          </article>
+        </div>
+        <div class="note">
+          <strong>Longer-horizon inference needs autocorrelation handling.</strong>
+          For series much longer than a few decades, apply the Hamed–Rao
+          Mann–Kendall variant or an equivalent correction.
+        </div>
+      </section>
+
+      <section id="multipart" class="method-section">
+        <span class="method-num" aria-hidden="true">05</span>
+        <span class="kicker">Edge cases</span>
+        <h2>Disjoint park geometries</h2>
+        <p>
+          A few parks span geographically separate polygons. For these
+          we compute one series per polygon (using
+          <code>ee.Geometry.geometries()</code>) and a union-level
+          park-wide series. Both are exported; per-part series live in
+          the downloadable summary JSON.
+        </p>
+      </section>
+
+      <section id="limitations" class="method-section">
+        <span class="method-num" aria-hidden="true">06</span>
+        <span class="kicker">Caveats</span>
+        <h2>What these numbers can't tell you</h2>
+        <ul class="method-limits">
+          <li>
+            <strong>Bias in complex terrain.</strong> Gridded datasets
+            have documented systematic biases in mountain parks. Treat
+            absolute values with care; focus on trends.
+          </li>
+          <li>
+            <strong>Reference period.</strong> 1981–2010 is WMO-standard
+            but slightly asymmetric within a 1980–present record.
+          </li>
+          <li>
+            <strong>Spatial averaging.</strong> Park-wide means smooth
+            within-park gradients. Researchers needing pixel-level
+            series should use Earth Engine directly with this package's
+            helpers.
+          </li>
+        </ul>
+      </section>
+
+      <section id="citations" class="method-section method-citations">
+        <span class="method-num" aria-hidden="true">07</span>
+        <span class="kicker">Citations</span>
+        <h2>For reproducibility</h2>
+        <ol class="method-citations-list">
+          <li>
+            Thornton, M. M. et al. (2022). <em>Daymet: Daily Surface
+            Weather Data on a 1-km Grid for North America, Version 4.</em>
+            ORNL DAAC.
+          </li>
+          <li>
+            Muñoz Sabater, J. (2019). <em>ERA5-Land hourly data from
+            1950 to present.</em> Copernicus Climate Change Service (C3S) CDS.
+          </li>
+          <li>
+            U.S. Geological Survey, Gap Analysis Project. <em>PAD-US 4.1:
+            Protected Areas Database of the United States.</em>
+          </li>
+        </ol>
+      </section>
+    </div>
+  </div>
+
+  <script is:inline>
+    // Scroll-driven active-section highlight in the left-rail TOC.
+    (function () {
+      const tocItems = document.querySelectorAll(".method-toc li");
+      const sections = document.querySelectorAll(".method-section");
+      if (!tocItems.length || !sections.length) return;
+      const byId = new Map();
+      tocItems.forEach((li) => byId.set(li.dataset.target, li));
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          const li = byId.get(e.target.id);
+          if (!li) return;
+          if (e.isIntersecting) {
+            tocItems.forEach((x) => x.classList.remove("active"));
+            li.classList.add("active");
+          }
+        });
+      }, { rootMargin: "-30% 0px -55% 0px", threshold: 0 });
+      sections.forEach((s) => io.observe(s));
+    })();
+  </script>
 </Base>
