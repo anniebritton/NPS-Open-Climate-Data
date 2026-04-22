@@ -206,17 +206,21 @@ const swarmMax = Math.min(SWARM_CLAMP_F, Math.max(...parkSlopes.map((p) => p.slo
             data-slope={slope ?? 0}
             data-prcp-slope={wetSlope ?? 0}
           >
-            <div class="park-map" style={`background-image:url(${base}data/park-maps/${p.slug}.png)`}></div>
-            <div class="park-card-body">
-              <span class="park-state">{p.state}</span>
-              <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
-              <span class="trend-line">
-                Mean temp: <strong>{fmtSlope(slope)}°F/yr</strong>
-                {psig ? " ✓" : ""}
-              </span>
-              <div class="stripes">
-                {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
-              </div>
+            <span class="park-state">{p.state}</span>
+            <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
+            {p.silhouette ? (
+              <svg class="park-silhouette" viewBox="0 0 100 46" aria-hidden="true">
+                <path d={p.silhouette}
+                      fill="var(--muted)" fill-opacity="0.35"
+                      stroke="var(--ink)" stroke-width="1.2"/>
+              </svg>
+            ) : null}
+            <span class="trend-line">
+              Mean temp: <strong>{fmtSlope(slope)}°F/yr</strong>
+              {psig ? " ✓" : ""}
+            </span>
+            <div class="stripes">
+              {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
             </div>
           </a>
         );

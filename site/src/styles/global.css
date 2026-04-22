@@ -220,29 +220,14 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
 }
 .card {
   background: var(--paper);
+  padding: 1.2rem;
   text-decoration: none;
   color: var(--ink);
   display: flex;
   flex-direction: column;
+  gap: 0.4rem;
   transition: background 0.12s;
-  overflow: hidden;
 }
-.park-card { padding: 0; }
-.park-card .park-map {
-  height: 110px;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  border-bottom: 1px solid var(--rule);
-}
-.park-card-body {
-  padding: 1rem 1.2rem 1.2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  flex: 1;
-}
-.card:not(.park-card) { padding: 1.2rem; }
 .card:hover { background: var(--card); opacity: 1; }
 .card .park-name {
   font-family: "Fraunces", Georgia, serif;
