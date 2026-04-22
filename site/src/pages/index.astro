@@ -73,23 +73,9 @@ function stateSearchKey(code: string): string {
   return words.filter(Boolean).join(" ");
 }
 
-// Data for the park-by-park swarm. Every US National Park in the record
-// warmed, so a slope-based ±axis wastes half its width on an empty
-// cooling side. Use total °F change instead (matches the headline stat)
-// and scale the axis to the actual data range, rounded up to the next
-// whole degree.
-const parkSwarm = parks.map((p) => ({
-  slug: p.slug,
-  unit_name: p.unit_name,
-  state: p.state,
-  totalF: cDeltaToF(p.headline_trends?.tmean_c?.total_change) ?? null,
-  sig: p.headline_trends?.tmean_c?.significant_95 ?? false,
-})).filter((x) => x.totalF != null) as { slug: string; unit_name: string; state: string; totalF: number; sig: boolean }[];
-const swarmMaxF = Math.max(1, Math.ceil(Math.max(...parkSwarm.map((p) => p.totalF))));
-const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.totalF))));
-
 // Group each park into a coarse region for the Browse-the-parks filter
-// chips. Multi-state parks (e.g. "CA,NV") use their first state.
+// chips and the regional strip chart. Multi-state parks (e.g. "CA,NV")
+// use their first state.
 const STATE_TO_REGION: Record<string, string> = {
   AK: "Alaska",
   WA: "Pacific NW", OR: "Pacific NW",
@@ -107,6 +93,22 @@ function regionFor(stateCode: string): string {
   const first = stateCode.split(/[,/]/)[0].trim();
   return STATE_TO_REGION[first] ?? "Other";
 }
+
+// Data for the regional strip chart. Every US National Park in the
+// record warmed, so a slope-based ±axis wastes half its width on an
+// empty cooling side. Use total °F change instead (matches the headline
+// stat) and scale the axis to the actual data range, rounded up to the
+// next whole degree.
+const parkSwarm = parks.map((p) => ({
+  slug: p.slug,
+  unit_name: p.unit_name,
+  state: p.state,
+  region: regionFor(p.state ?? ""),
+  totalF: cDeltaToF(p.headline_trends?.tmean_c?.total_change) ?? null,
+  sig: p.headline_trends?.tmean_c?.significant_95 ?? false,
+})).filter((x) => x.totalF != null) as { slug: string; unit_name: string; state: string; region: string; totalF: number; sig: boolean }[];
+const swarmMaxF = Math.max(1, Math.ceil(Math.max(...parkSwarm.map((p) => p.totalF))));
+const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.totalF))));
 
 // Turn a park's annual temperature series (stored on stripes[].value in °C)
 // into a compact SVG path for a 120×36 mini sparkline. The sparkline
@@ -200,9 +202,9 @@ function sparklinePath(series: { value: number | null }[]): string {
         Total warming per park, {startYear}–{endYear}
       </span>
       <p style="color:var(--muted);font-size:0.85rem;max-width:640px;margin-bottom:1rem">
-        Every park, positioned by its total temperature change since {startYear}.
-        Names stack vertically where parks share a value — hover for details,
-        click to open.
+        Every park, positioned by its total temperature change since {startYear}
+        and grouped by region so you can compare Alaska to the Southwest at a
+        glance. Hover for details, click to open.
       </p>
       <div class="swarm-legend">
         <div class="swarm-legend-block">
@@ -337,7 +339,7 @@ function sparklinePath(series: { value: number | null }[]): string {
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
 <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-<script define:vars={{ base, parkSwarm, swarmMinF, swarmMaxF }} is:inline>
+<script define:vars={{ base, parkSwarm, swarmMinF, swarmMaxF, REGION_ORDER }} is:inline>
   // National overview map — all 63 parks in a single neutral fill. Dot-swarm
   // below the map carries the warming-slope signal, so the map is free to
   // just be "where each park is."
@@ -415,15 +417,26 @@ function sparklinePath(series: { value: number | null }[]): string {
   const swarmSvg = document.getElementById("swarm-svg");
   const swarmAxis = document.getElementById("swarm-axis");
   if (swarmSvg && parkSwarm && parkSwarm.length) {
-    const W = 1000, H = 500;
-    const margin = { left: 20, right: 20, top: 16, bottom: 34 };
-    const domain = swarmMaxF - swarmMinF;
-    const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
-    const midlineY = (margin.top + (H - margin.bottom)) / 2;
+    const W = 1000;
+    const margin = { left: 20, right: 20, top: 14, bottom: 34 };
+    const ROW_H = 58;
+    const REGION_LABEL_Y_OFFSET = 11;
+    const ROW_MID_OFFSET = 32;
+    const PAD_X = 3, PAD_Y = 1;
+    const FONT_SIZE = 11;
     const svgNS = "http://www.w3.org/2000/svg";
 
-    // Integer gridlines at every whole °F; populate the axis labels to match.
-    // Skip the line at 0 — the axis label alone anchors it.
+    const presentRegions = REGION_ORDER.filter((r) => parkSwarm.some((p) => p.region === r));
+    const H = margin.top + presentRegions.length * ROW_H + margin.bottom;
+
+    // Size the SVG for the computed height.
+    swarmSvg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    swarmSvg.setAttribute("height", String(H));
+
+    const domain = swarmMaxF - swarmMinF;
+    const xScale = (v) => margin.left + ((v - swarmMinF) / domain) * (W - margin.left - margin.right);
+
+    // Integer gridlines span the entire chart area; skip 0.
     if (swarmAxis) swarmAxis.innerHTML = "";
     for (let v = swarmMinF; v <= swarmMaxF; v++) {
       const x = xScale(v);
@@ -437,11 +450,9 @@ function sparklinePath(series: { value: number | null }[]): string {
         line.setAttribute("stroke-dasharray", "2 3");
         swarmSvg.appendChild(line);
       }
-
       if (swarmAxis) {
         const span = document.createElement("span");
-        span.textContent = `+${v}°F`;
-        if (v === 0) span.textContent = "0";
+        span.textContent = v === 0 ? "0" : `+${v}°F`;
         span.style.position = "absolute";
         span.style.left = `${(x / W) * 100}%`;
         span.style.transform = "translateX(-50%)";
@@ -452,74 +463,95 @@ function sparklinePath(series: { value: number | null }[]): string {
     const tooltip = document.getElementById("swarm-tooltip");
     const swarmWrap = swarmSvg.parentElement;
 
-    // Build labels left-to-right; each one is placed at the y closest to
-    // the midline where it doesn't overlap a previously placed label —
-    // search alternates above and below the midline so dense clusters
-    // fan out symmetrically instead of stacking into a tall column.
-    const sorted = parkSwarm.slice().sort((a, b) => a.totalF - b.totalF);
-    const placed = [];
-    const PAD_X = 3, PAD_Y = 1;
-    const FONT_SIZE = 11;
-    const LINE_STEP = 13;
-    const yTopBound = margin.top;
-    const yBotBound = H - margin.bottom - 2;
+    // One horizontal lane per region, populated left-to-right by warming.
+    // Within a lane, labels nudge above/below the centerline only if
+    // overlapping — most rows sit on a single clean line.
+    presentRegions.forEach((region, i) => {
+      const rowTopY = margin.top + i * ROW_H;
+      const rowBottomY = rowTopY + ROW_H;
+      const rowMidY = rowTopY + ROW_MID_OFFSET;
 
-    function overlapsAny(x, y, w, h) {
-      return placed.some((q) => !(
-        x + w / 2 + PAD_X < q.x - q.w / 2 ||
-        x - w / 2 - PAD_X > q.x + q.w / 2 ||
-        y + h / 2 + PAD_Y < q.y - q.h / 2 ||
-        y - h / 2 - PAD_Y > q.y + q.h / 2
-      ));
-    }
-    function findY(x, w, h) {
-      // k = 0, -1, +1, -2, +2, -3, +3 … walking outward from midline.
-      for (let k = 0; k < 80; k++) {
-        const step = k === 0 ? 0
-          : (k % 2 === 1 ? -Math.ceil(k / 2) : Math.ceil(k / 2));
-        const y = midlineY + step * LINE_STEP;
-        if (y - h / 2 < yTopBound || y + h / 2 > yBotBound) continue;
-        if (!overlapsAny(x, y, w, h)) return y;
+      // Region label (kicker-style) above the row
+      const regionLabel = document.createElementNS(svgNS, "text");
+      regionLabel.setAttribute("x", String(margin.left));
+      regionLabel.setAttribute("y", String(rowTopY + REGION_LABEL_Y_OFFSET));
+      regionLabel.setAttribute("font-family", "Space Grotesk, sans-serif");
+      regionLabel.setAttribute("font-size", "9.5");
+      regionLabel.setAttribute("font-weight", "500");
+      regionLabel.setAttribute("letter-spacing", "1.6");
+      regionLabel.setAttribute("fill", "#6e6760");
+      regionLabel.textContent = region.toUpperCase();
+      swarmSvg.appendChild(regionLabel);
+
+      // Row separator at bottom (skip after the last row)
+      if (i < presentRegions.length - 1) {
+        const sep = document.createElementNS(svgNS, "line");
+        sep.setAttribute("x1", margin.left);
+        sep.setAttribute("x2", W - margin.right);
+        sep.setAttribute("y1", rowBottomY);
+        sep.setAttribute("y2", rowBottomY);
+        sep.setAttribute("stroke", "#eeece7");
+        sep.setAttribute("stroke-width", "0.5");
+        swarmSvg.appendChild(sep);
       }
-      return midlineY;
-    }
 
-    for (const park of sorted) {
-      const x = xScale(park.totalF);
-      const text = document.createElementNS(svgNS, "text");
-      text.setAttribute("class", "park-label");
-      text.setAttribute("text-anchor", "middle");
-      text.setAttribute("dominant-baseline", "middle");
-      text.setAttribute("font-size", String(FONT_SIZE));
-      text.setAttribute("font-family", "Space Grotesk, sans-serif");
-      text.setAttribute("font-weight", park.sig ? "600" : "400");
-      text.setAttribute("font-style", park.sig ? "normal" : "italic");
-      text.setAttribute("fill", labelColor(park.totalF, swarmMinF, swarmMaxF));
-      text.setAttribute("fill-opacity", park.sig ? "1" : "0.55");
-      text.textContent = shortName(park.unit_name);
-      swarmSvg.appendChild(text);
-      const w = Math.max(24, text.getComputedTextLength());
-      const h = FONT_SIZE + 2;
+      const parksInRow = parkSwarm
+        .filter((p) => p.region === region)
+        .sort((a, b) => a.totalF - b.totalF);
+      const placedInRow = [];
+      const subSteps = [0, -13, 13, -24, 24];
+      const rowUpper = rowTopY + REGION_LABEL_Y_OFFSET + 6;
+      const rowLower = rowBottomY - 3;
 
-      const y = findY(x, w, h);
-      text.setAttribute("x", String(x));
-      text.setAttribute("y", String(y));
-      placed.push({ x, y, w, h });
+      for (const park of parksInRow) {
+        const x = xScale(park.totalF);
+        const text = document.createElementNS(svgNS, "text");
+        text.setAttribute("class", "park-label");
+        text.setAttribute("text-anchor", "middle");
+        text.setAttribute("dominant-baseline", "middle");
+        text.setAttribute("font-size", String(FONT_SIZE));
+        text.setAttribute("font-family", "Space Grotesk, sans-serif");
+        text.setAttribute("font-weight", park.sig ? "600" : "400");
+        text.setAttribute("font-style", park.sig ? "normal" : "italic");
+        text.setAttribute("fill", labelColor(park.totalF, swarmMinF, swarmMaxF));
+        text.setAttribute("fill-opacity", park.sig ? "1" : "0.55");
+        text.textContent = shortName(park.unit_name);
+        swarmSvg.appendChild(text);
+        const w = Math.max(24, text.getComputedTextLength());
+        const h = FONT_SIZE + 2;
 
-      const tipLabel = `${park.unit_name} · +${park.totalF.toFixed(2)} °F${park.sig ? " · significant" : ""}`;
-      text.addEventListener("mousemove", (e) => {
-        if (!tooltip || !swarmWrap) return;
-        const rect = swarmWrap.getBoundingClientRect();
-        tooltip.textContent = tipLabel;
-        tooltip.style.left = (e.clientX - rect.left) + "px";
-        tooltip.style.top = (e.clientY - rect.top) + "px";
-        tooltip.classList.add("active");
-      });
-      text.addEventListener("mouseleave", () => {
-        if (tooltip) tooltip.classList.remove("active");
-      });
-      text.addEventListener("click", () => { window.location.href = `${base}parks/${park.slug}`; });
-    }
+        let y = rowMidY;
+        for (const step of subSteps) {
+          const testY = rowMidY + step;
+          if (testY - h / 2 < rowUpper) continue;
+          if (testY + h / 2 > rowLower) continue;
+          const hit = placedInRow.some((q) => !(
+            x + w / 2 + PAD_X < q.x - q.w / 2 ||
+            x - w / 2 - PAD_X > q.x + q.w / 2 ||
+            testY + h / 2 + PAD_Y < q.y - q.h / 2 ||
+            testY - h / 2 - PAD_Y > q.y + q.h / 2
+          ));
+          if (!hit) { y = testY; break; }
+        }
+        text.setAttribute("x", String(x));
+        text.setAttribute("y", String(y));
+        placedInRow.push({ x, y, w, h });
+
+        const tipLabel = `${park.unit_name} · +${park.totalF.toFixed(2)} °F${park.sig ? " · significant" : ""}`;
+        text.addEventListener("mousemove", (e) => {
+          if (!tooltip || !swarmWrap) return;
+          const rect = swarmWrap.getBoundingClientRect();
+          tooltip.textContent = tipLabel;
+          tooltip.style.left = (e.clientX - rect.left) + "px";
+          tooltip.style.top = (e.clientY - rect.top) + "px";
+          tooltip.classList.add("active");
+        });
+        text.addEventListener("mouseleave", () => {
+          if (tooltip) tooltip.classList.remove("active");
+        });
+        text.addEventListener("click", () => { window.location.href = `${base}parks/${park.slug}`; });
+      }
+    });
   }
 </script>
 <script>
