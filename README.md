@@ -148,6 +148,31 @@ own time series, in addition to the union-level summary.
   uses real committed data; the synthetic-data path in the notebook
   has been removed. The script still works for anyone who wants a
   quick preview without EE, but it's not part of the main flow.
+- **Full data QC pass.** Triple-check pipeline outputs against
+  external sources — NOAA Climate at a Glance, NCEI USCRN, Gonzalez
+  et al. (2018), NPS IRMA — for a sample of ~10 parks across climate
+  zones. Verify unit conversions (Kelvin → °C, ERA5 evap sign), annual
+  aggregation choices (sums vs means), and MK/Theil-Sen implementation.
+  Deliverable: `docs/DATA_QC.md`. Investigate the tiny-island null issue
+  alongside.
+- **Research-paper citations on park pages.** Add a "Further reading"
+  section to each per-park page listing peer-reviewed papers about
+  climate change in that specific park (citations only, no PDFs).
+  Start from Gonzalez 2018 as a project-wide baseline; hand-curate per
+  park from Google Scholar + NPS IRMA. Store as
+  `data/citations/<slug>.json` with BibTeX fields.
+- **Service-account EE credentials.** Provision an EE-registered
+  Google Cloud service account in the `ee-annieresearch` project so
+  Claude (or any unattended script) can submit batch tasks without
+  interactive auth. Stash the key at `~/.config/gcloud/ee-service-account.json`,
+  make `utils.py` prefer `ee.ServiceAccountCredentials` when
+  `GOOGLE_APPLICATION_CREDENTIALS` is set.
+- **Interactive methodology page.** Rebuild `/methodology` from a
+  plain-text wall into a step-by-step pipeline walk-through: clickable
+  nodes for load → filter → reduceRegion → canonicalise → aggregate →
+  MK/Theil-Sen, each with a tiny visual of the data shape at that
+  stage. Keep a worked example (Acadia) at the bottom as a
+  scrollytelling sequence.
 
 ## Authors
 

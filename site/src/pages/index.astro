@@ -87,6 +87,48 @@ const parkSwarm = parks.map((p) => ({
 })).filter((x) => x.totalF != null) as { slug: string; unit_name: string; state: string; totalF: number; sig: boolean }[];
 const swarmMaxF = Math.max(1, Math.ceil(Math.max(...parkSwarm.map((p) => p.totalF))));
 const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.totalF))));
+
+// Group each park into a coarse region for the Browse-the-parks filter
+// chips. Multi-state parks (e.g. "CA,NV") use their first state.
+const STATE_TO_REGION: Record<string, string> = {
+  AK: "Alaska",
+  WA: "Pacific NW", OR: "Pacific NW",
+  CA: "California",
+  AZ: "Southwest", UT: "Southwest", NV: "Southwest", NM: "Southwest", TX: "Southwest",
+  MT: "Rockies", WY: "Rockies", ID: "Rockies", CO: "Rockies", SD: "Rockies", ND: "Rockies",
+  NE: "Midwest", KS: "Midwest", MO: "Midwest", AR: "Midwest",
+  MN: "Midwest", MI: "Midwest", OH: "Midwest", IN: "Midwest",
+  ME: "East", VA: "East", WV: "East", MD: "East",
+  KY: "East", TN: "East", NC: "East", SC: "East", GA: "East", FL: "East",
+  HI: "Tropical", AS: "Tropical", VI: "Tropical", PR: "Tropical",
+};
+const REGION_ORDER = ["Alaska", "Pacific NW", "California", "Rockies", "Southwest", "Midwest", "East", "Tropical"];
+function regionFor(stateCode: string): string {
+  const first = stateCode.split(/[,/]/)[0].trim();
+  return STATE_TO_REGION[first] ?? "Other";
+}
+
+// Turn a park's annual temperature series (stored on stripes[].value in °C)
+// into a compact SVG path for a 120×36 mini sparkline. The sparkline
+// reveals on card hover; the stripes row collapses beneath it.
+function sparklinePath(series: { value: number | null }[]): string {
+  const vals = series.map((s) => s.value).filter((v): v is number => v != null);
+  if (vals.length < 2) return "";
+  const min = Math.min(...vals);
+  const max = Math.max(...vals);
+  const range = max - min || 1;
+  const n = series.length;
+  let path = "";
+  let started = false;
+  series.forEach((s, i) => {
+    if (s.value == null) return;
+    const x = (i / (n - 1)) * 120;
+    const y = 32 - ((s.value - min) / range) * 28;
+    path += (started ? "L" : "M") + x.toFixed(1) + "," + y.toFixed(1) + " ";
+    started = true;
+  });
+  return path.trim();
+}
 ---
 <Base title="Open Climate Data — Climate Trends in US National Parks">
   <section class="hero">
@@ -190,39 +232,65 @@ const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.tota
         <option value="wetter">Sort: getting wetter</option>
         <option value="drier">Sort: getting drier</option>
       </select>
+      <label class="toggle-chip">
+        <input id="sig-only" type="checkbox" />
+        <span>Significant warming only</span>
+      </label>
       <span id="result-count" style="color:var(--muted);font-size:0.9rem"></span>
+    </div>
+    <div class="region-chips" role="group" aria-label="Filter by region">
+      <button class="chip active" data-region="all">All parks</button>
+      {REGION_ORDER.map((r) => (
+        <button class="chip" data-region={r}>{r}</button>
+      ))}
     </div>
 
     <div id="park-grid" class="grid">
       {withStripes.map((p) => {
-        const slopeC = p.headline_trends?.tmean_c?.slope_per_year ?? null;
-        const slope = cDeltaToF(slopeC);
+        const totalC = p.headline_trends?.tmean_c?.total_change ?? null;
+        const totalF = cDeltaToF(totalC);
+        const slope = cDeltaToF(p.headline_trends?.tmean_c?.slope_per_year);
         const psig = p.headline_trends?.tmean_c?.significant_95 ?? false;
         const wetSlope = p.headline_trends?.prcp_mm?.slope_per_year ?? null;
+        const region = regionFor(p.state ?? "");
+        const sparkD = sparklinePath(p.stripes ?? []);
         return (
           <a
             class="card park-card"
             href={`${base}parks/${p.slug}`}
             data-name={p.unit_name.toLowerCase()}
             data-state={stateSearchKey(p.state ?? "")}
+            data-region={region}
+            data-total={totalF ?? 0}
             data-slope={slope ?? 0}
             data-prcp-slope={wetSlope ?? 0}
+            data-sig={psig ? "1" : "0"}
           >
-            <span class="park-state">{p.state}</span>
-            <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
+            <div class="park-card-top">
+              <span class="park-state">{p.state}</span>
+              <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
+            </div>
             {p.silhouette ? (
               <svg class="park-silhouette" viewBox="0 0 100 46" aria-hidden="true">
                 <path d={p.silhouette}
-                      fill="var(--muted)" fill-opacity="0.35"
+                      fill="var(--muted)" fill-opacity="0.3"
                       stroke="var(--ink)" stroke-width="1.2"/>
               </svg>
             ) : null}
-            <span class="trend-line">
-              Mean temp: <strong>{fmtSlope(slope)}°F/yr</strong>
-              {psig ? " ✓" : ""}
-            </span>
-            <div class="stripes">
-              {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
+            <div class="park-headline">
+              <span class="park-total">{totalF != null ? (totalF >= 0 ? "+" : "") + totalF.toFixed(1) + "°F" : "—"}</span>
+              <span class="park-since">since {p.period?.start_year ?? 1980}</span>
+              {psig ? <span class="sig-mark" title={`${fmtSlope(slope)} °F/yr, p<0.05`}>✓</span> : null}
+            </div>
+            <div class="park-visual">
+              <div class="stripes">
+                {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
+              </div>
+              {sparkD ? (
+                <svg class="park-sparkline" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true">
+                  <path d={sparkD} fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              ) : null}
             </div>
           </a>
         );
@@ -399,35 +467,89 @@ const swarmMinF = Math.min(0, Math.floor(Math.min(...parkSwarm.map((p) => p.tota
   const cards = Array.from(grid.querySelectorAll<HTMLAnchorElement>(".park-card"));
   const searchEl = document.getElementById("search") as HTMLInputElement;
   const sortEl = document.getElementById("sort") as HTMLSelectElement;
+  const sigEl = document.getElementById("sig-only") as HTMLInputElement;
   const countEl = document.getElementById("result-count")!;
+  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>(".region-chips .chip"));
+
+  let activeRegion = "all";
+
+  // FLIP animation: snapshot positions, reorder/filter, then animate each
+  // visible card from its previous rect to its new rect. Skipped for
+  // users who prefer reduced motion.
+  const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function snapshot(): Map<HTMLAnchorElement, DOMRect> {
+    const m = new Map<HTMLAnchorElement, DOMRect>();
+    for (const c of cards) {
+      if (c.style.display !== "none") m.set(c, c.getBoundingClientRect());
+    }
+    return m;
+  }
+  function animateFromSnapshot(before: Map<HTMLAnchorElement, DOMRect>) {
+    if (prefersReducedMotion) return;
+    for (const c of cards) {
+      if (c.style.display === "none") continue;
+      const prev = before.get(c);
+      if (!prev) continue;
+      const now = c.getBoundingClientRect();
+      const dx = prev.left - now.left;
+      const dy = prev.top - now.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+      c.animate(
+        [
+          { transform: `translate(${dx}px, ${dy}px)` },
+          { transform: "translate(0, 0)" },
+        ],
+        { duration: 260, easing: "cubic-bezier(.2,.7,.3,1)" },
+      );
+    }
+  }
 
   function apply() {
+    const before = snapshot();
+
     const q = searchEl.value.trim().toLowerCase();
     const sort = sortEl.value;
+    const sigOnly = sigEl.checked;
     const visible: HTMLAnchorElement[] = [];
     for (const c of cards) {
       // data-state now carries both the 2-letter code AND the full state
       // name(s), space-separated, so "Utah" and "UT" both match.
-      const match = !q || c.dataset.name!.includes(q) || c.dataset.state!.includes(q);
-      c.style.display = match ? "" : "none";
-      if (match) visible.push(c);
+      const nameMatch = !q || c.dataset.name!.includes(q) || c.dataset.state!.includes(q);
+      const regionMatch = activeRegion === "all" || c.dataset.region === activeRegion;
+      const sigMatch = !sigOnly || c.dataset.sig === "1";
+      const show = nameMatch && regionMatch && sigMatch;
+      c.style.display = show ? "" : "none";
+      if (show) visible.push(c);
     }
     countEl.textContent = `${visible.length} park${visible.length === 1 ? "" : "s"}`;
-    const bySlope = (a: HTMLAnchorElement, b: HTMLAnchorElement) =>
-      parseFloat(b.dataset.slope!) - parseFloat(a.dataset.slope!);
+    const byTotal = (a: HTMLAnchorElement, b: HTMLAnchorElement) =>
+      parseFloat(b.dataset.total!) - parseFloat(a.dataset.total!);
     const byPrcp = (a: HTMLAnchorElement, b: HTMLAnchorElement) =>
       parseFloat(b.dataset.prcpSlope!) - parseFloat(a.dataset.prcpSlope!);
     const byName = (a: HTMLAnchorElement, b: HTMLAnchorElement) =>
       a.dataset.name!.localeCompare(b.dataset.name!);
     let sorted = visible.slice();
-    if (sort === "warming") sorted.sort(bySlope);
-    else if (sort === "cooling") sorted.sort((a, b) => -bySlope(a, b));
+    if (sort === "warming") sorted.sort(byTotal);
+    else if (sort === "cooling") sorted.sort((a, b) => -byTotal(a, b));
     else if (sort === "wetter") sorted.sort(byPrcp);
     else if (sort === "drier") sorted.sort((a, b) => -byPrcp(a, b));
     else sorted.sort(byName);
     sorted.forEach((c) => grid.appendChild(c));
+
+    // After the DOM settles, animate cards from their old positions.
+    requestAnimationFrame(() => animateFromSnapshot(before));
+  }
+
+  for (const chip of chips) {
+    chip.addEventListener("click", () => {
+      chips.forEach((c) => c.classList.remove("active"));
+      chip.classList.add("active");
+      activeRegion = chip.dataset.region || "all";
+      apply();
+    });
   }
   searchEl.addEventListener("input", apply);
   sortEl.addEventListener("change", apply);
+  sigEl.addEventListener("change", apply);
   apply();
 </script>
