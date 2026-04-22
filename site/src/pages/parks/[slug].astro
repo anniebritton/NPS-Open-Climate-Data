@@ -2,7 +2,7 @@
 import Base from "../../layouts/Base.astro";
 import parksData from "../../../public/data/parks.json";
 import { stripeColor } from "../../lib/stripes";
-import { fmtSlope, fmtPVal, fmtTotal } from "../../lib/format";
+import { fmtSlope, fmtPVal, fmtTotal, cToF, cDeltaToF } from "../../lib/format";
 import { metaFor } from "../../lib/variables";
 import fs from "node:fs";
 import path from "node:path";
@@ -21,6 +21,39 @@ const summary = JSON.parse(fs.readFileSync(fullPath, "utf-8"));
 
 const title = `${summary.unit_name} — Climate Trends`;
 const period = summary.period;
+
+// Convert temperature fields from °C → °F in place before rendering.
+// Pipeline data stays SI; this is a display-layer choice for US audiences.
+const TEMP_VARS = new Set(["tmean_c", "tmax_c", "tmin_c"]);
+const TEMP_FIELDS = ["tmean_c", "tmax_c", "tmin_c"];
+for (const row of summary.annual ?? []) {
+  for (const f of TEMP_FIELDS) {
+    if (row[f] != null) row[f] = cToF(row[f]);
+  }
+}
+for (const s of summary.stripes ?? []) {
+  if (s.value != null) s.value = cToF(s.value);
+}
+const convertTrend = (t: any) => {
+  if (!TEMP_VARS.has(t.variable)) return t;
+  return {
+    ...t,
+    slope_per_year: cDeltaToF(t.slope_per_year),
+    intercept: t.intercept != null ? cToF(t.intercept) : t.intercept,
+  };
+};
+for (const v of TEMP_FIELDS) {
+  if (summary.headline_trends?.[v]) {
+    summary.headline_trends[v] = convertTrend({
+      variable: v,
+      ...summary.headline_trends[v],
+    });
+  }
+}
+if (Array.isArray(summary.trends)) {
+  summary.trends = summary.trends.map(convertTrend);
+}
+
 const headline = summary.headline_trends ?? {};
 const stripes = summary.stripes ?? [];
 const annual = summary.annual ?? [];
@@ -51,7 +84,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
     </p>
 
     <div class="stripes-full" title="Annual mean temperature anomaly, 1981-2010 baseline">
-      {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value.toFixed(2)}°C (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
+      {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
     </div>
     <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.82rem;">
       <span>{period.start_year}</span>
@@ -75,7 +108,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
             {c.significant_95 ? <span class="sig">significant</span> : <span class="sig not-sig">not sig.</span>}
           </div>
           <div class="detail">
-            Total {fmtTotal(c.slope_per_year, c.n)}{c.meta.unit.includes("mm") ? " mm" : "°C"} since {c.start_year} · {fmtPVal(c.p_value)}
+            Total {fmtTotal(c.slope_per_year, c.n)}{c.meta.unit.includes("mm") ? " mm" : " °F"} since {c.start_year} · {fmtPVal(c.p_value)}
           </div>
         </div>
       ))}
@@ -85,7 +118,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
   <section class="container section">
     <h2>Time series</h2>
     <div class="chart-wrap">
-      <div class="title">Annual mean temperature (°C) + Theil–Sen trend</div>
+      <div class="title">Annual mean temperature (°F) + Theil–Sen trend</div>
       <canvas id="chart-tmean" height="260"></canvas>
     </div>
     <div class="chart-wrap">
@@ -143,7 +176,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
           Annual mean temperature · {period.start_year}–{period.end_year}
         </div>
         <div class="stripes-full">
-          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value.toFixed(2)}°C (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
+          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
         </div>
         <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.78rem">
           <span>{period.start_year}</span><span>{period.end_year}</span>
@@ -219,7 +252,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
     }
 
     const years = summary.annual.map((r) => r.year);
-    lineChart("chart-tmean", years, summary.annual.map((r) => r.tmean_c), "Mean temp (°C)", "#b5613b", summary.headline_trends?.tmean_c);
+    lineChart("chart-tmean", years, summary.annual.map((r) => r.tmean_c), "Mean temp (°F)", "#b5613b", summary.headline_trends?.tmean_c);
     lineChart("chart-prcp", years, summary.annual.map((r) => r.prcp_mm), "Precip (mm)", "#4a7fa5", summary.headline_trends?.prcp_mm);
     if (summary.annual[0]?.swe_mm !== undefined) {
       lineChart("chart-swe", years, summary.annual.map((r) => r.swe_mm), "SWE (mm)", "#2d5a7a", null);

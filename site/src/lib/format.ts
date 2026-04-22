@@ -20,3 +20,17 @@ export function fmtTotal(slope: number | null | undefined, n: number | null | un
 export function kebabToTitle(s: string): string {
   return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
+
+// Display-time Celsius → Fahrenheit. Pipeline data stays in SI; only the
+// rendered site converts, so CSV downloads and the methodology page remain
+// scientific.
+export function cToF(c: number | null | undefined): number | null {
+  if (c == null || Number.isNaN(c)) return null;
+  return c * 9 / 5 + 32;
+}
+
+// Temperature differences (slopes, deltas) scale by 9/5 only — no offset.
+export function cDeltaToF(c: number | null | undefined): number | null {
+  if (c == null || Number.isNaN(c)) return null;
+  return c * 9 / 5;
+}

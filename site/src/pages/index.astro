@@ -2,7 +2,7 @@
 import Base from "../layouts/Base.astro";
 import parksData from "../../public/data/parks.json";
 import { stripeColor } from "../lib/stripes";
-import { fmtSlope } from "../lib/format";
+import { fmtSlope, cDeltaToF } from "../lib/format";
 import { silhouetteFromGeoJSON } from "../lib/silhouette";
 import fs from "node:fs";
 import path from "node:path";
@@ -31,11 +31,13 @@ const withStripes = parks.map((p) => {
   return { ...p, stripeColors: stripes, silhouette: loadSilhouette(p.slug) };
 });
 
-// Aggregate headline stat: average tmean slope across all parks
+// Aggregate headline stat: average tmean slope across all parks.
+// Slopes come from the pipeline in °C/yr; display as °F/yr for US audiences.
 const slopes = parks
   .map((p) => p.headline_trends?.tmean_c?.slope_per_year)
   .filter((v) => typeof v === "number");
-const meanSlope = slopes.reduce((a, b) => a + b, 0) / (slopes.length || 1);
+const meanSlopeC = slopes.reduce((a, b) => a + b, 0) / (slopes.length || 1);
+const meanSlopeF = cDeltaToF(meanSlopeC) ?? 0;
 const warmingParks = parks.filter(
   (p) => (p.headline_trends?.tmean_c?.significant_95 ?? false) && p.headline_trends.tmean_c.slope_per_year > 0,
 ).length;
@@ -93,7 +95,7 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
     <div class="hero-stats">
       <div class="stat"><span class="num">{parks.length}</span><span class="lbl">Parks</span></div>
       <div class="stat"><span class="num">{endYear - startYear + 1}</span><span class="lbl">Years of data</span></div>
-      <div class="stat"><span class="num">+{meanSlope.toFixed(3)}°C</span><span class="lbl">Mean warming / yr</span></div>
+      <div class="stat"><span class="num">+{meanSlopeF.toFixed(3)}°F</span><span class="lbl">Mean warming / yr</span></div>
       <div class="stat"><span class="num">{warmingParks}</span><span class="lbl">Significant warming</span></div>
     </div>
   </section>
@@ -111,10 +113,10 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
     </p>
     <div id="overview-map" style="height:520px"></div>
     <div class="legend" aria-hidden="true">
-      <span class="legend-label">Annual mean temperature slope (°C/yr)</span>
+      <span class="legend-label">Annual mean temperature slope (°F/yr)</span>
       <div class="legend-ramp"></div>
       <div class="legend-ticks">
-        <span>−0.04</span><span>0</span><span>+0.04</span>
+        <span>−0.07</span><span>0</span><span>+0.07</span>
       </div>
     </div>
   </section>
@@ -142,7 +144,8 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 
     <div id="park-grid" class="grid">
       {withStripes.map((p) => {
-        const slope = p.headline_trends?.tmean_c?.slope_per_year ?? null;
+        const slopeC = p.headline_trends?.tmean_c?.slope_per_year ?? null;
+        const slope = cDeltaToF(slopeC);
         const psig = p.headline_trends?.tmean_c?.significant_95 ?? false;
         const wetSlope = p.headline_trends?.prcp_mm?.slope_per_year ?? null;
         return (
@@ -162,7 +165,7 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
               </svg>
             ) : null}
             <span class="trend-line">
-              Mean temp: <strong>{fmtSlope(slope)}°C/yr</strong>
+              Mean temp: <strong>{fmtSlope(slope)}°F/yr</strong>
               {psig ? " ✓" : ""}
             </span>
             <div class="stripes">
@@ -198,10 +201,13 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
 <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script define:vars={{ base }} is:inline>
   // National overview map — 63 parks shaded by warming slope.
-  function rampColor(slope) {
-    if (slope == null || Number.isNaN(slope)) return "#c9c3b0";
-    // Clamp to ±0.04 °C/yr; red for warming, blue for cooling.
-    const v = Math.max(-0.04, Math.min(0.04, slope)) / 0.04;
+  // GeoJSON properties carry tmean_slope in °C/yr; convert to °F/yr for
+  // both the ramp and the tooltip so the site is consistent end-to-end.
+  const cDeltaToF = (c) => (c == null || Number.isNaN(c)) ? null : c * 9 / 5;
+  function rampColor(slopeF) {
+    if (slopeF == null || Number.isNaN(slopeF)) return "#c9c3b0";
+    // Clamp to ±0.072 °F/yr (≈ ±0.04 °C/yr); red for warming, blue for cooling.
+    const v = Math.max(-0.072, Math.min(0.072, slopeF)) / 0.072;
     const stops = v < 0
       ? [[-1, [61, 97, 137]], [-0.5, [168, 196, 232]], [0, [240, 227, 211]]]
       : [[0, [240, 227, 211]], [0.5, [232, 176, 140]], [1, [77, 38, 35]]];
@@ -232,13 +238,14 @@ const endYear = Math.max(...parks.map((p) => p.period?.end_year ?? 2024));
           style: (f) => ({
             color: "#0d0d0c",
             weight: 1,
-            fillColor: rampColor(f.properties.tmean_slope),
+            fillColor: rampColor(cDeltaToF(f.properties.tmean_slope)),
             fillOpacity: 0.82,
           }),
           onEachFeature: (f, lyr) => {
             const p = f.properties;
-            const slopeStr = p.tmean_slope != null
-              ? `${p.tmean_slope >= 0 ? "+" : ""}${p.tmean_slope.toFixed(3)} °C/yr${p.tmean_sig ? " · significant" : ""}`
+            const slopeF = cDeltaToF(p.tmean_slope);
+            const slopeStr = slopeF != null
+              ? `${slopeF >= 0 ? "+" : ""}${slopeF.toFixed(3)} °F/yr${p.tmean_sig ? " · significant" : ""}`
               : "no trend data";
             lyr.bindTooltip(`<strong>${p.unit_name}</strong><br/>${slopeStr}`, { sticky: true });
             lyr.on("click", () => { window.location.href = `${base}parks/${p.slug}`; });
