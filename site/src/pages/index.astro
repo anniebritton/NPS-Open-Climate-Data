@@ -419,9 +419,9 @@ function sparklinePath(series: { value: number | null }[]): string {
   if (swarmSvg && parkSwarm && parkSwarm.length) {
     const W = 1000;
     const margin = { left: 20, right: 20, top: 14, bottom: 34 };
-    const ROW_H = 58;
+    const ROW_H = 110;
     const REGION_LABEL_Y_OFFSET = 11;
-    const ROW_MID_OFFSET = 32;
+    const ROW_MID_OFFSET = 60;
     const PAD_X = 3, PAD_Y = 1;
     const FONT_SIZE = 11;
     const svgNS = "http://www.w3.org/2000/svg";
@@ -499,9 +499,9 @@ function sparklinePath(series: { value: number | null }[]): string {
         .filter((p) => p.region === region)
         .sort((a, b) => a.totalF - b.totalF);
       const placedInRow = [];
-      const subSteps = [0, -13, 13, -24, 24];
-      const rowUpper = rowTopY + REGION_LABEL_Y_OFFSET + 6;
-      const rowLower = rowBottomY - 3;
+      const subSteps = [0, -12, 12, -24, 24, -36, 36];
+      const rowUpper = rowTopY + REGION_LABEL_Y_OFFSET + 12;
+      const rowLower = rowBottomY - 6;
 
       for (const park of parksInRow) {
         const x = xScale(park.totalF);
