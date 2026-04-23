@@ -92,15 +92,15 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
           Annual mean temperature · {period.start_year}–{period.end_year}
         </div>
-        <div class="stripes-full">
-          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
-        </div>
         <div class="stripes-legend">
           <span><span class="stripes-legend-swatch" style={`background:${stripeColor(-2)}`}></span>Cooler than 1981–2010 baseline</span>
           <span><span class="stripes-legend-swatch" style={`background:${stripeColor(0)}`}></span>Near baseline</span>
-          <span><span class="stripes-legend-swatch" style={`background:${stripeColor(2)}`}></span>Warmer than baseline</span>
+          <span><span class="stripes-legend-swatch" style={`background:${stripeColor(2)}`}></span>Warmer than 1981–2010 baseline</span>
         </div>
-        <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.78rem">
+        <div class="stripes-full">
+          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
+        </div>
+        <div class="stripes-years">
           <span>{period.start_year}</span><span>{period.end_year}</span>
         </div>
       </div>
