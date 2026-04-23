@@ -3,235 +3,327 @@ import Base from "../layouts/Base.astro";
 import carbon from "../../public/data/carbon.json";
 const base = import.meta.env.BASE_URL;
 
-const kg = (g: number) => (g / 1000).toFixed(2);
-const car_km_per_g = 1 / 120;  // ~120 gCO2/km, typical ICE car — EPA [6]
 const info = (carbon as any).build_info ?? null;
 const n_commits = info?.commit_count ?? 0;
 const a = (carbon as any).assumptions ?? {};
 
-// Reconstruct cumulative token totals from assumptions so the table note
-// shows actual numbers rather than baseline-only figures.
 const claudeInK  = Math.round((a.claude_in_per_commit  ?? 50_000) * n_commits / 1000
                              + (a.claude_in_baseline   ?? 300_000) / 1000);
 const claudeOutK = Math.round((a.claude_out_per_commit ?? 10_000) * n_commits / 1000
                              + (a.claude_out_baseline  ?? 60_000)  / 1000);
 const ciRuns = n_commits * (a.ci_runs_per_commit ?? 2);
 
-const rows = [
-  ["Earth Engine processing (one-time)", carbon.ee_processing_g,
-   `63 parks × ~${a.ee_cpu_min_per_park ?? 2} CPU-min each, serverless EE tasks`],
-  ["Data egress from EE to Drive (one-time)", carbon.ee_egress_g,
-   "~13 GB of daily DAYMET + ERA5 tables"],
-  ["Local statistical analysis (one-time)", carbon.local_analysis_g,
-   "Annual aggregates, MK tests, Theil-Sen slopes"],
-  ["Claude API — all dev sessions to date", carbon.claude_api_g,
-   `~${claudeInK}k input + ~${claudeOutK}k output tokens across ${n_commits} commits`],
-  ["GitHub Actions CI — all builds to date", (carbon as any).ci_actions_g,
-   `${ciRuns} workflow runs × ~${a.ci_minutes_per_run ?? 4} min on ${a.ci_vcpus ?? 2}-vCPU runner`],
-];
 const buildTotal = carbon.total_build_g;
 const generatedAt = info?.generated_at ? new Date(info.generated_at) : null;
 const generatedPretty = generatedAt ? generatedAt.toUTCString() : null;
+
+// Everyday-comparison divisors, order-of-magnitude from published sources.
+const compares = [
+  { n: buildTotal / 120,           unit: "km in an average gas car", decimals: 1, ref: 8 },
+  { n: buildTotal / 36,            unit: "hours of video streaming", decimals: 1, ref: 7 },
+  { n: Math.round(buildTotal / 0.2),unit: "Google searches",         decimals: 0, ref: 1 },
+  { n: Math.round(buildTotal / 8), unit: "smartphone charges",       decimals: 0, ref: 4 },
+];
+
+const lineItems = [
+  {
+    label: "Earth Engine processing",
+    g: carbon.ee_processing_g,
+    color: "#2a6041",
+    cadence: "one-time",
+    notes: "Serverless Earth Engine batch tasks, run once per full pipeline.",
+    rows: [
+      { k: "Scope",     v: "63 parks, processed once" },
+      { k: "CPU time",  v: `${a.ee_cpu_min_per_park} min/park` },
+      { k: "Intensity", v: `${a.ee_Wh_per_cpu_hr} Wh/CPU-hr [3]` },
+    ],
+  },
+  {
+    label: "Data egress from EE → Drive",
+    g: carbon.ee_egress_g,
+    color: "#4a7fa5",
+    cadence: "one-time",
+    notes: "Daily DAYMET + ERA5 tables transferred out of EE storage.",
+    rows: [
+      { k: "Volume",    v: `${a.raw_MB_per_park} MB/park × 63 ≈ ${((a.raw_MB_per_park * 63) / 1024).toFixed(1)} GB` },
+      { k: "Intensity", v: `${a.egress_Wh_per_GB} Wh/GB [4]` },
+    ],
+  },
+  {
+    label: "Local statistical analysis",
+    g: carbon.local_analysis_g,
+    color: "#7a5c8b",
+    cadence: "one-time",
+    notes: "Annual aggregates, Mann–Kendall tests, Theil–Sen slopes. Runs on a laptop.",
+    rows: [
+      { k: "CPU time", v: `${a.local_cpu_sec_per_park} s/park` },
+      { k: "Draw",     v: `${a.local_power_W} W` },
+    ],
+  },
+  {
+    label: "Claude API — all dev sessions",
+    g: carbon.claude_api_g,
+    color: "#b5613b",
+    cadence: "accrues per commit",
+    notes: `Cumulative across all ${n_commits} commits. Every new conversation adds to the running total.`,
+    rows: [
+      { k: "Tokens to date", v: `~${claudeInK.toLocaleString()}k input · ~${claudeOutK.toLocaleString()}k output` },
+      { k: "Baseline",       v: `${Math.round((a.claude_in_baseline  ?? 300000) / 1000)}k in + ${Math.round((a.claude_out_baseline ?? 60000)  / 1000)}k out` },
+      { k: "Per commit",     v: `+${Math.round((a.claude_in_per_commit  ?? 50000) / 1000)}k in · +${Math.round((a.claude_out_per_commit ?? 10000) / 1000)}k out` },
+      { k: "Intensity",      v: `${a.claude_input_Wh_per_kt} Wh/1k input · ${a.claude_output_Wh_per_kt} Wh/1k output [5]` },
+    ],
+  },
+  {
+    label: "GitHub Actions CI — all builds",
+    g: (carbon as any).ci_actions_g,
+    color: "#c79a3b",
+    cadence: "accrues per commit",
+    notes: "Every push to main runs the build and test suite on a GitHub-hosted runner.",
+    rows: [
+      { k: "Runs to date", v: `${ciRuns.toLocaleString()} workflow runs` },
+      { k: "Per run",      v: `${a.ci_minutes_per_run} min × ${a.ci_vcpus} vCPU × ${a.ci_W_per_vcpu} W/vCPU [6]` },
+    ],
+  },
+];
+const maxG = Math.max(...lineItems.map((x) => x.g));
+
+const sources = [
+  { title: "Google 2024 Environmental Report",
+    authors: "Google", year: 2024,
+    url: "https://sustainability.google/reports/google-2024-environmental-report/",
+    domain: "sustainability.google" },
+  { title: "Electricity 2024 — Analysis and forecast to 2026",
+    authors: "IEA", year: 2024,
+    url: "https://www.iea.org/reports/electricity-2024",
+    domain: "iea.org" },
+  { title: "Recalibrating global data center energy-use estimates (Science, 367)",
+    authors: "Masanet, Shehabi, Lei, Smith, Koomey", year: 2020,
+    url: "https://www.science.org/doi/10.1126/science.aba3758",
+    domain: "science.org" },
+  { title: "Electricity intensity of internet data transmission (J. Industrial Ecology, 22)",
+    authors: "Aslan, Mayers, Koomey, France", year: 2018,
+    url: "https://onlinelibrary.wiley.com/doi/10.1111/jiec.12630",
+    domain: "wiley.com" },
+  { title: "Estimating the carbon footprint of BLOOM (JMLR 24) + Anthropic disclosures",
+    authors: "Luccioni, Viguier, Ligozat", year: 2023,
+    url: "https://jmlr.org/papers/v24/23-0069.html",
+    domain: "jmlr.org" },
+  { title: "About GitHub-hosted runners — hardware specifications",
+    authors: "GitHub", year: 2024,
+    url: "https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners",
+    domain: "docs.github.com" },
+  { title: "The real climate and transformative impact of ICT (Patterns, 2)",
+    authors: "Freitag, Berners-Lee, Widdicks, Knowles, Blair, Friday", year: 2021,
+    url: "https://www.cell.com/patterns/fulltext/S2666-3899(21)00188-4",
+    domain: "cell.com" },
+  { title: "Greenhouse gas emissions from a typical passenger vehicle",
+    authors: "U.S. EPA", year: 2023,
+    url: "https://www.epa.gov/greenvehicles/greenhouse-gas-emissions-typical-passenger-vehicle",
+    domain: "epa.gov" },
+];
 ---
 <Base title="Carbon footprint — Open Climate Data">
-  <section class="container section">
-    <a href={base} style="font-size:0.9rem">← Home</a>
+  <section class="container section carbon-page">
+    <a href={base} class="carbon-back">← Home</a>
     <span class="kicker" style="margin-top:0.8rem;display:block">Transparency</span>
     <h1>What did this site cost the climate?</h1>
-    <p style="max-width:720px;color:var(--muted)">
-      A climate dashboard that doesn't show its own footprint would be a
-      bit ironic. These numbers are order-of-magnitude estimates of the
-      CO₂-equivalent emissions associated with producing the data,
-      building the site, hosting it, and viewing it. Every assumption is
-      listed below so you can audit or tune them.
+    <p class="carbon-lede">
+      A climate dashboard that doesn't show its own footprint would be
+      a bit ironic. These numbers are order-of-magnitude estimates of
+      the CO₂-equivalent emissions from producing the data, building
+      the site, hosting it, and viewing it. Every assumption is
+      auditable below.
     </p>
 
-    {info && (
-      <div class="note" style="margin-top:1rem">
-        <strong>Cumulative to this build</strong> — this estimate grows with
-        every commit. Claude API usage and GitHub Actions CI runs are tallied
-        across all <strong>{info.commit_count}</strong> commits to the repo,
-        not just the most recent one. Current commit:{" "}
-        <a href={`https://github.com/anniebritton/NPS-Open-Climate-Data/commit/${info.commit}`}><code>{info.commit}</code></a>.
-        Generated {generatedPretty}.
+    <!-- Hero ledger stat -->
+    <div class="carbon-hero">
+      <div class="carbon-hero-big">
+        <span class="carbon-hero-num" data-count-to={buildTotal.toFixed(0)}>0</span>
+        <span class="carbon-hero-unit">g CO₂e</span>
       </div>
-    )}
-
-    <div class="trend-grid" style="margin-top:1.5rem">
-      <div class="trend-card">
-        <div class="var-label">Cumulative project cost</div>
-        <div class="slope">{buildTotal.toFixed(0)}<span class="unit">g CO₂e</span></div>
-        <div class="detail">≈ { (buildTotal * car_km_per_g).toFixed(1) } km in an average gas car.</div>
-      </div>
-      <div class="trend-card cool">
-        <div class="var-label">Hosting per month</div>
-        <div class="slope">{carbon.hosting_per_month_g.toFixed(0)}<span class="unit">g CO₂e</span></div>
-        <div class="detail">At ~10,000 monthly page views.</div>
-      </div>
-      <div class="trend-card cool">
-        <div class="var-label">Per page view</div>
-        <div class="slope">{carbon.per_view_g.toFixed(3)}<span class="unit">g CO₂e</span></div>
-        <div class="detail">A 60-second read on a phone.</div>
+      <div class="carbon-hero-meta">
+        <span class="carbon-hero-meta-label">Cumulative project total</span>
+        {info && (
+          <span class="carbon-hero-meta-sub">
+            {info.commit_count} commits · this build{" "}
+            <a href={`https://github.com/anniebritton/NPS-Open-Climate-Data/commit/${info.commit}`}>
+              <code>{info.commit}</code>
+            </a>
+            {generatedPretty && <> · generated {generatedPretty}</>}
+          </span>
+        )}
       </div>
     </div>
 
-    <h2>Where it comes from</h2>
-    <p style="color:var(--muted);max-width:680px">
-      The EE export and local analysis are one-time costs. Claude API usage
-      and CI builds accumulate with every commit — each new conversation and
-      every push to <code>main</code> is included in the running total.
-    </p>
-    <table class="data">
-      <thead>
-        <tr><th>Source</th><th style="text-align:right">g CO₂e</th><th>Notes</th></tr>
-      </thead>
-      <tbody>
-        {rows.map(([label, g, note]: any) => (
-          <tr>
-            <td>{label}</td>
-            <td style="text-align:right;font-feature-settings:'tnum'">{Number(g).toFixed(1)}</td>
-            <td style="color:var(--muted)">{note}</td>
-          </tr>
+    <!-- That's roughly… comparison pills -->
+    <div class="carbon-compare">
+      <span class="carbon-compare-label">That's roughly equivalent to</span>
+      <div class="carbon-compare-grid">
+        {compares.map((c) => (
+          <div class="carbon-compare-pill">
+            <span class="carbon-compare-num">{c.decimals ? c.n.toFixed(c.decimals) : c.n.toLocaleString()}</span>
+            <span class="carbon-compare-unit">{c.unit}</span>
+          </div>
         ))}
-        <tr>
-          <td><strong>Total cumulative</strong></td>
-          <td style="text-align:right"><strong>{buildTotal.toFixed(1)}</strong></td>
-          <td></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h2>Assumptions</h2>
-    <p style="color:var(--muted)">
-      Electricity is converted to CO₂e using a global-average grid intensity
-      of <strong>{a.grid_intensity_g_per_kWh} g/kWh</strong> — between
-      Google Cloud's reported ~300 g/kWh <a href="#ref-1" class="cite">[1]</a> and
-      the IEA's 2023 global average of ~480 g/kWh <a href="#ref-2" class="cite">[2]</a>.
-      Tune any of these in <code>nps_climate_data/carbon.py</code>.
-    </p>
-    <table class="data">
-      <tbody>
-        <tr>
-          <td>Earth Engine CPU</td>
-          <td>
-            {a.ee_cpu_min_per_park} min/park × {a.ee_Wh_per_cpu_hr} Wh/CPU-hr (serverless tasks)
-            <a href="#ref-3" class="cite">[3]</a>
-          </td>
-        </tr>
-        <tr>
-          <td>Egress</td>
-          <td>
-            {a.raw_MB_per_park} MB/park × {a.egress_Wh_per_GB} Wh/GB
-            <a href="#ref-4" class="cite">[4]</a>
-          </td>
-        </tr>
-        <tr>
-          <td>Local analysis</td>
-          <td>{a.local_cpu_sec_per_park}s/park × {a.local_power_W} W</td>
-        </tr>
-        <tr>
-          <td>Claude API (per commit)</td>
-          <td>
-            baseline {Math.round((a.claude_in_baseline ?? 300000)/1000)}k in +
-            {Math.round((a.claude_out_baseline ?? 60000)/1000)}k out, then
-            +{Math.round((a.claude_in_per_commit ?? 50000)/1000)}k in /
-            +{Math.round((a.claude_out_per_commit ?? 10000)/1000)}k out per commit —
-            at {a.claude_input_Wh_per_kt} Wh/1k input tokens,
-            {a.claude_output_Wh_per_kt} Wh/1k output tokens
-            <a href="#ref-5" class="cite">[5]</a>
-          </td>
-        </tr>
-        <tr>
-          <td>GitHub Actions CI</td>
-          <td>
-            {a.ci_runs_per_commit} runs/commit × {a.ci_minutes_per_run} min ×
-            {a.ci_vcpus} vCPUs × {a.ci_W_per_vcpu} W/vCPU
-            <a href="#ref-6" class="cite">[6]</a>
-          </td>
-        </tr>
-        <tr>
-          <td>GitHub Pages</td>
-          <td>
-            {a.pages_Wh_per_GB} Wh/GB served
-            <a href="#ref-4" class="cite">[4]</a>
-          </td>
-        </tr>
-        <tr>
-          <td>Page view</td>
-          <td>
-            {a.view_seconds}s × {a.view_device_W} W device + {a.view_MB} MB transfer
-            <a href="#ref-7" class="cite">[7]</a>
-          </td>
-        </tr>
-        <tr>
-          <td>Car comparison</td>
-          <td>
-            120 g CO₂/km (average ICE passenger vehicle)
-            <a href="#ref-8" class="cite">[8]</a>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div class="note" style="margin-top:1.5rem">
-      <strong>Why this matters.</strong> Digital infrastructure for climate
-      research is not free. By publishing pre-computed aggregates and
-      trends instead of asking every visitor to run their own Earth
-      Engine jobs, we amortize a cumulative ~{buildTotal.toFixed(0)} g project cost
-      across tens of thousands of readers, for <em>&lt; 1 g</em> of CO₂e
-      per visit.
+      </div>
     </div>
 
-    <h2>Sources</h2>
-    <ol style="color:var(--muted);font-size:0.88rem;line-height:2;padding-left:1.4rem">
-      <li id="ref-1">
-        Google. (2024). <em>Google 2024 Environmental Report.</em>
-        <a href="https://sustainability.google/reports/google-2024-environmental-report/">sustainability.google/reports</a>
-      </li>
-      <li id="ref-2">
-        IEA. (2024). <em>Electricity 2024 — Analysis and forecast to 2026.</em>
-        <a href="https://www.iea.org/reports/electricity-2024">iea.org/reports/electricity-2024</a>
-      </li>
-      <li id="ref-3">
-        Masanet, E., Shehabi, A., Lei, N., Smith, S., &amp; Koomey, J. (2020).
-        Recalibrating global data center energy-use estimates.
-        <em>Science,</em> 367(6481), 984–986.
-        <a href="https://www.science.org/doi/10.1126/science.aba3758">doi:10.1126/science.aba3758</a>
-      </li>
-      <li id="ref-4">
-        Aslan, J., Mayers, K., Koomey, J. G., &amp; France, C. (2018).
-        Electricity intensity of internet data transmission: Untangling the estimates.
-        <em>Journal of Industrial Ecology,</em> 22(4), 785–798.
-        <a href="https://onlinelibrary.wiley.com/doi/10.1111/jiec.12630">doi:10.1111/jiec.12630</a>
-      </li>
-      <li id="ref-5">
-        Luccioni, A. S., Viguier, S., &amp; Ligozat, A.-L. (2023).
-        Estimating the carbon footprint of BLOOM, a 176B parameter language model.
-        <em>Journal of Machine Learning Research,</em> 24(253), 1–15.
-        <a href="https://jmlr.org/papers/v24/23-0069.html">jmlr.org/papers/v24/23-0069.html</a>
-        — and Anthropic. (2024). <em>Claude usage and energy disclosures.</em>
-        <a href="https://www.anthropic.com/news/claude-usage-policy">anthropic.com</a>
-      </li>
-      <li id="ref-6">
-        GitHub. (2024). <em>About GitHub-hosted runners — hardware specifications.</em>
-        <a href="https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories">docs.github.com/en/actions</a>
-      </li>
-      <li id="ref-7">
-        Freitag, C., Berners-Lee, M., Widdicks, K., Knowles, B., Blair, G., &amp; Friday, A. (2021).
-        The real climate and transformative impact of ICT: A critique of estimates,
-        trends, and regulations. <em>Patterns,</em> 2(9), 100340.
-        <a href="https://www.cell.com/patterns/fulltext/S2666-3899(21)00188-4">doi:10.1016/j.patter.2021.100340</a>
-      </li>
-      <li id="ref-8">
-        U.S. EPA. (2023). <em>Greenhouse gas emissions from a typical passenger vehicle.</em>
-        <a href="https://www.epa.gov/greenvehicles/greenhouse-gas-emissions-typical-passenger-vehicle">epa.gov/greenvehicles</a>
-      </li>
+    <!-- Stacked proportional bar -->
+    <div class="carbon-stack-wrap">
+      <div class="carbon-stack-head">
+        <span class="carbon-stack-kicker">Breakdown</span>
+        <span class="carbon-stack-hint">Hover for amounts</span>
+      </div>
+      <div class="carbon-stack" role="img" aria-label="Proportional breakdown of emissions">
+        {lineItems.map((r) => (
+          <div
+            class="carbon-stack-seg"
+            style={`flex-grow:${r.g}; background:${r.color};`}
+            title={`${r.label}: ${r.g.toFixed(1)}g`}
+            data-label={r.label}
+            data-g={r.g.toFixed(1)}
+          ></div>
+        ))}
+      </div>
+      <div class="carbon-stack-legend">
+        {lineItems.map((r) => (
+          <div class="carbon-stack-legend-item">
+            <span class="carbon-stack-swatch" style={`background:${r.color}`}></span>
+            <span class="carbon-stack-name">{r.label.replace(" — all dev sessions", "").replace(" — all builds", "")}</span>
+            <span class="carbon-stack-pct">{((r.g / buildTotal) * 100).toFixed(1)}%</span>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- Expandable ledger line items -->
+    <div class="carbon-section-head">
+      <h2>Line items</h2>
+      <span class="carbon-section-hint">Click any row to reveal its assumptions</span>
+    </div>
+    <div class="carbon-ledger">
+      {lineItems.map((item) => (
+        <details class="carbon-line">
+          <summary class="carbon-line-summary">
+            <span class="carbon-line-swatch" style={`background:${item.color}`}></span>
+            <span class="carbon-line-label">
+              {item.label}
+              <span class="carbon-line-cadence">{item.cadence}</span>
+            </span>
+            <span class="carbon-line-bar-wrap">
+              <span class="carbon-line-bar" style={`width:${(item.g / maxG) * 100}%;background:${item.color}`}></span>
+            </span>
+            <span class="carbon-line-value">
+              <span class="num">{item.g.toFixed(1)}</span>
+              <span class="unit">g</span>
+            </span>
+            <span class="carbon-line-caret" aria-hidden="true">↓</span>
+          </summary>
+          <div class="carbon-line-detail">
+            <p class="carbon-line-notes">{item.notes}</p>
+            <dl class="carbon-line-rows">
+              {item.rows.map((r) => (
+                <div>
+                  <dt>{r.k}</dt>
+                  <dd>{r.v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        </details>
+      ))}
+      <div class="carbon-line carbon-line-total">
+        <span class="carbon-line-swatch" aria-hidden="true"></span>
+        <span class="carbon-line-label"><strong>Total cumulative</strong></span>
+        <span class="carbon-line-bar-wrap" aria-hidden="true"></span>
+        <span class="carbon-line-value">
+          <strong><span class="num">{buildTotal.toFixed(1)}</span><span class="unit">g</span></strong>
+        </span>
+        <span class="carbon-line-caret-spacer" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <!-- Recurring costs -->
+    <div class="carbon-section-head">
+      <h2>Recurring cost per reader</h2>
+      <span class="carbon-section-hint">After the project is built, each visit is nearly free</span>
+    </div>
+    <div class="carbon-recurring">
+      <div class="carbon-recurring-item">
+        <div class="carbon-recurring-num">{carbon.per_view_g.toFixed(3)}<span class="carbon-recurring-unit">g CO₂e</span></div>
+        <div class="carbon-recurring-label">Per page view</div>
+        <div class="carbon-recurring-detail">
+          A 60-second read on a phone. ~{a.view_MB} MB transfer at {a.view_device_W} W.
+        </div>
+      </div>
+      <div class="carbon-recurring-item">
+        <div class="carbon-recurring-num">{carbon.hosting_per_month_g.toFixed(0)}<span class="carbon-recurring-unit">g CO₂e</span></div>
+        <div class="carbon-recurring-label">Hosting per month</div>
+        <div class="carbon-recurring-detail">
+          GitHub Pages serving ~10,000 monthly views. ~{a.pages_Wh_per_GB} Wh/GB.
+        </div>
+      </div>
+    </div>
+
+    <div class="note carbon-note">
+      <strong>Why this matters.</strong> By publishing pre-computed aggregates
+      and trends instead of asking every visitor to run their own Earth Engine
+      jobs, we amortize the ~{buildTotal.toFixed(0)} g project cost across tens
+      of thousands of readers, for <em>&lt; 1 g</em> of CO₂e per visit. Grid
+      intensity assumed at {a.grid_intensity_g_per_kWh} g/kWh (between Google
+      Cloud's reported ~300 g/kWh <a href="#ref-1" class="cite">[1]</a> and the
+      IEA's 2023 global average of ~480 g/kWh <a href="#ref-2" class="cite">[2]</a>).
+    </div>
+
+    <!-- Sources -->
+    <div class="carbon-section-head">
+      <h2>Sources</h2>
+    </div>
+    <ol class="carbon-sources">
+      {sources.map((s, i) => (
+        <li id={`ref-${i + 1}`}>
+          <span class="carbon-source-num">[{i + 1}]</span>
+          <div class="carbon-source-body">
+            <div class="carbon-source-title">{s.title}</div>
+            <div class="carbon-source-meta">
+              {s.authors} · {s.year}
+              {s.url && (<> · <a href={s.url} target="_blank" rel="noopener">{s.domain}</a></>)}
+            </div>
+          </div>
+        </li>
+      ))}
     </ol>
 
-    <h2>Rerunning the estimate</h2>
-    <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`from nps_climate_data.carbon import estimate
-estimate(n_parks=63, n_commits=42, monthly_views=10_000)`}</pre>
+    <!-- Rerun -->
+    <div class="carbon-section-head">
+      <h2>Rerun the estimate yourself</h2>
+    </div>
+    <pre class="carbon-rerun"><code>{`from nps_climate_data.carbon import estimate
+estimate(n_parks=63, n_commits=${n_commits || 42}, monthly_views=10_000)`}</code></pre>
   </section>
+
+  <script is:inline>
+    // Count-up animation on the hero big number.
+    (function () {
+      const el = document.querySelector(".carbon-hero-num[data-count-to]");
+      if (!el) return;
+      const target = Number(el.dataset.countTo);
+      if (!isFinite(target)) return;
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        el.textContent = String(target);
+        return;
+      }
+      const duration = 900;
+      const start = performance.now();
+      function frame(now) {
+        const t = Math.min(1, (now - start) / duration);
+        const eased = 1 - Math.pow(1 - t, 3);
+        el.textContent = String(Math.round(target * eased));
+        if (t < 1) requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+    })();
+  </script>
 </Base>
 
 <style>

@@ -82,11 +82,60 @@ export const VARS: Record<string, VarMeta> = {
     kind: "other",
     decimals: 2,
   },
+  aet_mm: {
+    label: "Actual evapotranspiration",
+    unit: "mm / yr",
+    slopeUnit: "mm / yr²",
+    description: "Annual total actual evapotranspiration (ERA5-Land).",
+    kind: "other",
+    decimals: 2,
+  },
+  snow_cover_pct: {
+    label: "Snow cover",
+    unit: "%",
+    slopeUnit: "% / yr",
+    description: "Mean daily snow-cover fraction.",
+    kind: "snow",
+    decimals: 2,
+  },
+  snow_depth_we_mm: {
+    label: "Snow depth (water-equivalent)",
+    unit: "mm",
+    slopeUnit: "mm / yr",
+    description: "Mean daily snow depth expressed as water equivalent.",
+    kind: "snow",
+    decimals: 2,
+  },
+  snowmelt_mm: {
+    label: "Snowmelt",
+    unit: "mm / yr",
+    slopeUnit: "mm / yr²",
+    description: "Annual total snowmelt.",
+    kind: "snow",
+    decimals: 2,
+  },
+  wind_speed_ms: {
+    label: "Wind speed",
+    unit: "m/s",
+    slopeUnit: "m/s / yr",
+    description: "Mean daily 10-m wind speed.",
+    kind: "other",
+    decimals: 3,
+  },
 };
+
+const UNIT_SUFFIXES = new Set(["c", "mm", "pct", "ms", "wm2", "pa"]);
+
+function humanize(key: string): string {
+  const parts = key.split("_").filter((p) => !UNIT_SUFFIXES.has(p));
+  if (parts.length === 0) return key;
+  const first = parts[0]!;
+  return [first[0]!.toUpperCase() + first.slice(1), ...parts.slice(1)].join(" ");
+}
 
 export function metaFor(key: string): VarMeta {
   return VARS[key] ?? {
-    label: key,
+    label: humanize(key),
     unit: "",
     slopeUnit: "/ yr",
     description: "",

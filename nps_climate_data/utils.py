@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import ee
 
 
@@ -72,6 +75,33 @@ def get_park_boundary(park_name: str) -> ee.FeatureCollection:
         ee.Filter.eq("Mang_Type", "FED"),
     )
     return base.filter(name_filter).filter(nps_filter)
+
+
+LOCAL_BOUNDARIES_DIR = (
+    Path(__file__).resolve().parents[1]
+    / "site" / "public" / "data" / "boundaries"
+)
+
+
+def get_local_park_boundary(slug: str) -> ee.FeatureCollection | None:
+    """Load a park boundary from the committed PAD-US 4.1 GeoJSON.
+
+    The EE catalog ships PAD-US v20, which pre-dates the 2018-2020
+    redesignations of Gateway Arch, Indiana Dunes, New River Gorge, and
+    White Sands — so ``get_park_boundary`` returns 0 features for them.
+    The repo carries a PAD-US 4.1 polygon for every park at
+    ``site/public/data/boundaries/<slug>.geojson`` (see
+    ``scripts/06_extract_padus_from_gdb.py``); this helper reads that file
+    and returns an ``ee.FeatureCollection`` so the batch exporter can use
+    it as a drop-in replacement. Returns ``None`` if the file is missing.
+    """
+    path = LOCAL_BOUNDARIES_DIR / f"{slug}.geojson"
+    if not path.exists():
+        return None
+    fc = json.loads(path.read_text())
+    features = fc.get("features") if fc.get("type") == "FeatureCollection" else [fc]
+    ee_features = [ee.Feature(ee.Geometry(f["geometry"])) for f in features]
+    return ee.FeatureCollection(ee_features)
 
 
 def split_multipart_features(fc: ee.FeatureCollection, max_parts: int = 8) -> ee.FeatureCollection:

@@ -146,10 +146,10 @@ function sparklinePath(series: { value: number | null }[]): string {
             C 718,212 732,228 748,248
             C 754,258 757,265 760,380"/>
         </defs>
-        <use href="#ridge" stroke="#2a6041" stroke-width="1.4" stroke-opacity="0.60" fill="none"/>
-        <use href="#ridge" transform="translate(0,40)" stroke="#2a6041" stroke-width="1.0" stroke-opacity="0.34" fill="none"/>
-        <use href="#ridge" transform="translate(0,76)" stroke="#2a6041" stroke-width="0.8" stroke-opacity="0.20" fill="none"/>
-        <use href="#ridge" transform="translate(0,108)" stroke="#2a6041" stroke-width="0.7" stroke-opacity="0.11" fill="none"/>
+        <use href="#ridge" stroke="#2a6041" stroke-width="2.0" stroke-opacity="0.78" fill="none"/>
+        <use href="#ridge" transform="translate(0,40)" stroke="#2a6041" stroke-width="1.6" stroke-opacity="0.52" fill="none"/>
+        <use href="#ridge" transform="translate(0,76)" stroke="#2a6041" stroke-width="1.3" stroke-opacity="0.34" fill="none"/>
+        <use href="#ridge" transform="translate(0,108)" stroke="#2a6041" stroke-width="1.1" stroke-opacity="0.20" fill="none"/>
       </svg>
       <div class="hero-content">
         <span class="kicker">Open Climate Data · Since 1980</span>
@@ -168,19 +168,12 @@ function sparklinePath(series: { value: number | null }[]): string {
     </div>
   </section>
 
-  <section class="container section" id="map-overview">
+  <section class="container section" id="overview">
     <span class="kicker">Warming at a glance</span>
-    <h2>Every park on the map — see each one's warming below</h2>
-    <p style="color:var(--muted);max-width:720px">
-      Hover a park for its warming rate; click to open the full time series.
-    </p>
-    <div id="overview-map" style="height:520px"></div>
+    <h2>Total warming per park, {startYear}–{endYear}</h2>
 
     <div class="swarm-wrap">
-      <span class="kicker" style="display:block;margin-bottom:0.35rem">
-        Total warming per park, {startYear}–{endYear}
-      </span>
-      <p style="color:var(--muted);font-size:0.85rem;max-width:640px;margin-bottom:1rem">
+      <p style="color:var(--ink);max-width:680px;margin-bottom:1.2rem">
         Every park, positioned by its total temperature change since {startYear}
         and grouped by region so you can compare Alaska to the Southwest at a
         glance. Hover for details, click to open.
@@ -215,7 +208,7 @@ function sparklinePath(series: { value: number | null }[]): string {
   <section class="container section" id="parks">
     <span class="kicker">All 63 parks</span>
     <h2>Browse the parks</h2>
-    <p style="color:var(--muted);max-width:680px">
+    <p style="color:var(--ink);max-width:680px">
       Each tile summarises a park's mean annual temperature since {startYear}
       as climate stripes (cool blue = below 1981-2010 baseline, warm red =
       above). Click through for the full time series and trend tests.
@@ -252,18 +245,19 @@ function sparklinePath(series: { value: number | null }[]): string {
         const wetSlope = p.headline_trends?.prcp_mm?.slope_per_year ?? null;
         const region = regionFor(p.state ?? "");
         const sparkD = sparklinePath(p.stripes ?? []);
-        return (
-          <a
-            class="card park-card"
-            href={`${base}parks/${p.slug}`}
-            data-name={p.unit_name.toLowerCase()}
-            data-state={stateSearchKey(p.state ?? "")}
-            data-region={region}
-            data-total={totalF ?? 0}
-            data-slope={slope ?? 0}
-            data-prcp-slope={wetSlope ?? 0}
-            data-sig={psig ? "1" : "0"}
-          >
+        const hasData = p.headline_trends?.tmean_c?.slope_per_year != null;
+        const commonData = {
+          "data-name": p.unit_name.toLowerCase(),
+          "data-state": stateSearchKey(p.state ?? ""),
+          "data-region": region,
+          "data-total": totalF ?? 0,
+          "data-slope": slope ?? 0,
+          "data-prcp-slope": wetSlope ?? 0,
+          "data-sig": psig ? "1" : "0",
+          "data-nodata": hasData ? "0" : "1",
+        };
+        const inner = (
+          <>
             <div class="park-card-top">
               <span class="park-state">{p.state}</span>
               <span class="park-name">{p.unit_name.replace(" National Park", "")}</span>
@@ -276,21 +270,41 @@ function sparklinePath(series: { value: number | null }[]): string {
               </svg>
             ) : null}
             <div class="park-headline">
-              <span class="park-total">{totalF != null ? (totalF >= 0 ? "+" : "") + totalF.toFixed(1) + "°F" : "—"}</span>
-              <span class="park-since">since {p.period?.start_year ?? 1980}</span>
-              {psig ? <span class="sig-mark" title={`${fmtSlope(slope)} °F/yr, p<0.05`}>✓</span> : null}
+              <span class="park-total">{hasData && totalF != null ? (totalF >= 0 ? "+" : "") + totalF.toFixed(1) + "°F" : "—"}</span>
+              <span class="park-since">{hasData ? `since ${p.period?.start_year ?? 1980}` : "no data yet"}</span>
+              {hasData && psig ? <span class="sig-mark" title={`${fmtSlope(slope)} °F/yr, p<0.05`}>✓</span> : null}
             </div>
-            <div class="park-visual">
-              <div class="stripes">
-                {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
+            {hasData ? (
+              <>
+                <div class="park-visual">
+                  <div class="stripes">
+                    {p.stripeColors.map((c: string) => <div style={`background:${c}`}></div>)}
+                  </div>
+                  {sparkD ? (
+                    <svg class="park-sparkline" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true">
+                      <path d={sparkD} fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  ) : null}
+                </div>
+                {sparkD ? (
+                  <div class="spark-label">Mean temp · {p.period?.start_year ?? 1980}–{p.period?.end_year ?? "present"}</div>
+                ) : null}
+              </>
+            ) : (
+              <div class="park-visual park-visual-nodata">
+                <span class="park-nodata-badge">No temperature series</span>
               </div>
-              {sparkD ? (
-                <svg class="park-sparkline" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true">
-                  <path d={sparkD} fill="none" stroke="var(--ink)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              ) : null}
-            </div>
+            )}
+          </>
+        );
+        return hasData ? (
+          <a class="card park-card" href={`${base}parks/${p.slug}`} {...commonData}>
+            {inner}
           </a>
+        ) : (
+          <div class="card park-card park-card-nodata" title="No time-series data for this park — tiny-island coverage gap" {...commonData}>
+            {inner}
+          </div>
         );
       })}
     </div>
@@ -316,49 +330,7 @@ function sparklinePath(series: { value: number | null }[]): string {
   </section>
 </Base>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-<script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script define:vars={{ base, parkSwarm, swarmMinF, swarmMaxF, REGION_ORDER }} is:inline>
-  // National overview map — all 63 parks in a single neutral fill. Dot-swarm
-  // below the map carries the warming-slope signal, so the map is free to
-  // just be "where each park is."
-  const cDeltaToF = (c) => (c == null || Number.isNaN(c)) ? null : c * 9 / 5;
-
-  const mapEl = document.getElementById("overview-map");
-  if (mapEl && window.L) {
-    const map = L.map(mapEl, { scrollWheelZoom: false, worldCopyJump: false }).setView([39.5, -98.5], 3);
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      maxZoom: 12,
-      opacity: 0.65,
-    }).addTo(map);
-
-    fetch(`${base}data/boundaries/all_parks.geojson`)
-      .then((r) => r.json())
-      .then((geo) => {
-        L.geoJSON(geo, {
-          style: () => ({
-            color: "#1e1e1e",
-            weight: 1,
-            fillColor: "#c9c3b0",
-            fillOpacity: 0.55,
-          }),
-          onEachFeature: (f, lyr) => {
-            const p = f.properties;
-            const slopeF = cDeltaToF(p.tmean_slope);
-            const slopeStr = slopeF != null
-              ? `${slopeF >= 0 ? "+" : ""}${slopeF.toFixed(3)} °F/yr${p.tmean_sig ? " · significant" : ""}`
-              : "no trend data";
-            lyr.bindTooltip(`<strong>${p.unit_name}</strong><br/>${slopeStr}`, { sticky: true });
-            lyr.on("click", () => { window.location.href = `${base}parks/${p.slug}`; });
-            lyr.on("mouseover", () => lyr.setStyle({ weight: 2, fillOpacity: 0.75 }));
-            lyr.on("mouseout", () => lyr.setStyle({ weight: 1, fillOpacity: 0.55 }));
-          },
-        }).addTo(map);
-      })
-      .catch(() => {});
-  }
-
   // Park-by-park swarm — every park's name, positioned by total warming
   // in °F since ~1980. Text labels replace dots so the chart reads as a
   // list instead of anonymous marks. Color ramp stays warm-sequential
@@ -404,7 +376,7 @@ function sparklinePath(series: { value: number | null }[]): string {
     const LANE_PAD_BOTTOM = 10;
     const REGION_LABEL_Y_OFFSET = 11;
     const PAD_X = 3, PAD_Y = 1;
-    const FONT_SIZE = 11;
+    const FONT_SIZE = 13;
     const svgNS = "http://www.w3.org/2000/svg";
 
     const presentRegions = REGION_ORDER

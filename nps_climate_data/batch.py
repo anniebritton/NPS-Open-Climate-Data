@@ -45,7 +45,11 @@ def submit_park_tasks(
     """
     import datetime
     import ee
-    from .utils import get_park_boundary, split_multipart_features
+    from .utils import (
+        get_local_park_boundary,
+        get_park_boundary,
+        split_multipart_features,
+    )
     from .core import make_export_task
 
     if end is None:
@@ -57,8 +61,15 @@ def submit_park_tasks(
 
     aoi_fc = get_park_boundary(park["unit_name"])
     if aoi_fc.size().getInfo() == 0:
-        print(f"  SKIP {slug}: not found in PAD-US")
-        return []
+        # PAD-US in EE is v20 (pre-2020); Gateway Arch, Indiana Dunes,
+        # New River Gorge, and White Sands aren't in it. Fall back to the
+        # committed PAD-US 4.1 GeoJSON shipped with the repo.
+        local = get_local_park_boundary(slug)
+        if local is None:
+            print(f"  SKIP {slug}: not in PAD-US EE asset and no local boundary")
+            return []
+        print(f"  {slug}: using local PAD-US 4.1 boundary (EE asset lacks it)")
+        aoi_fc = local
 
     task_infos: list[dict] = []
 

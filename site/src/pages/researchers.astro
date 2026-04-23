@@ -1,35 +1,8 @@
 ---
 import Base from "../layouts/Base.astro";
 const base = import.meta.env.BASE_URL;
----
-<Base title="Researchers — Open Climate Data">
-  <section class="container section">
-    <a href={base} style="font-size:0.9rem">← Home</a>
-    <span class="kicker" style="margin-top:0.8rem;display:block">For researchers</span>
-    <h1>Data, code, and pipelines you can cite</h1>
-    <p style="max-width:720px;color:var(--muted)">
-      Everything visualized on this site is open. The raw daily series,
-      the analysis code, the dataset definitions, and the statistical
-      pipeline all live in a single MIT-licensed repository. You can
-      re-run it, change the boundary source, swap in PRISM or GRIDMET,
-      and regenerate the whole site with one command.
-    </p>
 
-    <h2>Downloads</h2>
-    <ul>
-      <li><strong>Per-park JSON summary</strong>: <code>{base}data/parks/&lt;slug&gt;.json</code> — annual + seasonal series, trends, anomalies, stripes. Temperatures are stored in °C (SI); the site converts to °F at render.</li>
-      <li><strong>Park boundary GeoJSON</strong>: <code>{base}data/boundaries/&lt;slug&gt;.geojson</code> — real PAD-US 4.1 proclamation polygons, simplified to 50 m.</li>
-      <li><strong>Combined overview</strong>: <code>{base}data/boundaries/all_parks.geojson</code> — every park's polygon plus its headline warming slopes as properties.</li>
-      <li><strong>Per-park daily CSV (gzip)</strong>: we generate these (~134 MB total) but they aren't currently hosted. Run the pipeline locally or reach out.</li>
-    </ul>
-
-    <h2>Reproducing the analysis</h2>
-    <p style="color:var(--muted);max-width:720px">
-      The full end-to-end flow — auth, EE task submission, download from
-      Drive, analysis, and site build — lives in <code>pipeline.ipynb</code>
-      at the repo root. A condensed terminal version:
-    </p>
-    <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`git clone https://github.com/anniebritton/NPS-Open-Climate-Data
+const pipelineScript = `git clone https://github.com/anniebritton/NPS-Open-Climate-Data
 cd NPS-Open-Climate-Data
 pip install -e .
 
@@ -51,43 +24,254 @@ python scripts/06_extract_padus_from_gdb.py
 python scripts/05_generate_boundaries.py
 
 # 5. Build and preview the static site locally.
-cd site && npm install && npm run dev
-`}</pre>
+cd site && npm install && npm run dev`;
 
-    <h2>Programmatic access</h2>
-    <pre style="background:var(--sandstone);padding:1rem;border-radius:6px;overflow-x:auto;font-size:0.85rem">{`import ee, nps_climate_data as nps
+const programmaticScript = `import ee, nps_climate_data as nps
 ee.Initialize()
 
 # One park, one date range:
 df = nps.get_data("Glacier National Park", "2020-01-01", "2025-01-01")
 
 # Full-history fetch with multipart handling (dict of sub-unit -> DataFrame):
-per_unit = nps.get_park_data("saguaro")`}</pre>
+per_unit = nps.get_park_data("saguaro")`;
 
-    <h2>Citing</h2>
-    <div class="note">
-      <strong>Suggested citation:</strong><br />
-      Britton, A., &amp; Pritchard, I. (2026). <em>Open Climate Data — US National Parks:
-      Pre-processed climate trends for all US National Parks.</em> Derived
-      from DAYMET v4 and ERA5-Land via Google Earth Engine, with
-      boundaries from USGS PAD-US 4.1. MIT license.
-    </div>
+const citationProse = `Britton, A., & Pritchard, I. (2026). Open Climate Data — US National Parks: Pre-processed climate trends for all US National Parks. Derived from DAYMET v4 and ERA5-Land via Google Earth Engine, with boundaries from USGS PAD-US 4.1. MIT license. https://github.com/anniebritton/NPS-Open-Climate-Data`;
 
-    <h2>Contributors</h2>
-    <ul>
-      <li><strong>Annie Britton</strong> — project lead, analysis design, site</li>
-      <li><strong>Ian Pritchard</strong> — contributor</li>
-    </ul>
+const citationBibtex = `@misc{britton2026nps,
+  author       = {Britton, Annie and Pritchard, Ian},
+  title        = {Open Climate Data --- US National Parks:
+                  Pre-processed climate trends for all US National Parks},
+  year         = {2026},
+  note         = {Derived from DAYMET v4 and ERA5-Land via Google Earth Engine,
+                  with boundaries from USGS PAD-US 4.1. MIT license.},
+  url          = {https://github.com/anniebritton/NPS-Open-Climate-Data}
+}`;
 
-    <h2>Known extensions we'd welcome</h2>
-    <ul>
-      <li>PRISM and GRIDMET datasets for CONUS (higher-resolution dew
-          point, wind, minimum humidity).</li>
-      <li>Autocorrelation-corrected MK tests (Hamed &amp; Rao 1998).</li>
-      <li>Per-pixel trend maps inside the park boundary, not just the
-          areal mean.</li>
-      <li>National Monuments, National Recreation Areas, and other NPS
-          units beyond the 63 designated National Parks.</li>
-    </ul>
+const citationApa = `Britton, A., & Pritchard, I. (2026). Open Climate Data — US National Parks: Pre-processed climate trends for all US National Parks [Dataset]. GitHub. https://github.com/anniebritton/NPS-Open-Climate-Data`;
+
+const resources = [
+  { title: "Per-park JSON summary",
+    path: `${base}data/parks/<slug>.json`,
+    example: `${base}data/parks/yellowstone.json`,
+    desc: "Annual + seasonal series, Mann–Kendall / Theil–Sen trends, anomalies, climate stripes. Temperatures stored in °C (SI); site converts to °F at render." },
+  { title: "Park boundary GeoJSON",
+    path: `${base}data/boundaries/<slug>.geojson`,
+    example: `${base}data/boundaries/yellowstone.geojson`,
+    desc: "Real PAD-US 4.1 proclamation polygons, dissolved per park, simplified to 50 m, in WGS84." },
+  { title: "Combined overview",
+    path: `${base}data/boundaries/all_parks.geojson`,
+    example: `${base}data/boundaries/all_parks.geojson`,
+    desc: "All 63 parks in a single FeatureCollection, with each park's headline warming slope exposed as feature properties." },
+  { title: "Per-park daily CSV (gzip)",
+    path: `/data/raw/<slug>/<slug>.csv.gz`,
+    example: null,
+    desc: "Generated but not currently hosted (~134 MB total). Run the pipeline locally, or reach out via GitHub issues." },
+];
+---
+<Base title="For researchers — Open Climate Data">
+  <section class="container section research-page">
+    <a href={base} class="research-back">← Home</a>
+    <span class="kicker" style="margin-top:0.8rem;display:block">For researchers</span>
+    <h1>Data, code, and pipelines you can cite</h1>
+    <p class="research-lede">
+      Everything visualized on this site is open. The raw daily series, the
+      analysis code, the dataset definitions, and the statistical pipeline
+      all live in one MIT-licensed repository. Swap in PRISM or GRIDMET,
+      extend the boundary set, and regenerate the whole site with one command.
+    </p>
+
+    <!-- Data -->
+    <section class="research-section">
+      <div class="research-section-intro">
+        <span class="kicker">Data</span>
+        <h2>Open downloads</h2>
+        <p>
+          Four flavours of output, all MIT-licensed. Temperatures are stored
+          in SI (°C) so downstream consumers get unambiguous values — only
+          the site's display layer converts to °F.
+        </p>
+      </div>
+      <div class="research-section-content">
+        <div class="research-resources">
+          {resources.map((r) => (
+            <article class="research-resource">
+              <header>
+                <span class="research-resource-title">{r.title}</span>
+                {r.example && (
+                  <button class="research-copy" data-copy={r.example}>Copy example URL</button>
+                )}
+              </header>
+              <code class="research-resource-path">{r.path}</code>
+              <p>{r.desc}</p>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- Reproduce -->
+    <section class="research-section">
+      <div class="research-section-intro">
+        <span class="kicker">Reproduce</span>
+        <h2>End-to-end pipeline</h2>
+        <p>
+          The full auth → EE export → Drive pull → analysis → site build
+          flow lives in <code>pipeline.ipynb</code>. This is the condensed
+          terminal version.
+        </p>
+      </div>
+      <div class="research-section-content">
+        <figure class="research-code">
+          <figcaption>
+            <span class="research-code-lang">bash</span>
+            <button class="research-copy" data-copy-target>Copy</button>
+          </figcaption>
+          <pre><code>{pipelineScript}</code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Programmatic -->
+    <section class="research-section">
+      <div class="research-section-intro">
+        <span class="kicker">API</span>
+        <h2>Programmatic access</h2>
+        <p>
+          Direct Python access via the <code>nps_climate_data</code> package
+          after <code>pip install -e .</code>. EE credentials must already be
+          initialised.
+        </p>
+      </div>
+      <div class="research-section-content">
+        <figure class="research-code">
+          <figcaption>
+            <span class="research-code-lang">python</span>
+            <button class="research-copy" data-copy-target>Copy</button>
+          </figcaption>
+          <pre><code>{programmaticScript}</code></pre>
+        </figure>
+      </div>
+    </section>
+
+    <!-- Citation -->
+    <section class="research-section">
+      <div class="research-section-intro">
+        <span class="kicker">Cite</span>
+        <h2>Suggested citation</h2>
+        <p>
+          Three ready-made formats. Click a tab to switch, then copy.
+        </p>
+      </div>
+      <div class="research-section-content">
+        <div class="research-cite" data-cite>
+          <div class="research-cite-tabs" role="tablist">
+            <button class="research-cite-tab active" data-tab="prose"  role="tab" aria-selected="true">Plain</button>
+            <button class="research-cite-tab"        data-tab="bibtex" role="tab" aria-selected="false">BibTeX</button>
+            <button class="research-cite-tab"        data-tab="apa"    role="tab" aria-selected="false">APA</button>
+            <button class="research-copy research-cite-copy" data-copy-target>Copy</button>
+          </div>
+          <div class="research-cite-panel" data-panel="prose">{citationProse}</div>
+          <div class="research-cite-panel" data-panel="bibtex" hidden><pre><code>{citationBibtex}</code></pre></div>
+          <div class="research-cite-panel" data-panel="apa" hidden>{citationApa}</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Contributors + extensions -->
+    <section class="research-section research-section-footer">
+      <div class="research-section-intro">
+        <span class="kicker">Team</span>
+        <h2>Contributors &amp; roadmap</h2>
+        <p>
+          Project is small and moves in bursts. Contributions welcome — see
+          <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/issues">GitHub issues</a>
+          for the current list of open work.
+        </p>
+      </div>
+      <div class="research-section-content">
+        <div class="research-foot-grid">
+          <div>
+            <span class="research-foot-label">Contributors</span>
+            <ul class="research-foot-list">
+              <li><strong>Annie Britton</strong><br/><span>project lead, analysis design, site</span></li>
+              <li><strong>Ian Pritchard</strong><br/><span>contributor</span></li>
+            </ul>
+          </div>
+          <div>
+            <span class="research-foot-label">Extensions welcome</span>
+            <ul class="research-foot-list">
+              <li>PRISM &amp; GRIDMET for CONUS</li>
+              <li>Autocorrelation-corrected MK (Hamed &amp; Rao 1998)</li>
+              <li>Per-pixel trend maps inside the park boundary</li>
+              <li>National Monuments / Recreation Areas beyond the 63</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
   </section>
+
+  <script is:inline>
+    // Copy-to-clipboard. Buttons with data-copy use the attribute value;
+    // buttons with data-copy-target copy the closest figure/cite block's text.
+    (function () {
+      function closestText(btn) {
+        const fig = btn.closest("figure");
+        if (fig) return fig.querySelector("code")?.innerText || "";
+        const cite = btn.closest("[data-cite]");
+        if (cite) {
+          const active = cite.querySelector(".research-cite-panel:not([hidden])");
+          return active?.innerText || "";
+        }
+        return "";
+      }
+      function flash(btn) {
+        const prev = btn.textContent;
+        btn.textContent = "Copied";
+        btn.classList.add("is-copied");
+        setTimeout(() => {
+          btn.textContent = prev;
+          btn.classList.remove("is-copied");
+        }, 1400);
+      }
+      document.querySelectorAll(".research-copy").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const text = btn.dataset.copy != null
+            ? btn.dataset.copy
+            : closestText(btn);
+          if (!text) return;
+          try {
+            await navigator.clipboard.writeText(text);
+            flash(btn);
+          } catch {
+            // Older browsers: fall back to execCommand via a temp textarea
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand("copy"); flash(btn); } catch {}
+            document.body.removeChild(ta);
+          }
+        });
+      });
+
+      // Citation tabs
+      document.querySelectorAll("[data-cite]").forEach((cite) => {
+        const tabs = cite.querySelectorAll(".research-cite-tab");
+        const panels = cite.querySelectorAll(".research-cite-panel");
+        tabs.forEach((tab) => {
+          tab.addEventListener("click", () => {
+            tabs.forEach((t) => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
+            tab.classList.add("active");
+            tab.setAttribute("aria-selected", "true");
+            const target = tab.dataset.tab;
+            panels.forEach((p) => {
+              if (p.dataset.panel === target) p.removeAttribute("hidden");
+              else p.setAttribute("hidden", "");
+            });
+          });
+        });
+      });
+    })();
+  </script>
 </Base>

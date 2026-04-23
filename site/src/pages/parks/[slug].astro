@@ -76,7 +76,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
     <a href={base} style="font-size:0.9rem;">← All parks</a>
     <span class="kicker" style="margin-top:0.8rem;display:block">{summary.state}</span>
     <h1>{summary.unit_name}</h1>
-    <p style="color:var(--muted);max-width:680px">
+    <p style="color:var(--ink);max-width:680px">
       Daily {summary.multipart ? "per-unit" : "park-wide"} climate series
       from <strong>{period.start_year}</strong> to <strong>{period.end_year}</strong>,
       reduced from DAYMET v4 {summary.state.includes("AK") || summary.state === "AS" || summary.state === "VI" ? "/ ERA5-Land" : "+ ERA5-Land"}
@@ -84,13 +84,21 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
     </p>
 
     <div class="map-beside-stripes" style="margin-top:1.4rem">
-      <div id="map" data-slug={summary.slug}></div>
+      <div>
+        <div id="map" data-slug={summary.slug}></div>
+        <div class="map-hint">Ctrl + scroll to zoom · drag to pan</div>
+      </div>
       <div class="stripes-column">
         <div style="font-size:0.82rem;text-transform:uppercase;letter-spacing:0.08em;color:var(--muted)">
           Annual mean temperature · {period.start_year}–{period.end_year}
         </div>
         <div class="stripes-full">
           {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
+        </div>
+        <div class="stripes-legend">
+          <span><span class="stripes-legend-swatch" style={`background:${stripeColor(-2)}`}></span>Cooler than 1981–2010 baseline</span>
+          <span><span class="stripes-legend-swatch" style={`background:${stripeColor(0)}`}></span>Near baseline</span>
+          <span><span class="stripes-legend-swatch" style={`background:${stripeColor(2)}`}></span>Warmer than baseline</span>
         </div>
         <div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.78rem">
           <span>{period.start_year}</span><span>{period.end_year}</span>
@@ -101,7 +109,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
 
   <section class="container section">
     <h2>Headline trends</h2>
-    <p style="color:var(--muted)">
+    <p style="color:var(--ink)">
       Theil–Sen slope estimates with Mann–Kendall p-values. Trends marked
       ✓ are statistically significant at the 95% level.
     </p>
@@ -124,17 +132,17 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
   <section class="container section">
     <h2>Time series</h2>
     <div class="chart-wrap">
-      <div class="title">Annual mean temperature (°F) with best-fit trend <span style="font-weight:400;color:var(--muted);font-size:0.72em">(Theil–Sen)</span></div>
-      <canvas id="chart-tmean" height="260"></canvas>
+      <div class="title">Annual mean temperature (°F) with best-fit trend <span style="font-weight:400;color:var(--muted);font-size:0.72em;text-transform:none;letter-spacing:0">(Theil–Sen)</span></div>
+      <div class="chart-canvas"><canvas id="chart-tmean"></canvas></div>
     </div>
     <div class="chart-wrap">
       <div class="title">Annual precipitation (mm)</div>
-      <canvas id="chart-prcp" height="220"></canvas>
+      <div class="chart-canvas"><canvas id="chart-prcp"></canvas></div>
     </div>
     {annual[0]?.swe_mm !== undefined ? (
       <div class="chart-wrap">
         <div class="title">Mean daily snow-water equivalent (mm)</div>
-        <canvas id="chart-swe" height="200"></canvas>
+        <div class="chart-canvas"><canvas id="chart-swe"></canvas></div>
       </div>
     ) : null}
   </section>
@@ -169,7 +177,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
 
   <section class="container section">
     <h2>Download the data</h2>
-    <p style="color:var(--muted)">
+    <p style="color:var(--ink)">
       Everything on this page is open-licensed. The summary JSON is
       served directly; the daily raw CSVs (~2 MB gzipped each) are too
       large to commit to the repo — for now, run the EE pipeline
@@ -199,7 +207,8 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         borderColor: color,
         backgroundColor: color + "22",
         tension: 0.15,
-        pointRadius: 2,
+        pointRadius: 3.2,
+        pointHoverRadius: 5,
         fill: true,
       }];
       if (trend) {
@@ -220,6 +229,7 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         data: { labels: years, datasets },
         options: {
           responsive: true,
+          maintainAspectRatio: false,
           plugins: { legend: { position: "bottom" } },
           scales: {
             y: { beginAtZero: false, grid: { color: "rgba(26,26,26,0.08)" } },
@@ -239,11 +249,18 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
     // map — single park view with a fill shaded by its own warming slope.
     const mapEl = document.getElementById("map");
     if (mapEl) {
-      const map = L.map(mapEl).setView([39.5, -98.5], 3);
+      const map = L.map(mapEl, { scrollWheelZoom: false }).setView([39.5, -98.5], 3);
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
         attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
         maxZoom: 14,
       }).addTo(map);
+
+      mapEl.addEventListener("wheel", (e) => {
+        if (!(e.ctrlKey || e.metaKey)) return;
+        e.preventDefault();
+        if (e.deltaY < 0) map.zoomIn(1, { animate: true });
+        else if (e.deltaY > 0) map.zoomOut(1, { animate: true });
+      }, { passive: false });
 
       // Neutral boundary styling everywhere on the site: muted fill,
       // crisp dark outline. The map is a locator, not a data viz.

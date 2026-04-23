@@ -116,21 +116,20 @@ own time series, in addition to the union-level summary.
 
 ## Known issues / Open items
 
-- **Re-run EE pipeline with current PAD-US.** Four parks (Gateway
-  Arch, Indiana Dunes, New River Gorge, White Sands) were skipped in
-  the first full EE batch because their boundary lookup failed — they
-  were redesignated as national parks 2018-2020. The underlying cause
-  is likely that `nps_climate_data/utils.py` currently queries
-  `USGS/GAP/PAD-US/v20` (EE catalog), which pre-dates those
-  redesignations. We now have **PAD-US 4.1** locally (site/public/data/
-  boundaries/ has all 63 real polygons). Options to fix:
-  a) Point `utils.get_park_boundary()` at a newer PAD-US EE asset if
-     one exists;
-  b) Upload PAD-US 4.1 proclamation layer as an EE asset (one-time);
-  c) Simplest — have `core.py` accept geometry directly from the
-     committed GeoJSON files rather than querying EE for it.
-  Then re-run the full batch (or just the 4 missing slugs) via
-  `pipeline.ipynb` A2-full.
+- **Run EE pipeline for the 4 redesignated parks.** Gateway Arch,
+  Indiana Dunes, New River Gorge, and White Sands were skipped in the
+  first full EE batch because EE's `USGS/GAP/PAD-US/v20` catalog
+  pre-dates their 2018-2020 redesignations, so `get_park_boundary()`
+  returned 0 features. Code fix has landed: `get_local_park_boundary`
+  in `nps_climate_data/utils.py` reads the committed PAD-US 4.1
+  GeoJSONs under `site/public/data/boundaries/`, and
+  `batch.submit_park_tasks` falls back to it when the EE lookup misses.
+  `pipeline.ipynb` also has a new **A2-missing** cell that targets just
+  those four slugs. TODO: actually run the pipeline end-to-end
+  (A1 → A2-missing → A3 → A4 → step 3 → step 4) so
+  `data/raw/{gateway-arch,indiana-dunes,new-river-gorge,white-sands}/`
+  and the corresponding site JSON under `site/public/data/parks/` are
+  produced. Expect ~15-30 min of EE quota for the four tasks.
 - **3 tiny-island parks have no temperature signal.** American Samoa,
   Dry Tortugas, and Virgin Islands fall inside ERA5-Land pixels that
   are sea-masked because the land fraction is too low for the ~11 km
@@ -155,6 +154,12 @@ own time series, in addition to the union-level summary.
   aggregation choices (sums vs means), and MK/Theil-Sen implementation.
   Deliverable: `docs/DATA_QC.md`. Investigate the tiny-island null issue
   alongside.
+- **Time-series decomposition.** Current per-park analysis stops at
+  annual/seasonal aggregates + Mann-Kendall / Theil-Sen. Add an STL (or
+  equivalent) decomposition of the daily series into trend, seasonal,
+  and residual components so users can see the annual cycle separately
+  from the long-run trend. Decide where it surfaces on the park page
+  (new chart block vs. optional toggle on the existing series).
 - **Research-paper citations on park pages.** Add a "Further reading"
   section to each per-park page listing peer-reviewed papers about
   climate change in that specific park (citations only, no PDFs).
@@ -174,6 +179,67 @@ own time series, in addition to the union-level summary.
   stage (daily raw → reduced mean → annual aggregate → trend line),
   and append an Acadia worked-example scrollytelling sequence at the
   bottom that walks through every step with real numbers.
+- **Prettify variable names in the UI.** Raw canonical names with
+  underscores (`tmean_c`, `prcp_mm`, `swe_mm`) leak into chart
+  headers, dropdowns, and URLs. Map to display labels (e.g. "Mean
+  temperature (°C)", "Precipitation (mm)") at the render layer while
+  keeping the underscored slugs as stable data keys.
+- **Disable click-through for parks with no data.** The 3 tiny-island
+  parks (American Samoa, Dry Tortugas, Virgin Islands) render as
+  markers on the overview map but their per-park pages 404 or show
+  empty charts. Detect missing data at map-render time and either
+  disable the marker link or route it to a "no data yet" stub that
+  explains why.
+- **Shorten time-series chart height.** Per-park charts are currently
+  too tall — they push the trend summary below the fold. Tighten the
+  chart aspect ratio so the headline slope is visible without
+  scrolling.
+- **Per-park chart polish.** (a) The chart titles ("Annual Mean
+  Temperature", "Annual Precipitation") are too small to read at a
+  glance — bump size and weight so the subject is immediately
+  obvious. (b) The year-marker dots on the line charts are too small
+  — enlarge them so individual years are easier to hit / read.
+- **Darken body text site-wide.** Several surfaces use a medium gray
+  on cream that reads as low-contrast — user reported having to paste
+  a snippet into a Google Doc and re-color it to confirm legibility.
+  Push body text to near-black (Rise Charcoal #1E1E1E) or the deepest
+  brand blue (Deep Sea) wherever a lighter gray is currently in use.
+- **Bump type sizes on the landing page.** The "Open Climate Data"
+  wordmark and the top nav ("Parks, Methodology, …") both read as
+  small. So does the park-name legend box beneath the map — and at
+  larger size the category colors (two reds sit very close) would
+  also be easier to tell apart.
+- **Strengthen the hero wavy-lines graphic.** The decorative lines in
+  the top-right of the landing page read as faint. Make them thicker
+  / brighter / more saturated so they register as an intentional
+  design element rather than background noise.
+- **Add a color legend to the per-park annual bars.** The red/blue
+  bar strip (warmer-than-reference vs cooler-than-reference year) has
+  no inline key — users are inferring the encoding from the line
+  chart below. Add a compact legend directly under the bar strip.
+- **Color the methodology step numbers.** The large "1"–"7" numerals
+  on the methodology page are rendered in low-contrast gray and
+  easily missed. Recolor to an accent (Lava or Deep Sea) so each step
+  reads as a clear anchor.
+- **Make the landing-page map a headline component.** Currently a
+  neutral-outline overview. Two directions worth exploring:
+  a) fill each park by warming rate (reuse the trend-slope palette
+     already used on per-park pages) — safer, and ties the map to the
+     core story of the site;
+  b) a schematic / transit-diagram-style rendering so the many
+     tiny-footprint parks are legible at overview scale.
+  Lean (a) unless (b) tests surprisingly well.
+- **Map zoom doesn't respond to Ctrl + scroll-wheel.** Either wire up
+  the expected zoom gesture or expose visible +/− controls (plus
+  pinch-zoom on touch) so the map is actually explorable.
+- **Label the park-card sparklines.** The mini trend lines on each
+  park card aren't labeled, so it's not obvious what variable they
+  show. Needs a very compact label (axis hint, tiny caption, or
+  legend) — tbd whether there's room without crowding the card.
+- **"Significant warming only" toggle dominates the Browse section.**
+  Undecided — user likes the prominence but flagged it as possibly
+  too big. Revisit if additional filter controls are added; otherwise
+  leave as-is.
 
 ## Reporting issues
 
