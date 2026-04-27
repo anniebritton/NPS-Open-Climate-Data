@@ -255,7 +255,10 @@ function sparklinePath(series: { value: number | null }[]): string {
       <div class="swarm">
         <div class="swarm-axis-label">°F since {startYear}</div>
         <div class="swarm-axis" id="swarm-axis"></div>
-        <svg id="swarm-svg" viewBox="0 0 1000 500" preserveAspectRatio="xMidYMid meet"
+        <!-- viewBox W is set dynamically in the script below to match
+             the rendered container width, so the chart fills the
+             container without text getting horizontally stretched. -->
+        <svg id="swarm-svg" viewBox="0 0 1000 500"
              width="100%" height="500"></svg>
         <div id="swarm-tooltip" class="swarm-tooltip" role="tooltip"></div>
       </div>
@@ -475,7 +478,13 @@ function sparklinePath(series: { value: number | null }[]): string {
   const swarmSvg = document.getElementById("swarm-svg");
   const swarmAxis = document.getElementById("swarm-axis");
   if (swarmSvg && parkSwarm && parkSwarm.length) {
-    const W = 1000;
+    // Match the chart's internal coordinate space to the rendered
+    // container width so the SVG fills the available area without
+    // being centered with empty space on the sides. Fall back to the
+    // historical 1000 if measurement fails (e.g. server-side render
+    // — but this script is client-side, so very unlikely).
+    const measuredW = Math.round(swarmSvg.getBoundingClientRect().width);
+    const W = measuredW > 0 ? measuredW : 1000;
     const margin = { left: 20, right: 20, top: 14, bottom: 34 };
     const LINE_STEP = 14;
     const REGION_HEADER = 26;

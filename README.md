@@ -182,18 +182,19 @@ own time series, in addition to the union-level summary.
 
 ## Open items
 
-- **Raw CSV download links will 404.** The gzipped per-park CSVs total
-  ~134 MB, too large to commit. Per-park pages link to
-  `/data/raw/<slug>/<slug>.csv.gz` but those files aren't shipped.
-  Fix: host the CSVs on a GitHub Release or a static bucket and update
-  the link target.
 - **Tiny-island temperature signal.** American Samoa, Dry Tortugas,
   and Virgin Islands fall inside ERA5-Land pixels that are sea-masked
   because the land fraction is too low for the ~11 km native grid,
   and DAYMET doesn't cover the offshore islands. The site labels them
   honestly ("outside land-grid coverage") but a real fix would pull
-  from ERA5-Single-Levels (which isn't land-masked),
-  nearest-neighbour an adjacent coastal pixel, or switch to MERRA-2.
+  from ERA5-Single-Levels (which isn't land-masked), nearest-neighbour
+  an adjacent coastal pixel, or switch to MERRA-2.
+- **Inline multiple-comparisons caveat.** The methodology page
+  Limitations grid documents that the deployed `significant_95` flags
+  aren't FDR-corrected (~14 variables × 63 parks; ~5% false positives
+  expected at p < 0.05). The flag itself doesn't carry an inline
+  caveat — adding a tooltip next to each one would close the only
+  interpretive gap a casual reader could fall into.
 
 ## Reporting issues
 
