@@ -39,6 +39,12 @@ stdlib-only helpers — `fetch_archive`, `fetch_summary`,
 `fetch_daily`, `fetch_boundary` — that pull and cache the archives
 under `~/.cache/nps_climate_data/`.
 
+The site exposes `/llms.txt` (llmstxt.org convention) and embeds
+schema.org `Dataset` JSON-LD on the home and data pages so AI
+agents can discover the dataset without parsing prose. If you're
+adding new download formats or changing URLs, update both the
+JSON-LD and `site/public/llms.txt` so they stay consistent.
+
 ## Conventions
 
 - **Conventional-ish commit messages.** `feat(scope):`, `fix(scope):`,

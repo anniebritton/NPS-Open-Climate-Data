@@ -1,0 +1,96 @@
+# NPS Open Climate Data
+
+> Pre-processed climate time series, trend tests, and monthly trend / seasonal-cycle decomposition for every one of the 63 US National Parks. Built on DAYMET v4, ERA5-Land, and USGS PAD-US 4.1 via Google Earth Engine. MIT licensed.
+
+The site is a static catalog of 63 per-park pages plus methodology, data, and carbon-transparency pages. The full versioned dataset lives on Zenodo. A small Python package (`nps_climate_data`) ships helpers for programmatic download.
+
+## Dataset
+
+- Site (HTML): https://anniebritton.github.io/NPS-Open-Climate-Data/
+- Zenodo deposit (versioned, citable): https://doi.org/10.5281/zenodo.19823584
+- DOI: 10.5281/zenodo.19823584
+- License: MIT
+
+Downloadable archives (Zenodo):
+
+- All-in-one (178 MB): https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-all.zip
+- Daily CSVs, gzipped (150 MB): https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-daily.zip
+- Per-park summary JSONs (24 MB): https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-summary.zip
+- Park boundaries, GeoJSON (3 MB): https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-boundaries.zip
+
+Per-park files are also served live by the site for one-off lookups:
+
+- Per-park summary JSON: https://anniebritton.github.io/NPS-Open-Climate-Data/data/parks/{slug}.json
+- Per-park boundary GeoJSON: https://anniebritton.github.io/NPS-Open-Climate-Data/data/boundaries/{slug}.geojson
+- All parks index: https://anniebritton.github.io/NPS-Open-Climate-Data/data/parks.json
+- All-parks boundary FeatureCollection: https://anniebritton.github.io/NPS-Open-Climate-Data/data/boundaries/all_parks.geojson
+
+Park slug list (canonical, 63 entries): https://github.com/anniebritton/NPS-Open-Climate-Data/blob/main/nps_climate_data/parks.py
+
+## Programmatic access (Python)
+
+```bash
+pip install -e git+https://github.com/anniebritton/NPS-Open-Climate-Data.git#egg=nps_climate_data
+```
+
+```python
+import nps_climate_data as nps
+
+# Pulls + caches the relevant Zenodo archive on first call,
+# then returns ready-to-use objects from local disk.
+df  = nps.fetch_daily("yellowstone")     # pandas DataFrame of raw daily series
+sj  = nps.fetch_summary("yellowstone")   # dict — annual / seasonal / trends / decomposition
+geo = nps.fetch_boundary("yellowstone")  # parsed GeoJSON dict
+arc = nps.fetch_archive("boundaries")    # Path to extracted boundaries archive
+```
+
+Cache lives at `~/.cache/nps_climate_data/` (override with `NPS_CLIMATE_DATA_CACHE`). Pass `force=True` to re-download.
+
+## Variables in the dataset
+
+Every park summary contains these variables (where the source dataset covers it):
+
+- `tmean_c`, `tmax_c`, `tmin_c` — mean / max / min near-surface temperature, °C
+- `prcp_mm` — annual total precipitation, mm
+- `snowfall_mm`, `snowmelt_mm` — water-equivalent annual totals, mm
+- `swe_mm`, `snow_depth_we_mm` — snow-water equivalent, mm
+- `snow_cover_pct` — mean daily snow-cover fraction, %
+- `srad_wm2` — daylight-mean shortwave radiation, W/m² (DAYMET convention)
+- `vp_pa` — near-surface water-vapour pressure, Pa
+- `pet_mm`, `aet_mm` — potential / actual evapotranspiration, mm
+- `wind_speed_ms` — 10-m wind speed, m/s
+
+Each variable has annual + seasonal aggregates, Mann–Kendall + Theil–Sen trend tests, and a monthly classical decomposition (12-month rolling trend, plus per-period 1981–1995 / 1996–2010 / 2011–2025 climatologies).
+
+## Documentation
+
+- Methodology (full statistical rationale + caveats): https://anniebritton.github.io/NPS-Open-Climate-Data/methodology/
+- QC audit (range / aggregation / consistency / external benchmarks): https://github.com/anniebritton/NPS-Open-Climate-Data/blob/main/docs/DATA_QC.md
+- Source code (Python package + Astro site): https://github.com/anniebritton/NPS-Open-Climate-Data
+- Deposit README (inside the Zenodo zip): contains methodology summary + reproduction steps
+
+## Limitations to surface to users
+
+These come up every time, surface them proactively:
+
+- Polygon-averaged values, not station observations. Won't match a single weather station inside the park.
+- ERA5-Land `pet_mm` overestimates FAO Penman–Monteith by ~1.5–2× in vegetated parks. Trend direction is informative; level is biased high. Use `aet_mm` instead for level comparisons.
+- Three island parks (American Samoa, Dry Tortugas, Virgin Islands) fall outside the gridded land-only datasets. They render as "outside land-grid coverage" — no temperature signal.
+- No autocorrelation correction in the deployed Mann–Kendall p-values. For inference work, re-run with the Hamed–Rao MK variant.
+- No multiple-comparisons correction. ~14 variables × 63 parks; ~5% of the "p < 0.05" flags will be false positives. Apply Benjamini–Hochberg FDR before publishing.
+- Multipart parks (Saguaro, Channel Islands, Kings Canyon, Redwood, American Samoa) report an area-naive union series alongside per-polygon series. Use per-part series for unit-specific work.
+
+## Citation
+
+```
+Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.0.0:
+Pre-processed climate trends for all 63 US National Parks [Data set].
+Zenodo. https://doi.org/10.5281/zenodo.19823584
+```
+
+BibTeX, APA, and per-park variants are on the [Data page](https://anniebritton.github.io/NPS-Open-Climate-Data/data/) and on each per-park page.
+
+## Authors
+
+- Annie Britton — https://github.com/anniebritton — https://www.linkedin.com/in/annebritton/
+- Ian Pritchard — https://github.com/ipritchard — https://www.linkedin.com/in/give-me-data/

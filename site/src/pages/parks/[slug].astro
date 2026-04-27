@@ -301,17 +301,30 @@ const trendRows = (() => {
 
   <section class="container section park-section">
     <h2>Download the data</h2>
-    <p style="color:var(--ink)">
-      Everything on this page is open-licensed. The summary JSON is
-      served directly; the daily raw CSVs (~2 MB gzipped each) are too
-      large to commit to the repo — for now, run the EE pipeline
-      locally via <code>pipeline.ipynb</code>.
+    <p style="color:var(--ink);max-width:70ch">
+      Everything is open-licensed (MIT). The first two buttons fetch
+      <em>just this park</em>; the third pulls the bulk daily CSV
+      archive from Zenodo, which contains the raw daily series for
+      <strong>all 63 parks</strong> (≈150 MB).
     </p>
-    <div class="downloads">
-      <a href={`${base}data/parks/${summary.slug}.json`} download>Summary JSON</a>
-      <a href={`${base}data/boundaries/${summary.slug}.geojson`} download>Boundary GeoJSON</a>
+    <div class="park-download-grid">
+      <a class="park-download-card" href={`${base}data/parks/${summary.slug}.json`} download>
+        <span class="park-download-kind">JSON · this park</span>
+        <span class="park-download-title">Summary JSON</span>
+        <span class="park-download-desc">Annual + seasonal aggregates, MK / Theil–Sen trends, monthly decomposition, climate stripes.</span>
+      </a>
+      <a class="park-download-card" href={`${base}data/boundaries/${summary.slug}.geojson`} download>
+        <span class="park-download-kind">GeoJSON · this park</span>
+        <span class="park-download-title">Boundary GeoJSON</span>
+        <span class="park-download-desc">PAD-US 4.1 proclamation polygon, dissolved, simplified to 50 m, in WGS84.</span>
+      </a>
+      <a class="park-download-card" href="https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-daily.zip?download=1" target="_blank" rel="noopener">
+        <span class="park-download-kind">Zenodo · all 63 parks</span>
+        <span class="park-download-title">Daily CSVs (bulk, ~150 MB)</span>
+        <span class="park-download-desc">Raw 1980–2025 daily series for every park, gzipped. Use <code>nps.fetch_daily("{summary.slug}")</code> if you only want this one — see the <a href={base + "data#downloads"}>Data page</a>.</span>
+      </a>
     </div>
-    <h3 style="margin-top:1.4rem">Cite this park</h3>
+    <h3 style="margin-top:1.6rem">Cite this park</h3>
     <CitationBox prose={citationProse} bibtex={citationBibtex} apa={citationApa} />
   </section>
 

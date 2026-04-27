@@ -810,6 +810,66 @@ canvas { max-width: 100%; }
 .downloads a:hover { border-color: var(--ink); background: var(--ink); color: var(--paper); opacity: 1; }
 .downloads a:active { transform: scale(0.97); }
 
+/* Per-park download cards under "Download the data" */
+.park-download-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+.park-download-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  text-decoration: none;
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  transition: border-color 150ms var(--ease-out), background 150ms var(--ease-out), transform 150ms var(--ease-out);
+}
+.park-download-card:hover {
+  border-color: var(--ink);
+  background: var(--paper);
+  transform: translateY(-1px);
+  opacity: 1;
+}
+.park-download-card:active { transform: translateY(0); }
+.park-download-kind {
+  font-size: 0.6rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--accent);
+}
+.park-download-title {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+.park-download-desc {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.park-download-desc a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.park-download-desc code {
+  background: rgba(13, 13, 12, 0.06);
+  padding: 0 0.25rem;
+  border-radius: 2px;
+  font-size: 0.86em;
+}
+
 /* ── Climate stripes bar ── */
 .stripes-legend {
   display: flex;

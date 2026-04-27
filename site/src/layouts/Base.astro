@@ -14,6 +14,9 @@ const year = new Date().getFullYear();
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700;9..144,900&family=Space+Grotesk:wght@400;500;600;700&display=swap" />
+    {/* Agent discovery: llms.txt is the emerging convention for telling
+        LLM-driven crawlers where the structured project info lives. */}
+    <link rel="alternate" type="text/plain" title="llms.txt — agent-friendly site index" href={`${base}llms.txt`} />
   </head>
   <body>
     <nav class="nav">
@@ -24,7 +27,7 @@ const year = new Date().getFullYear();
         <div class="nav-links">
           <a href={base + "#parks"}>Parks</a>
           <a href={base + "methodology"}>Methodology</a>
-          <a href={base + "researchers"}>For Researchers</a>
+          <a href={base + "data"}>Data</a>
           <a href={base + "carbon"}>Carbon</a>
           <a href="https://github.com/anniebritton/NPS-Open-Climate-Data" target="_blank" rel="noopener">GitHub</a>
         </div>
@@ -41,7 +44,7 @@ const year = new Date().getFullYear();
             <a href={base}>Home</a>
             <a href={base + "#parks"}>Parks</a>
             <a href={base + "methodology"}>Methodology</a>
-            <a href={base + "researchers"}>For Researchers</a>
+            <a href={base + "data"}>Data</a>
             <a href={base + "carbon"}>Carbon</a>
           </nav>
         </div>

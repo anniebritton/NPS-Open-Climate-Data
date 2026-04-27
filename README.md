@@ -239,8 +239,17 @@ first so we can agree on scope before you invest the time.
 > Zenodo. https://doi.org/10.5281/zenodo.19823584
 
 Per-park citation strings (Plain / BibTeX / APA) are also available on
-each park page and on the [For Researchers](https://anniebritton.github.io/NPS-Open-Climate-Data/researchers/)
+each park page and on the [Data](https://anniebritton.github.io/NPS-Open-Climate-Data/data/)
 page.
+
+## For agents
+
+The site exposes [`/llms.txt`](https://anniebritton.github.io/NPS-Open-Climate-Data/llms.txt)
+following the [llmstxt.org](https://llmstxt.org) convention — an
+agent-friendly index that lists the Zenodo archives, the Python
+helper, variable schema, and limitations to surface to users. The
+home and data pages also embed schema.org `Dataset` JSON-LD so
+structured-data crawlers see the same metadata.
 
 ## License
 

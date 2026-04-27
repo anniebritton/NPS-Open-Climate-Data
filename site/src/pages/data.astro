@@ -102,64 +102,40 @@ arc = nps.fetch_archive("boundaries")    # downloads + extracts the zip
 
 # Caches under ~/.cache/nps_climate_data so subsequent calls are local.`;
 ---
-<Base title="For researchers — Open Climate Data">
+<Base title="Data — Open Climate Data">
+  <!-- schema.org Dataset markup so crawlers + AI agents understand
+       the dataset without parsing prose. Mirrors the home-page block. -->
+  <script is:inline type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "NPS Open Climate Data v1.0.0",
+    "description": "Pre-processed climate time series, Mann–Kendall + Theil–Sen trend tests, and monthly trend / seasonal-cycle decomposition for every one of the 63 US National Parks. Built on DAYMET v4, ERA5-Land, and USGS PAD-US 4.1 via Google Earth Engine.",
+    "url": "https://anniebritton.github.io/NPS-Open-Climate-Data/data/",
+    "identifier": ["10.5281/zenodo.19823584", "https://doi.org/10.5281/zenodo.19823584"],
+    "version": "v1.0.0",
+    "license": "https://opensource.org/licenses/MIT",
+    "isAccessibleForFree": true,
+    "creator": [
+      { "@type": "Person", "name": "Annie Britton" },
+      { "@type": "Person", "name": "Ian Pritchard" },
+    ],
+    "publisher": { "@type": "Organization", "name": "Zenodo" },
+    "temporalCoverage": "1980-01-01/2025-12-31",
+    "distribution": zenodoArchives.map((r) => ({
+      "@type": "DataDownload",
+      "encodingFormat": "application/zip",
+      "name": r.title + " (" + r.size + ")",
+      "contentUrl": `${zenodoBase}/${r.file}`,
+    })),
+    "citation": citationProse,
+  })} />
   <section class="container section research-page">
     <a href={base} class="research-back">← Home</a>
-    <span class="kicker" style="margin-top:0.8rem;display:block">For researchers</span>
+    <span class="kicker" style="margin-top:0.8rem;display:block">Data</span>
     <h1>Data products, code, and reproducibility</h1>
 
-    <!-- Use responsibly -->
-    <section class="research-section">
-      <div class="research-section-intro">
-        <span class="kicker">Use responsibly</span>
-        <h2>Verify before you cite</h2>
-        <p>
-          These products are open-licensed under MIT and audited
-          internally against literature anchors and arithmetic / range
-          / consistency checks (see
-          <a href={base + "methodology#qc"}>Methodology &rarr; QC</a>
-          and <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/blob/main/docs/DATA_QC.md"
-             target="_blank" rel="noopener"><code>docs/DATA_QC.md</code></a>).
-          They are <em>derived</em> products — polygon-averaged
-          ERA5-Land and DAYMET fields aggregated over PAD-US 4.1
-          boundaries, not station observations.
-        </p>
-      </div>
-      <div class="research-section-content">
-        <ol class="research-steps">
-          <li>
-            <strong>Re-derive the value.</strong> Re-run the pipeline
-            from raw, or independently compute the variable of interest
-            from DAYMET / ERA5-Land directly, and confirm it matches.
-          </li>
-          <li>
-            <strong>Cross-check stations.</strong> Compare against
-            NOAA NCEI, NWS, or NPS monitoring records for the specific
-            park and variable.
-          </li>
-          <li>
-            <strong>Correct your statistics.</strong> Apply
-            autocorrelation handling (Hamed–Rao MK) and multiple-
-            comparisons correction (Benjamini–Hochberg FDR or
-            Bonferroni). The deployed significance flags do neither.
-          </li>
-          <li>
-            <strong>Read the variable-specific limitations.</strong>
-            See <a href={base + "methodology#limitations"}>methodology &rarr; limitations</a>,
-            especially <code>pet_mm</code> (ERA5-Land overestimate vs
-            FAO Penman–Monteith), high-elevation cold bias, and area-
-            naive multipart averaging.
-          </li>
-        </ol>
-        <p class="research-steps-note">
-          Cite the methodology page, run your own QC for your use case,
-          and treat the published numbers as a starting point.
-        </p>
-      </div>
-    </section>
-
-    <!-- Data -->
-    <section class="research-section">
+    <!-- Open downloads — first, since it's why most people are here -->
+    <section id="downloads" class="research-section">
       <div class="research-section-intro">
         <span class="kicker">Data</span>
         <h2>Open downloads</h2>
@@ -237,6 +213,21 @@ gdf = gpd.read_file("boundaries/yellowstone.geojson")`}</code></pre>
           <pre><code>{downloadHelperScript}</code></pre>
         </figure>
 
+        <h3 class="research-subhead">For agents</h3>
+        <p>
+          Point an AI assistant at
+          <a href={`${base}llms.txt`}><code>/llms.txt</code></a>
+          for a structured pointer to the dataset, download URLs,
+          Python helpers, schema, and limitations. The Python helper
+          (<code>nps.fetch_daily(slug)</code>, etc.) is the simplest
+          path for an agent to actually fetch a park's series — it
+          handles the Zenodo download, gunzip, and parsing in one call.
+          The same information is also exposed as
+          <a href="https://schema.org/Dataset" target="_blank" rel="noopener">schema.org/Dataset</a>
+          JSON-LD on this page and the home page so structured-data
+          crawlers pick it up too.
+        </p>
+
         <h3 class="research-subhead">Single-park lookups (live site)</h3>
         <p>
           The site also serves individual files at predictable URLs —
@@ -257,6 +248,56 @@ gdf = gpd.read_file("boundaries/yellowstone.geojson")`}</code></pre>
             </article>
           ))}
         </div>
+      </div>
+    </section>
+
+    <!-- Use responsibly — second, after the actual downloads -->
+    <section class="research-section">
+      <div class="research-section-intro">
+        <span class="kicker">Use responsibly</span>
+        <h2>Verify before you cite</h2>
+        <p>
+          These products are open-licensed under MIT and audited
+          internally against literature anchors and arithmetic / range
+          / consistency checks (see
+          <a href={base + "methodology#qc"}>Methodology &rarr; QC</a>
+          and <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/blob/main/docs/DATA_QC.md"
+             target="_blank" rel="noopener"><code>docs/DATA_QC.md</code></a>).
+          They are <em>derived</em> products — polygon-averaged
+          ERA5-Land and DAYMET fields aggregated over PAD-US 4.1
+          boundaries, not station observations.
+        </p>
+      </div>
+      <div class="research-section-content">
+        <ol class="research-steps">
+          <li>
+            <strong>Re-derive the value.</strong> Re-run the pipeline
+            from raw, or independently compute the variable of interest
+            from DAYMET / ERA5-Land directly, and confirm it matches.
+          </li>
+          <li>
+            <strong>Cross-check stations.</strong> Compare against
+            NOAA NCEI, NWS, or NPS monitoring records for the specific
+            park and variable.
+          </li>
+          <li>
+            <strong>Correct your statistics.</strong> Apply
+            autocorrelation handling (Hamed–Rao MK) and multiple-
+            comparisons correction (Benjamini–Hochberg FDR or
+            Bonferroni). The deployed significance flags do neither.
+          </li>
+          <li>
+            <strong>Read the variable-specific limitations.</strong>
+            See <a href={base + "methodology#limitations"}>methodology &rarr; limitations</a>,
+            especially <code>pet_mm</code> (ERA5-Land overestimate vs
+            FAO Penman–Monteith), high-elevation cold bias, and area-
+            naive multipart averaging.
+          </li>
+        </ol>
+        <p class="research-steps-note">
+          Cite the methodology page, run your own QC for your use case,
+          and treat the published numbers as a starting point.
+        </p>
       </div>
     </section>
 

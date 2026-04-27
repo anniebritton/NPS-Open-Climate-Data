@@ -119,6 +119,58 @@ function sparklinePath(series: { value: number | null }[]): string {
 }
 ---
 <Base title="Open Climate Data — Climate Trends in US National Parks">
+  <!-- schema.org Dataset markup so crawlers + AI agents understand
+       the dataset without parsing prose. Mirrors the citation block. -->
+  <script is:inline type="application/ld+json" set:html={JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Dataset",
+    "name": "NPS Open Climate Data v1.0.0",
+    "alternateName": "Open Climate Data — US National Parks",
+    "description": "Pre-processed climate time series, Mann–Kendall + Theil–Sen trend tests, and monthly trend / seasonal-cycle decomposition for every one of the 63 US National Parks. Built on DAYMET v4, ERA5-Land, and USGS PAD-US 4.1 via Google Earth Engine.",
+    "url": "https://anniebritton.github.io/NPS-Open-Climate-Data/",
+    "identifier": ["10.5281/zenodo.19823584", "https://doi.org/10.5281/zenodo.19823584"],
+    "version": "v1.0.0",
+    "license": "https://opensource.org/licenses/MIT",
+    "isAccessibleForFree": true,
+    "creator": [
+      { "@type": "Person", "name": "Annie Britton",
+        "url": "https://github.com/anniebritton",
+        "sameAs": ["https://www.linkedin.com/in/annebritton/"] },
+      { "@type": "Person", "name": "Ian Pritchard",
+        "url": "https://github.com/ipritchard",
+        "sameAs": ["https://www.linkedin.com/in/give-me-data/"] }
+    ],
+    "publisher": { "@type": "Organization", "name": "Zenodo", "url": "https://zenodo.org" },
+    "datePublished": "2026-04-27",
+    "spatialCoverage": { "@type": "Place", "name": "United States National Parks (63 designated units)" },
+    "temporalCoverage": "1980-01-01/2025-12-31",
+    "variableMeasured": [
+      "mean temperature", "maximum temperature", "minimum temperature",
+      "precipitation", "snowfall", "snowmelt", "snow-water equivalent",
+      "snow depth", "snow cover", "shortwave radiation",
+      "vapour pressure", "potential evapotranspiration",
+      "actual evapotranspiration", "wind speed",
+    ],
+    "keywords": [
+      "climate", "national parks", "DAYMET", "ERA5-Land",
+      "Mann-Kendall", "Theil-Sen", "PAD-US",
+    ],
+    "distribution": [
+      { "@type": "DataDownload", "encodingFormat": "application/zip",
+        "name": "All-in-one archive (178 MB)",
+        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-all.zip" },
+      { "@type": "DataDownload", "encodingFormat": "application/zip",
+        "name": "Daily CSVs, gzipped (150 MB)",
+        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-daily.zip" },
+      { "@type": "DataDownload", "encodingFormat": "application/zip",
+        "name": "Per-park summary JSONs (24 MB)",
+        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-summary.zip" },
+      { "@type": "DataDownload", "encodingFormat": "application/zip",
+        "name": "Park boundaries, GeoJSON (3 MB)",
+        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-boundaries.zip" },
+    ],
+    "citation": "Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.0.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19823584",
+  })} />
   <section class="hero">
     <div class="hero-upper">
       <!-- Mountain ridge outline. Four parallel lines give depth; bottom      -->
@@ -167,7 +219,7 @@ function sparklinePath(series: { value: number | null }[]): string {
         </p>
         <div class="hero-cta">
           <a href={`${base}#parks`} class="btn btn-filled">Explore Parks</a>
-          <a href={`${base}researchers`} class="btn">Download Data</a>
+          <a href={`${base}data#downloads`} class="btn">Download Data</a>
         </div>
       </div>
     </div>
@@ -375,9 +427,12 @@ function sparklinePath(series: { value: number | null }[]): string {
   <section class="container section">
     <span class="kicker">For researchers</span>
     <div class="note">
-      The full pre-processed data is available as Parquet and CSV per
-      park, and the analysis pipeline is reproducible from a single
-      command. See the <a href={base + "researchers"}>researchers page</a>.
+      The full versioned dataset is on
+      <a href="https://doi.org/10.5281/zenodo.19823584" target="_blank" rel="noopener">Zenodo</a>
+      (DOI <code>10.5281/zenodo.19823584</code>), and the analysis pipeline
+      is reproducible from a single command. See the
+      <a href={base + "data"}>Data page</a> for downloads, Python helpers,
+      and citation formats.
     </div>
   </section>
 </Base>
