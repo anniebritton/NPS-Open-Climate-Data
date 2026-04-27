@@ -423,10 +423,11 @@ const trendRows = (() => {
       if (!periods || !periods.length) return;
       const labels = periods[0].values.map((m) => monthNames[m.month - 1]);
 
-      // Color-grade the periods oldest → newest. Older periods get a
-      // muted neutral, newest gets the variable's accent color so the
-      // shift in the seasonal cycle reads at a glance.
-      const muted = ["#bcb6a8", "#9c948a"];  // older → mid
+      // Color-grade the periods oldest → newest. Newest is the
+      // variable's accent color; older periods step through clearly
+      // distinct grays (light → mid) instead of two near-identical
+      // tans, so the three lines actually read apart from each other.
+      const muted = ["#cfccc4", "#6e6760"];  // older → mid (light gray, mid gray)
       const colors = periods.map((_, i) =>
         i === periods.length - 1 ? color : (muted[i] ?? muted[muted.length - 1])
       );
