@@ -535,6 +535,37 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   justify-content: flex-end;
   margin-bottom: 0.5rem;
 }
+.trend-rows-controls {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.4rem 0 0.6rem;
+}
+.period-toggle {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-left: auto;
+  font-feature-settings: "tnum";
+}
+.period-toggle .period-tab {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  padding: 0.3rem 0.7rem;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  border-right: 1px solid var(--rule);
+  transition: background 140ms var(--ease-out), color 140ms var(--ease-out);
+}
+.period-toggle .period-tab:last-child { border-right: none; }
+.period-toggle .period-tab:hover { color: var(--ink); background: var(--card); }
+.period-toggle .period-tab.active {
+  background: var(--ink);
+  color: var(--paper);
+}
 canvas { max-width: 100%; }
 .map-hint {
   font-family: "Space Grotesk", sans-serif;

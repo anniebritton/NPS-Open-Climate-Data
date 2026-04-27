@@ -342,23 +342,31 @@ def decompose_monthly(
     trend = monthly.rolling(window=12, center=True, min_periods=12).mean()
 
     # Per-period month-of-year climatologies. Each period yields a 12-point
-    # average shape; overlaying them shows how the seasonal cycle has
-    # shifted (e.g. winter warming) across the dataset window.
+    # mean shape plus a 10th–90th-percentile inter-annual envelope. The
+    # site lets readers toggle between periods to see how the seasonal
+    # cycle has shifted (e.g. winter warming) across the dataset window.
     period_climatologies = []
     for (start, end) in periods:
         mask = (monthly.index.year >= start) & (monthly.index.year <= end)
         sub = monthly.loc[mask]
         if sub.empty:
             continue
-        clim = sub.groupby(sub.index.month).mean()
+        clim_mean = sub.groupby(sub.index.month).mean()
+        clim_p10  = sub.groupby(sub.index.month).quantile(0.10)
+        clim_p90  = sub.groupby(sub.index.month).quantile(0.90)
         # Need at least one observation per calendar month to draw a
         # complete seasonal cycle. Skip periods that don't span a year.
-        if len(clim) < 12:
+        if len(clim_mean) < 12:
             continue
         period_climatologies.append({
             "period": [int(start), int(end)],
             "values": [
-                {"month": int(m), "mean": round(float(clim[m]), 4)}
+                {
+                    "month": int(m),
+                    "mean": round(float(clim_mean[m]), 4),
+                    "p10":  round(float(clim_p10[m]),  4),
+                    "p90":  round(float(clim_p90[m]),  4),
+                }
                 for m in range(1, 13)
             ],
         })

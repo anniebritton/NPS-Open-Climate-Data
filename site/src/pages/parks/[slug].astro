@@ -65,7 +65,12 @@ for (const v of TEMP_FIELDS) {
   d.trend    = d.trend.map((x: number | null) => x == null ? null : cToF(x));
   d.climatology = d.climatology.map((p: any) => ({
     period: p.period,
-    values: p.values.map((m: any) => ({ month: m.month, mean: cToF(m.mean) })),
+    values: p.values.map((m: any) => ({
+      month: m.month,
+      mean: cToF(m.mean),
+      p10:  cToF(m.p10),
+      p90:  cToF(m.p90),
+    })),
   }));
 }
 
@@ -205,9 +210,14 @@ const trendRows = (() => {
       Every variable in the dataset, with its Theil–Sen slope and Mann–Kendall
       p-value. <strong>Click any row</strong> to open the annual time
       series, a 12-month rolling trend (long-term direction without the
-      annual cycle), and the seasonal climatology overlaid for three
+      annual cycle), and a togglable seasonal climatology for three
       15-year periods so the shift in seasonal pattern is visible.
     </p>
+    <div class="trend-rows-controls">
+      <button type="button" id="expand-all-rows" class="chart-download" data-state="collapsed">
+        Expand all
+      </button>
+    </div>
     <div class="trend-rows" role="list">
       <div class="trend-rows-head" aria-hidden="true">
         <span>Variable</span>
@@ -262,7 +272,18 @@ const trendRows = (() => {
                 </div>
                 <div class="chart-wrap">
                   <div class="title">
-                    <span>Seasonal cycle by period</span>
+                    <span>Seasonal cycle</span>
+                    <div class="period-toggle" role="tablist" data-period-group={t.variable}>
+                      {summary.decomposition[t.variable].climatology.map((p: any, i: number) => (
+                        <button type="button" role="tab"
+                                class={`period-tab${i === summary.decomposition[t.variable].climatology.length - 1 ? " active" : ""}`}
+                                data-period-index={i}
+                                data-target={`chart-decomp-clim-${t.variable}`}
+                                aria-selected={i === summary.decomposition[t.variable].climatology.length - 1 ? "true" : "false"}>
+                          {p.period[0]}–{p.period[1]}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                   <div class="chart-canvas"><canvas id={`chart-decomp-clim-${t.variable}`}></canvas></div>
                 </div>
@@ -418,48 +439,57 @@ const trendRows = (() => {
     }
     function decompClimChart(id, decomp, color, unit) {
       const ctx = document.getElementById(id);
-      if (!ctx) return;
+      if (!ctx) return null;
       const periods = decomp.climatology;
-      if (!periods || !periods.length) return;
+      if (!periods || !periods.length) return null;
       const labels = periods[0].values.map((m) => monthNames[m.month - 1]);
+      const band = color.startsWith("#") ? color + "2e" : color;
 
-      // Color-grade the periods oldest → newest. Newest is the
-      // variable's accent color; older periods step through clearly
-      // distinct grays (light → mid) instead of two near-identical
-      // tans, so the three lines actually read apart from each other.
-      const muted = ["#cfccc4", "#6e6760"];  // older → mid (light gray, mid gray)
-      const colors = periods.map((_, i) =>
-        i === periods.length - 1 ? color : (muted[i] ?? muted[muted.length - 1])
-      );
-      const widths = periods.map((_, i) =>
-        i === periods.length - 1 ? 2.6 : 1.8
-      );
-      const datasets = periods.map((p, i) => ({
-        label: `${p.period[0]}–${p.period[1]}`,
-        data: p.values.map((m) => m.mean),
-        borderColor: colors[i],
-        backgroundColor: "rgba(0,0,0,0)",
-        pointRadius: i === periods.length - 1 ? 3 : 0,
-        pointHoverRadius: 5,
-        borderWidth: widths[i],
-        tension: 0.3,
-        fill: false,
-      }));
+      function buildDatasets(periodIndex) {
+        const p = periods[periodIndex];
+        return [
+          { label: "90th pct.", data: p.values.map((m) => m.p90),
+            borderColor: "rgba(0,0,0,0)", backgroundColor: band,
+            pointRadius: 0, fill: "+1" },
+          { label: "10th pct.", data: p.values.map((m) => m.p10),
+            borderColor: "rgba(0,0,0,0)", backgroundColor: band,
+            pointRadius: 0, fill: false },
+          { label: `Mean (${unit})`, data: p.values.map((m) => m.mean),
+            borderColor: color, pointRadius: 3, pointHoverRadius: 5,
+            borderWidth: 2.4, tension: 0.3, fill: false },
+        ];
+      }
 
-      return new Chart(ctx, {
+      const initialIndex = periods.length - 1;  // default to most recent
+      const chart = new Chart(ctx, {
         type: "line",
-        data: { labels, datasets },
+        data: { labels, datasets: buildDatasets(initialIndex) },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
-          plugins: { legend: { position: "bottom" } },
+          plugins: {
+            legend: {
+              position: "bottom",
+              // Hide the envelope datasets from the legend; the shaded
+              // band is self-explanatory next to the mean line.
+              labels: { filter: (item) => item.text.startsWith("Mean") },
+            },
+          },
           scales: {
             y: { beginAtZero: false, grid: { color: "rgba(26,26,26,0.08)" }, title: { display: true, text: unit } },
             x: { grid: { display: false } },
           },
         },
       });
+
+      // Keep a setter on the chart so the period-toggle handler can
+      // swap data without rebuilding the Chart.js instance.
+      chart._setPeriod = (i) => {
+        chart.data.datasets = buildDatasets(i);
+        chart.update();
+      };
+      return chart;
     }
 
     const initialized = new Set();
@@ -492,6 +522,45 @@ const trendRows = (() => {
     // Download all chart PNGs for a single variable. The button lives
     // inside the accordion body, so by the time it's clickable the row
     // is open and the three Chart.js instances exist.
+    // Expand / collapse all trend-rows. Toggling open fires the
+    // per-row "toggle" listener for each <details>, which lazy-builds
+    // its three Chart.js instances exactly once.
+    (function () {
+      const btn = document.getElementById("expand-all-rows");
+      if (!btn) return;
+      btn.addEventListener("click", () => {
+        const rows = document.querySelectorAll("details.trend-row");
+        const expanding = btn.dataset.state !== "expanded";
+        rows.forEach((r) => { r.open = expanding; });
+        btn.dataset.state = expanding ? "expanded" : "collapsed";
+        btn.textContent = expanding ? "Collapse all" : "Expand all";
+      });
+    })();
+
+    // Period-toggle handler for the seasonal-cycle chart. The buttons
+    // live inside the accordion summary's title row; clicking swaps
+    // which 15-year window the climatology chart shows.
+    document.querySelectorAll(".period-toggle").forEach((group) => {
+      group.addEventListener("click", (e) => {
+        const btn = e.target.closest(".period-tab");
+        if (!btn) return;
+        const idx = Number(btn.dataset.periodIndex);
+        const targetId = btn.dataset.target;
+        // Find the variable key — encoded as the suffix after
+        // "chart-decomp-clim-".
+        const key = targetId.replace("chart-decomp-clim-", "");
+        const chart = chartInstances[key] && chartInstances[key].clim;
+        if (!chart || !chart._setPeriod) return;
+        chart._setPeriod(idx);
+        // Update tab visual state.
+        group.querySelectorAll(".period-tab").forEach((t) => {
+          const active = t === btn;
+          t.classList.toggle("active", active);
+          t.setAttribute("aria-selected", active ? "true" : "false");
+        });
+      });
+    });
+
     function triggerDownload(url, filename) {
       const a = document.createElement("a");
       a.href = url;

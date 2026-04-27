@@ -129,10 +129,12 @@ function sparklinePath(series: { value: number | null }[]): string {
            width="100%" height="100%"
            fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
-          <!-- Crest is around (530, 80); the right flank descends to
-               (652, 152), about halfway between the peak and the old
-               sharp drop-off, so the shape reads as a mountain instead
-               of a line that vanishes at the top. -->
+          <!-- Path slopes up from (0, 380), crests around (530, 80),
+               and continues a gentle descent off the right edge of the
+               viewBox at (760, 265). Four parallel use-references
+               translate down by 0/40/76/108 px so the ridges stay
+               equidistant — they never merge because they share the
+               same shape. -->
           <path id="ridge" d="M 0,380
             C 38,322 72,302 104,285
             C 128,273 142,278 158,286
@@ -145,7 +147,10 @@ function sparklinePath(series: { value: number | null }[]): string {
             C 499,90 514,84 530,80
             C 544,78 558,80 572,86
             C 584,92 594,100 608,112
-            C 624,126 636,138 652,152"/>
+            C 624,126 636,138 652,152
+            C 668,166 682,180 700,196
+            C 718,212 732,228 748,248
+            C 754,254 758,260 760,265"/>
         </defs>
         <use href="#ridge" stroke="#1f4a32" stroke-width="2.6" stroke-opacity="0.95" fill="none"/>
         <use href="#ridge" transform="translate(0,40)" stroke="#266036" stroke-width="2.2" stroke-opacity="0.78" fill="none"/>
