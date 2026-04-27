@@ -35,38 +35,72 @@ df = nps.get_data("Glacier National Park", "2020-01-01", "2025-01-01")
 # Full-history fetch with multipart handling (dict of sub-unit -> DataFrame):
 per_unit = nps.get_park_data("saguaro")`;
 
-const citationProse = `Britton, A., & Pritchard, I. (2026). Open Climate Data — US National Parks: Pre-processed climate trends for all US National Parks. Derived from DAYMET v4 and ERA5-Land via Google Earth Engine, with boundaries from USGS PAD-US 4.1. MIT license. https://github.com/anniebritton/NPS-Open-Climate-Data`;
+const citationProse = `Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.0.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19823584`;
 
-const citationBibtex = `@misc{britton2026nps,
+const citationBibtex = `@dataset{britton2026nps,
   author       = {Britton, Annie and Pritchard, Ian},
-  title        = {Open Climate Data --- US National Parks:
-                  Pre-processed climate trends for all US National Parks},
+  title        = {{NPS Open Climate Data v1.0.0: Pre-processed climate
+                  trends for all 63 US National Parks}},
   year         = {2026},
-  note         = {Derived from DAYMET v4 and ERA5-Land via Google Earth Engine,
-                  with boundaries from USGS PAD-US 4.1. MIT license.},
-  url          = {https://github.com/anniebritton/NPS-Open-Climate-Data}
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.19823584},
+  url          = {https://doi.org/10.5281/zenodo.19823584}
 }`;
 
-const citationApa = `Britton, A., & Pritchard, I. (2026). Open Climate Data — US National Parks: Pre-processed climate trends for all US National Parks [Dataset]. GitHub. https://github.com/anniebritton/NPS-Open-Climate-Data`;
+const citationApa = `Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.0.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19823584`;
 
-const resources = [
-  { title: "Per-park JSON summary",
+// The full versioned dataset is on Zenodo. Each archive is a self-
+// contained zip; users pick whichever subset(s) they need.
+const zenodoRecord = "19823584";
+const zenodoDoi = "10.5281/zenodo.19823584";
+const zenodoBase = `https://zenodo.org/records/${zenodoRecord}/files`;
+const zenodoArchives = [
+  { title: "Everything (single zip)",
+    file: "nps-open-climate-data-v1.0.0-all.zip",
+    size: "178 MB",
+    desc: "All four archives below in one download. Use this for offline analysis." },
+  { title: "Daily CSVs (gzipped)",
+    file: "nps-open-climate-data-v1.0.0-daily.zip",
+    size: "150 MB",
+    desc: "Raw 1980–2025 daily series per park in DAYMET / ERA5 native units (K, m, kg/m², W/m², Pa). Multipart parks ship one .csv.gz per polygon." },
+  { title: "Park summaries (JSON)",
+    file: "nps-open-climate-data-v1.0.0-summary.zip",
+    size: "24 MB",
+    desc: "Per-park summary JSONs — annual + seasonal aggregates, Mann–Kendall / Theil–Sen trends, monthly decomposition, climate stripes — plus parks.json index. Temperatures in °C." },
+  { title: "Park boundaries (GeoJSON)",
+    file: "nps-open-climate-data-v1.0.0-boundaries.zip",
+    size: "3 MB",
+    desc: "PAD-US 4.1 proclamation polygons dissolved per park, simplified to 50 m, in WGS84. Includes all_parks.geojson FeatureCollection." },
+];
+
+// Convenience endpoints: same content as the Zenodo summary / boundary
+// archives, but individually addressable for one-off lookups without
+// having to download and unzip the whole archive.
+const liveEndpoints = [
+  { title: "Per-park summary JSON",
     path: `${base}data/parks/<slug>.json`,
     example: `${base}data/parks/yellowstone.json`,
-    desc: "Annual + seasonal series, Mann–Kendall / Theil–Sen trends, anomalies, climate stripes. Temperatures stored in °C (SI); site converts to °F at render." },
-  { title: "Park boundary GeoJSON",
+    desc: "Single park, served live. Same shape as the Zenodo summary archive." },
+  { title: "Per-park boundary GeoJSON",
     path: `${base}data/boundaries/<slug>.geojson`,
     example: `${base}data/boundaries/yellowstone.geojson`,
-    desc: "Real PAD-US 4.1 proclamation polygons, dissolved per park, simplified to 50 m, in WGS84." },
-  { title: "Combined overview",
+    desc: "PAD-US 4.1 polygon for one park, in WGS84." },
+  { title: "All-parks boundary FeatureCollection",
     path: `${base}data/boundaries/all_parks.geojson`,
     example: `${base}data/boundaries/all_parks.geojson`,
-    desc: "All 63 parks in a single FeatureCollection, with each park's headline warming slope exposed as feature properties." },
-  { title: "Per-park daily CSV (gzip)",
-    path: `/data/raw/<slug>/<slug>.csv.gz`,
-    example: null,
-    desc: "Generated but not currently hosted (~134 MB total). Run the pipeline locally, or reach out via GitHub issues." },
+    desc: "All 63 parks in one FeatureCollection, with each park's headline warming slope exposed as feature properties." },
 ];
+
+const downloadHelperScript = `# Pure-stdlib helper that pulls + caches the Zenodo archives, then
+# returns a pandas DataFrame for any park's daily series:
+import nps_climate_data as nps
+
+df  = nps.fetch_daily("yellowstone")     # raw daily CSV → DataFrame
+sj  = nps.fetch_summary("yellowstone")   # summary JSON → dict
+arc = nps.fetch_archive("boundaries")    # downloads + extracts the zip
+
+# Caches under ~/.cache/nps_climate_data so subsequent calls are local.`;
 ---
 <Base title="For researchers — Open Climate Data">
   <section class="container section research-page">
@@ -130,13 +164,87 @@ const resources = [
         <span class="kicker">Data</span>
         <h2>Open downloads</h2>
         <p>
-          Four flavours of output, all MIT-licensed. Temperatures are stored
-          in SI (°C) — only the site's display layer converts to °F.
+          Canonical distribution is the versioned <strong>Zenodo
+          deposit</strong> (DOI <a href={`https://doi.org/${zenodoDoi}`} target="_blank" rel="noopener"><code>{zenodoDoi}</code></a>).
+          Four download options below; pick the subset you need.
+          MIT-licensed. Temperatures stored in SI (°C); the website
+          converts to °F at render only.
         </p>
       </div>
       <div class="research-section-content">
         <div class="research-resources">
-          {resources.map((r) => (
+          {zenodoArchives.map((r) => (
+            <article class="research-resource">
+              <header>
+                <span class="research-resource-title">
+                  {r.title}
+                  <span class="research-resource-size">{r.size}</span>
+                </span>
+                <a class="research-copy" href={`${zenodoBase}/${r.file}?download=1`} target="_blank" rel="noopener">Download</a>
+              </header>
+              <code class="research-resource-path">{r.file}</code>
+              <p>{r.desc}</p>
+            </article>
+          ))}
+        </div>
+
+        <h3 class="research-subhead">Per-format usage</h3>
+        <ul class="research-usage">
+          <li>
+            <strong>Unzip the archive</strong> — every zip extracts to a
+            single <code>nps-open-climate-data-v1.0.0/</code> folder:
+            <pre><code>unzip nps-open-climate-data-v1.0.0-summary.zip</code></pre>
+          </li>
+          <li>
+            <strong>Daily CSVs are gzipped</strong> — read directly
+            with pandas (auto-detects the <code>.gz</code> extension)
+            or decompress first:
+            <pre><code>{`# in Python
+import pandas as pd
+df = pd.read_csv("daily/yellowstone/yellowstone.csv.gz")
+
+# from the shell
+gunzip daily/yellowstone/yellowstone.csv.gz`}</code></pre>
+          </li>
+          <li>
+            <strong>Summary JSONs</strong> are plain JSON; load with
+            any standard parser. Schema lives on the
+            <a href={base + "methodology"}>Methodology</a> page.
+            <pre><code>{`import json
+summary = json.load(open("summary/yellowstone.json"))
+print(summary["headline_trends"]["tmean_c"])`}</code></pre>
+          </li>
+          <li>
+            <strong>GeoJSON boundaries</strong> open natively in
+            QGIS, geopandas, Mapbox, Leaflet, etc.
+            <pre><code>{`import geopandas as gpd
+gdf = gpd.read_file("boundaries/yellowstone.geojson")`}</code></pre>
+          </li>
+        </ul>
+
+        <h3 class="research-subhead">Programmatic helper (Python)</h3>
+        <p>
+          The Python package ships a small Zenodo download helper.
+          It pulls the archive on first use, caches under
+          <code>~/.cache/nps_climate_data/</code>, and returns ready-
+          to-use objects:
+        </p>
+        <figure class="research-code">
+          <figcaption>
+            <span class="research-code-lang">python</span>
+            <button class="research-copy" data-copy-target>Copy</button>
+          </figcaption>
+          <pre><code>{downloadHelperScript}</code></pre>
+        </figure>
+
+        <h3 class="research-subhead">Single-park lookups (live site)</h3>
+        <p>
+          The site also serves individual files at predictable URLs —
+          handy for fetching one park without downloading the whole
+          Zenodo archive.
+        </p>
+        <div class="research-resources">
+          {liveEndpoints.map((r) => (
             <article class="research-resource">
               <header>
                 <span class="research-resource-title">{r.title}</span>

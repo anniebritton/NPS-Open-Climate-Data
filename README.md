@@ -113,6 +113,54 @@ PYTHONPATH=. python scripts/qc_pass.py
 
 It rewrites [`docs/DATA_QC.md`](docs/DATA_QC.md) with the latest audit.
 
+## Downloading the data
+
+The full versioned dataset lives on **Zenodo**:
+[`10.5281/zenodo.19823584`](https://doi.org/10.5281/zenodo.19823584)
+(MIT-licensed). Four archives are available so you can pick the
+subset you need:
+
+- `nps-open-climate-data-v1.0.0-all.zip` (178 MB) — everything below
+- `nps-open-climate-data-v1.0.0-daily.zip` (150 MB) — raw daily CSVs
+  (gzipped) per park, in DAYMET / ERA5 native units
+- `nps-open-climate-data-v1.0.0-summary.zip` (24 MB) — per-park
+  summary JSONs (annual + seasonal + decomposition + trends), plus
+  `parks.json` index
+- `nps-open-climate-data-v1.0.0-boundaries.zip` (3 MB) — PAD-US 4.1
+  polygons in WGS84
+
+### Programmatic access (Python)
+
+```python
+import nps_climate_data as nps
+
+df  = nps.fetch_daily("yellowstone")     # raw daily DataFrame
+sj  = nps.fetch_summary("yellowstone")   # summary JSON dict
+geo = nps.fetch_boundary("yellowstone")  # parsed GeoJSON
+arc = nps.fetch_archive("boundaries")    # path to extracted dir
+```
+
+Archives are downloaded once and cached under
+`~/.cache/nps_climate_data/` (override with `NPS_CLIMATE_DATA_CACHE`).
+Pass `force=True` to refresh.
+
+### Per-format usage hints
+
+```bash
+# Unzip any archive — extracts to nps-open-climate-data-v1.0.0/
+unzip nps-open-climate-data-v1.0.0-summary.zip
+
+# Daily CSVs are gzipped; pandas auto-detects, or decompress manually:
+gunzip daily/yellowstone/yellowstone.csv.gz
+python -c "import pandas as pd; print(pd.read_csv('daily/yellowstone/yellowstone.csv.gz').head())"
+
+# Summary JSONs are plain JSON; load with any parser
+python -c "import json; print(json.load(open('summary/yellowstone.json'))['headline_trends'])"
+
+# GeoJSON boundaries open in geopandas, QGIS, Mapbox, Leaflet, etc.
+python -c "import geopandas as gpd; print(gpd.read_file('boundaries/yellowstone.geojson'))"
+```
+
 ## Data coverage
 
 All 63 designated National Parks have raw daily series, annual /
@@ -186,10 +234,13 @@ first so we can agree on scope before you invest the time.
 
 ## Citing
 
-> Britton, A., & Pritchard, I. (2026). *NPS Open Climate Data:
-> Pre-processed climate trends for all US National Parks.* Derived from
-> DAYMET v4 and ERA5-Land via Google Earth Engine, with boundaries from
-> USGS PAD-US 4.1. MIT license.
+> Britton, A., & Pritchard, I. (2026). *NPS Open Climate Data v1.0.0:
+> Pre-processed climate trends for all 63 US National Parks* [Data set].
+> Zenodo. https://doi.org/10.5281/zenodo.19823584
+
+Per-park citation strings (Plain / BibTeX / APA) are also available on
+each park page and on the [For Researchers](https://anniebritton.github.io/NPS-Open-Climate-Data/researchers/)
+page.
 
 ## License
 

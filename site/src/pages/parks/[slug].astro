@@ -97,19 +97,23 @@ const COLOR_BY_KIND: Record<string, string> = {
 };
 
 // Per-park citation strings — same three formats as the project-wide
-// citation on /researchers, but specific to this park.
-const repoUrl = "https://github.com/anniebritton/NPS-Open-Climate-Data";
+// citation on /researchers, but the prose narrows to this park.
+// All three point at the canonical Zenodo deposit DOI; the dataset
+// itself is versioned there.
+const zenodoDoi = "10.5281/zenodo.19823584";
+const zenodoUrl = `https://doi.org/${zenodoDoi}`;
 const bibKey = `britton2026nps_${summary.slug.replace(/-/g, "_")}`;
-const citationProse = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, Open Climate Data — US National Parks. Derived from DAYMET v4 (Thornton et al.) and ERA5-Land (Muñoz-Sabater et al.). ${repoUrl}`;
-const citationApa = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series [Dataset]. Open Climate Data — US National Parks. ${repoUrl}`;
-const citationBibtex = `@misc{${bibKey},
+const citationProse = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, in NPS Open Climate Data v1.0.0 [Data set]. Zenodo. ${zenodoUrl}`;
+const citationApa = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, in NPS Open Climate Data v1.0.0 [Data set]. Zenodo. ${zenodoUrl}`;
+const citationBibtex = `@dataset{${bibKey},
   author       = {Britton, Annie and Pritchard, Ian},
-  title        = {${summary.unit_name} climate series},
+  title        = {{${summary.unit_name} climate series, in NPS Open
+                  Climate Data v1.0.0}},
   year         = {2026},
-  howpublished = {Open Climate Data --- US National Parks},
-  note         = {Derived from DAYMET v4 (Thornton et al.) and
-                  ERA5-Land (Mu\\~noz-Sabater et al.)},
-  url          = {${repoUrl}}
+  publisher    = {Zenodo},
+  version      = {v1.0.0},
+  doi          = {${zenodoDoi}},
+  url          = {${zenodoUrl}}
 }`;
 
 // Per-variable overrides for cases where the kind-based default doesn't read

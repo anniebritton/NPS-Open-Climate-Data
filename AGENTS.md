@@ -29,8 +29,15 @@ pipeline.ipynb     Notebook entry point (recommended)
 ```
 
 Keep `nps_climate_data/` import-light — `from .core import …` is lazy
-inside `__init__.py` so the EE-free helpers (analysis, carbon) stay
-usable on environments without `earthengine-api` credentials.
+inside `__init__.py` so the EE-free helpers (analysis, carbon, the
+Zenodo download module) stay usable on environments without
+`earthengine-api` credentials.
+
+The full versioned dataset is published on Zenodo
+(DOI `10.5281/zenodo.19823584`). `nps_climate_data.download` ships
+stdlib-only helpers — `fetch_archive`, `fetch_summary`,
+`fetch_daily`, `fetch_boundary` — that pull and cache the archives
+under `~/.cache/nps_climate_data/`.
 
 ## Conventions
 
