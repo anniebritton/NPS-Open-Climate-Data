@@ -21,3 +21,9 @@ jobs:
       - name: Run tests
         run: |
           PYTHONPATH=. pytest tests/ -v --ignore=tests/test_basic.py
+      - name: Verify CLAUDE.md and AGENTS.md are in sync
+        run: |
+          # The two files document the same project conventions for
+          # different agent tools (Claude Code reads CLAUDE.md, Codex /
+          # Cursor read AGENTS.md). They must contain identical content.
+          diff -q CLAUDE.md AGENTS.md

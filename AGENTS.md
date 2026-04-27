@@ -1,83 +1,106 @@
-# AGENTS.md
+# Notes for Claude (and other coding assistants)
 
-Repository-level instructions for any code-agent (Codex, Cursor,
-Claude Code, etc.) operating on this codebase. Mirrors
-[CLAUDE.md](CLAUDE.md) — read either, the content is interchangeable.
+This file gives any LLM-driven contributor enough context to work in
+this repo without re-deriving project conventions every session. For
+the canonical user-facing description, see [README.md](README.md) and
+the deployed [methodology page](https://anniebritton.github.io/NPS-Open-Climate-Data/methodology/).
 
-## Project at a glance
+## What this project is
 
-NPS Open Climate Data: pre-processed climate time series, trend tests,
-monthly trend/seasonal decomposition, and a public Astro site covering
-every one of the 63 US National Parks. Datasets: DAYMET v4, ERA5-Land,
-USGS PAD-US 4.1. Pipeline runs through Google Earth Engine batch
-tasks. CI rebuilds the site on every push to `main`.
+Pre-processed climate time series, trend tests, monthly trend/seasonal
+decomposition, and a public Astro site covering every one of the 63 US
+National Parks. Built on **DAYMET v4**, **ERA5-Land**, and **USGS
+PAD-US 4.1** via Google Earth Engine.
 
-For the user-facing description see [README.md](README.md). For
-statistical methodology see the deployed `/methodology/` page or
-`nps_climate_data/analysis.py`.
+The pipeline is one-shot per build — Earth Engine batch tasks export
+daily CSVs to Google Drive, the Python package aggregates them into
+per-park JSON summaries, and the Astro site renders those summaries as
+static pages. CI rebuilds and redeploys on every push to `main`.
 
-## Layout
+## Repository layout
 
 ```
 nps_climate_data/  Python package (analysis + EE export + carbon)
-scripts/           Numbered one-shot operational scripts
-docs/              Design + QC docs (DATA_QC.md is auto-generated)
+scripts/           One-shot operational scripts (numbered 01_, 02_, …)
+docs/              Auditable design + QC docs (DATA_QC.md is auto-gen)
 site/              Astro static site, deployed to GitHub Pages
 tests/             pytest suite (no network / no EE required)
 pipeline.ipynb     Notebook entry point (recommended)
 ```
 
-`nps_climate_data/__init__.py` keeps EE imports lazy so analysis +
-carbon helpers work without `earthengine-api` credentials.
+Keep `nps_climate_data/` import-light — `from .core import …` is lazy
+inside `__init__.py` so the EE-free helpers (analysis, carbon) stay
+usable on environments without `earthengine-api` credentials.
 
 ## Conventions
 
-- Conventional-ish commit prefixes: `feat(scope):`, `fix(scope):`,
-  `style(site):`, `docs(scope):`, `chore:`. Add a *Co-Authored-By*
-  trailer for agent-authored commits.
-- Pipeline data stays in SI (Celsius, millimetres, Pascals); °C → °F
-  conversion happens in the site render layer only.
-- Per-park JSON shape (`headline_trends`, `trends`, `annual`,
-  `stripes`, `decomposition[var]`, …) is load-bearing — Astro pages
-  read these fields directly. Don't rename without updating consumers.
-- The QC pass at `scripts/qc_pass.py` is calibrated against documented
-  ERA5-Land / DAYMET quirks; widen its bands only after consulting the
-  "Documented dataset characteristics" block in `docs/DATA_QC.md`.
+- **Conventional-ish commit messages.** `feat(scope):`, `fix(scope):`,
+  `style(site):`, `docs(scope):`, `chore:`. Include a *Co-Authored-By:
+  Claude …* trailer when authored by an LLM.
+- **SI in the pipeline, display units on the site.** Pipeline JSON keeps
+  Celsius and millimetres so CSV/Parquet consumers get unambiguous
+  values. The site converts °C → °F at the render layer for US
+  audiences. Don't bake °F into the canonical data files.
+- **Numbered scripts run in order** but most are independent. The
+  canonical end-to-end is `pipeline.ipynb`; `scripts/01_…` →
+  `scripts/02_…` → `scripts/04_…` is the standalone equivalent.
+  `scripts/qc_pass.py` is run on demand to refresh `docs/DATA_QC.md`.
+- **Per-park JSON shape is load-bearing.** The Astro pages read
+  `summary.headline_trends`, `summary.trends`, `summary.annual`,
+  `summary.stripes`, `summary.decomposition[var]`, etc. Don't rename
+  these fields without updating the consumer pages too.
+- **Multipart parks** (Saguaro, Channel Islands, Kings Canyon, …) are
+  split via `split_multipart_features` so each polygon gets its own
+  series, with a union-level series for headline stats. The list lives
+  in `nps_climate_data/parks.MULTIPART_PARKS`.
 
 ## Running things
 
 ```bash
-# Python tests (no network, no EE)
+# Python (analysis side)
+pip install -e .
 PYTHONPATH=. pytest tests/ --ignore=tests/test_basic.py
 
-# Local site preview
-cd site && npm install && npm run dev
+# Site (Astro)
+cd site && npm install && npm run dev    # local preview
+cd site && npm run build                 # static build (CI does this)
 
-# Static build (what CI runs)
-cd site && npm run build
-
-# Refresh docs/DATA_QC.md
-PYTHONPATH=. python scripts/qc_pass.py
+# Refresh the QC audit
+PYTHONPATH=. python scripts/qc_pass.py   # writes docs/DATA_QC.md
 ```
 
-Pipeline scripts (`scripts/01_…` → `02_…` → `04_…`) need
-`pandas`, `numpy`, `pyarrow`, and Earth Engine credentials. The
-notebook (`pipeline.ipynb`) is the recommended end-to-end entry point.
+The repo provides a venv-light setup (no committed virtualenv); when
+running pipeline scripts locally, create one with `python -m venv .venv`
+and `pip install pandas numpy pyarrow` (or use `pip install -e .` to
+pull the full package deps).
 
-## Don't commit
+## What to be careful about
 
-- `data/raw/` — gitignored; raw daily CSVs total ~134 MB.
-- `data/site/` — gitignored; staging output of `02_build_site_data.py`.
-  `site/public/data/parks/<slug>.json` *is* committed (the deployed
-  site reads from it) — keep both in sync when regenerating.
-- `site/public/data/carbon.json` — gitignored; regenerated in CI from
-  the live commit count.
-- Any new heavyweight dependencies for the analysis package. pandas +
-  numpy is the deal; everything else should be optional.
+- **Don't commit `data/raw/` or `data/site/`.** Both are in
+  `.gitignore`. `site/public/data/parks/*.json` *is* committed — that's
+  what the deployed site consumes. Keep `data/site/parks/<slug>.json`
+  in sync with `site/public/data/parks/<slug>.json` when regenerating.
+- **Don't commit `site/public/data/carbon.json` either.** It's
+  regenerated by `scripts/04_write_carbon.py` on every CI build using
+  the live commit count, and is in `.gitignore` for that reason.
+- **JSON payload size matters.** Per-park JSON is ~395 KB after the
+  monthly decomposition was added; round monthly arrays to 4 decimals
+  in `analysis.decompose_monthly` to keep it bounded. Don't emit
+  daily-resolution data into the summary JSONs — only annual,
+  monthly-decomposed, and seasonal aggregates.
+- **No new heavy dependencies for the analysis package.** pandas +
+  numpy is the deal. Any new stats need to be implementable on top of
+  those. SciPy / statsmodels should be optional, not required.
+- **The QC pass is calibrated.** If a range-band failure looks
+  surprising, check `docs/DATA_QC.md`'s "Documented dataset
+  characteristics" section before widening — several known ERA5-Land /
+  DAYMET quirks are deliberately tolerated there.
 
 ## Pointers
 
 - High-level: [README.md](README.md)
-- Methodology: `/methodology/` + `nps_climate_data/analysis.py`
+- Statistical methodology: deployed methodology page
+  (`/methodology/`) and `nps_climate_data/analysis.py`
 - Output audit: [docs/DATA_QC.md](docs/DATA_QC.md)
-- Carbon: `/carbon/` + `nps_climate_data/carbon.py`
+- Carbon transparency: deployed carbon page (`/carbon/`) and
+  `nps_climate_data/carbon.py`
