@@ -25,43 +25,43 @@ const tocItems = [
     </p>
 
     <div class="method-flow" aria-label="Pipeline overview">
-      <div class="method-flow-node">
+      <a class="method-flow-node" href="#sources">
         <span class="method-flow-step">01</span>
         <span class="method-flow-title">Source</span>
         <span class="method-flow-sub">DAYMET + ERA5-Land</span>
-      </div>
+      </a>
       <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
         <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div class="method-flow-node">
+      <a class="method-flow-node" href="#pipeline">
         <span class="method-flow-step">02</span>
         <span class="method-flow-title">Reduce</span>
         <span class="method-flow-sub">at park boundary</span>
-      </div>
+      </a>
       <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
         <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div class="method-flow-node">
+      <a class="method-flow-node" href="#aggregation">
         <span class="method-flow-step">03</span>
         <span class="method-flow-title">Aggregate</span>
         <span class="method-flow-sub">annual · seasonal</span>
-      </div>
+      </a>
       <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
         <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div class="method-flow-node">
+      <a class="method-flow-node" href="#tests">
         <span class="method-flow-step">04</span>
         <span class="method-flow-title">Test</span>
         <span class="method-flow-sub">MK · Theil–Sen</span>
-      </div>
+      </a>
       <svg class="method-flow-arrow" viewBox="0 0 40 24" aria-hidden="true">
         <path d="M2,12 H34 M28,5 L35,12 L28,19" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div class="method-flow-node">
+      <a class="method-flow-node" href="#citations">
         <span class="method-flow-step">05</span>
         <span class="method-flow-title">Publish</span>
         <span class="method-flow-sub">JSON · CSV · site</span>
-      </div>
+      </a>
     </div>
   </section>
 
@@ -188,7 +188,7 @@ const tocItems = [
               when residuals aren't normal.
             </p>
           </article>
-          <article class="method-test">
+          <article class="method-test" id="aggregation">
             <span class="method-test-name">Annual aggregation</span>
             <p>
               Calendar year. Sums for precipitation, snow, ET; means for
@@ -213,9 +213,24 @@ const tocItems = [
           </article>
         </div>
         <div class="note">
+          <strong>Why 1981–2010?</strong>
+          The WMO defines "climate normals" as 30-year averages updated
+          each decade; 1981–2010 is the most recent normal that fits
+          entirely inside the 1980-onward DAYMET record, so every park
+          gets a baseline computed from the same period regardless of
+          dataset coverage. A more recent normal (1991–2020) would
+          shorten the comparison window for trends starting in 1980,
+          and an older one (1971–2000) would precede the start of the
+          DAYMET record. The chosen window is slightly back-loaded
+          inside a 1980–present series, which compresses early-period
+          anomalies — a deliberate trade for keeping every park on the
+          same yardstick.
+        </div>
+        <div class="note">
           <strong>Longer-horizon inference needs autocorrelation handling.</strong>
           For series much longer than a few decades, apply the Hamed–Rao
-          Mann–Kendall variant or an equivalent correction.
+          Mann–Kendall variant<sup><a href="#cite-hamed-rao">4</a></sup>
+          or an equivalent correction.
         </div>
       </section>
 
@@ -272,6 +287,13 @@ const tocItems = [
           <li>
             U.S. Geological Survey, Gap Analysis Project. <em>PAD-US 4.1:
             Protected Areas Database of the United States.</em>
+          </li>
+          <li id="cite-hamed-rao">
+            Hamed, K. H., &amp; Rao, A. R. (1998). A modified Mann–Kendall
+            trend test for autocorrelated data. <em>Journal of Hydrology,
+            204</em>(1–4), 182–196.
+            <a href="https://doi.org/10.1016/S0022-1694(97)00125-X"
+               target="_blank" rel="noopener">https://doi.org/10.1016/S0022-1694(97)00125-X</a>
           </li>
         </ol>
       </section>

@@ -68,8 +68,31 @@ const headlineCards = HEADLINE_ORDER.filter((v) => headline[v]).map((v) => ({
   meta: metaFor(v),
 }));
 
-// Secondary trends (anything non-headline)
-const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.variable));
+// Color each chart by variable kind so the time-series strip reads at a glance.
+const COLOR_BY_KIND: Record<string, string> = {
+  temperature: "#b5613b",
+  precip: "#4a7fa5",
+  snow: "#2d5a7a",
+  other: "#6e6760",
+};
+
+// One row per trend, ordered: headline vars first (in HEADLINE_ORDER), then the rest.
+const trendRows = (() => {
+  const inHeadline = (v: string) => HEADLINE_ORDER.includes(v);
+  const sorted = [...trends].sort((a: any, b: any) => {
+    const ai = HEADLINE_ORDER.indexOf(a.variable);
+    const bi = HEADLINE_ORDER.indexOf(b.variable);
+    if (inHeadline(a.variable) && inHeadline(b.variable)) return ai - bi;
+    if (inHeadline(a.variable)) return -1;
+    if (inHeadline(b.variable)) return 1;
+    return a.variable.localeCompare(b.variable);
+  });
+  return sorted.map((t: any) => ({
+    ...t,
+    meta: metaFor(t.variable),
+    color: COLOR_BY_KIND[metaFor(t.variable).kind] ?? COLOR_BY_KIND.other,
+  }));
+})();
 ---
 <Base title={title} description={`Climate trends for ${summary.unit_name}, ${period.start_year}-${period.end_year}.`}>
   <section class="container section">
@@ -130,50 +153,49 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
   </section>
 
   <section class="container section">
-    <h2>Time series</h2>
-    <div class="chart-wrap">
-      <div class="title">Annual mean temperature (°F) with best-fit trend <span style="font-weight:400;color:var(--muted);font-size:0.72em;text-transform:none;letter-spacing:0">(Theil–Sen)</span></div>
-      <div class="chart-canvas"><canvas id="chart-tmean"></canvas></div>
-    </div>
-    <div class="chart-wrap">
-      <div class="title">Annual precipitation (mm)</div>
-      <div class="chart-canvas"><canvas id="chart-prcp"></canvas></div>
-    </div>
-    {annual[0]?.swe_mm !== undefined ? (
-      <div class="chart-wrap">
-        <div class="title">Mean daily snow-water equivalent (mm)</div>
-        <div class="chart-canvas"><canvas id="chart-swe"></canvas></div>
+    <h2>Time series & trends</h2>
+    <p style="color:var(--ink);max-width:680px">
+      Every variable in the dataset, with its Theil–Sen slope and Mann–Kendall
+      p-value. Click any row to open the annual time series with its best-fit
+      trend line.
+    </p>
+    <div class="trend-rows" role="list">
+      <div class="trend-rows-head" aria-hidden="true">
+        <span>Variable</span>
+        <span class="num">Slope / yr</span>
+        <span class="num">Total change</span>
+        <span class="num">p-value</span>
+        <span>Significance</span>
+        <span></span>
       </div>
-    ) : null}
+      {trendRows.map((t: any) => (
+        <details class="trend-row" data-var={t.variable} role="listitem">
+          <summary>
+            <span class="tr-var">{t.meta.label}</span>
+            <span class="tr-slope num">
+              {fmtSlope(t.slope_per_year, t.meta.decimals)} <span class="tr-unit">{t.meta.slopeUnit}</span>
+            </span>
+            <span class="tr-total num">{fmtTotal(t.slope_per_year, t.n)}</span>
+            <span class="tr-pval num">{fmtPVal(t.p_value)}</span>
+            <span class="tr-sig">
+              {t.significant_95 ? <span class="sig">sig.</span> : <span class="sig not-sig">not sig.</span>}
+            </span>
+            <span class="tr-chev" aria-hidden="true">▾</span>
+          </summary>
+          <div class="trend-row-body">
+            {t.meta.description ? <p class="tr-desc">{t.meta.description}</p> : null}
+            <div class="chart-wrap">
+              <div class="title">
+                Annual {t.meta.label.toLowerCase()} ({t.meta.unit})
+                <span class="theil-tag">(Theil–Sen)</span>
+              </div>
+              <div class="chart-canvas"><canvas id={`chart-${t.variable}`}></canvas></div>
+            </div>
+          </div>
+        </details>
+      ))}
+    </div>
   </section>
-
-  {secondaryTrends.length > 0 ? (
-    <section class="container section">
-      <h2>All variables</h2>
-      <table class="data">
-        <thead>
-          <tr>
-            <th>Variable</th><th>Slope / yr</th><th>Total change</th><th>n years</th><th>p-value</th><th></th>
-          </tr>
-        </thead>
-        <tbody>
-          {trends.map((t: any) => {
-            const meta = metaFor(t.variable);
-            return (
-              <tr>
-                <td>{meta.label}</td>
-                <td>{fmtSlope(t.slope_per_year, meta.decimals)} {meta.slopeUnit}</td>
-                <td>{fmtTotal(t.slope_per_year, t.n)}</td>
-                <td>{t.n}</td>
-                <td>{fmtPVal(t.p_value)}</td>
-                <td>{t.significant_95 ? <span class="sig">sig.</span> : <span class="sig not-sig">not sig.</span>}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </section>
-  ) : null}
 
   <section class="container section">
     <h2>Download the data</h2>
@@ -193,12 +215,11 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
     </p>
   </section>
 
-  <script define:vars={{ slug, annual, headline, trends, base }} is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
+  <script define:vars={{ slug, annual, headline, trends, trendRows, base }} is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-  <script define:vars={{ summary, base }}>
-    // charts
-    function lineChart(id, years, values, label, color, trend) {
+  <script define:vars={{ summary, trendRows, base }}>
+    function lineChart(id, years, values, label, color, trend, decimals) {
       const ctx = document.getElementById(id);
       if (!ctx) return;
       const datasets = [{
@@ -211,12 +232,13 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
         pointHoverRadius: 5,
         fill: true,
       }];
-      if (trend) {
+      if (trend && trend.slope_per_year != null && trend.intercept != null) {
         const slope = trend.slope_per_year;
         const intercept = trend.intercept;
         const trendY = years.map((y) => slope * y + intercept);
+        const d = decimals ?? 3;
         datasets.push({
-          label: `Best-fit trend (${slope >= 0 ? "+" : ""}${slope.toFixed(3)}/yr)`,
+          label: `Theil–Sen trend (${slope >= 0 ? "+" : ""}${slope.toFixed(d)}/yr)`,
           data: trendY,
           borderColor: "#0d0d0c",
           borderDash: [6, 4],
@@ -239,12 +261,32 @@ const secondaryTrends = trends.filter((t: any) => !HEADLINE_ORDER.includes(t.var
       });
     }
 
+    // Build per-variable chart configs once, then lazy-init on first <details> open.
+    // Avoids creating ~14 Chart.js instances per park up front.
     const years = summary.annual.map((r) => r.year);
-    lineChart("chart-tmean", years, summary.annual.map((r) => r.tmean_c), "Mean temp (°F)", "#b5613b", summary.headline_trends?.tmean_c);
-    lineChart("chart-prcp", years, summary.annual.map((r) => r.prcp_mm), "Precip (mm)", "#4a7fa5", summary.headline_trends?.prcp_mm);
-    if (summary.annual[0]?.swe_mm !== undefined) {
-      lineChart("chart-swe", years, summary.annual.map((r) => r.swe_mm), "SWE (mm)", "#2d5a7a", null);
+    const chartConfigs = {};
+    for (const t of trendRows) {
+      const values = summary.annual.map((r) => r[t.variable]);
+      chartConfigs[t.variable] = {
+        values,
+        label: `${t.meta.label} (${t.meta.unit})`,
+        color: t.color,
+        trend: t,
+        decimals: t.meta.decimals,
+      };
     }
+    const initialized = new Set();
+    document.querySelectorAll("details.trend-row").forEach((det) => {
+      det.addEventListener("toggle", () => {
+        if (!det.open) return;
+        const key = det.dataset.var;
+        if (initialized.has(key)) return;
+        const cfg = chartConfigs[key];
+        if (!cfg) return;
+        lineChart(`chart-${key}`, years, cfg.values, cfg.label, cfg.color, cfg.trend, cfg.decimals);
+        initialized.add(key);
+      });
+    });
 
     // map — single park view with a fill shaded by its own warming slope.
     const mapEl = document.getElementById("map");

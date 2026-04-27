@@ -152,7 +152,6 @@ function sparklinePath(series: { value: number | null }[]): string {
         <use href="#ridge" transform="translate(0,108)" stroke="#2a6041" stroke-width="1.1" stroke-opacity="0.20" fill="none"/>
       </svg>
       <div class="hero-content">
-        <span class="kicker">Open Climate Data · Since 1980</span>
         <h1>The story of climate<br/>change, park by park</h1>
         <p>
           Every one of the 63 US National Parks, with its own daily record of
@@ -193,6 +192,7 @@ function sparklinePath(series: { value: number | null }[]): string {
             <span class="swarm-legend-ex sig">Significant</span>
             <span class="swarm-legend-ex not-sig">Not significant</span>
           </div>
+          <span class="swarm-legend-hint">p &lt; 0.05</span>
         </div>
       </div>
       <div class="swarm">
@@ -202,6 +202,15 @@ function sparklinePath(series: { value: number | null }[]): string {
              width="100%" height="500"></svg>
         <div id="swarm-tooltip" class="swarm-tooltip" role="tooltip"></div>
       </div>
+      <p class="swarm-footnote">
+        Significance comes from a statistical test (the Mann–Kendall trend
+        test, with p &lt; 0.05 as the cutoff). Magnitude alone doesn't decide
+        it: a small warming trend can be flagged significant when the
+        year-to-year temperatures are steady, while a larger trend can read
+        as not significant if the same park's weather swings widely from
+        year to year. The test asks whether the upward trend stands out
+        clearly above that natural variability.
+      </p>
     </div>
   </section>
 
@@ -271,7 +280,7 @@ function sparklinePath(series: { value: number | null }[]): string {
             ) : null}
             <div class="park-headline">
               <span class="park-total">{hasData && totalF != null ? (totalF >= 0 ? "+" : "") + totalF.toFixed(1) + "°F" : "—"}</span>
-              <span class="park-since">{hasData ? `since ${p.period?.start_year ?? 1980}` : "no data yet"}</span>
+              <span class="park-since">{hasData ? `since ${p.period?.start_year ?? 1980}` : "outside land-grid coverage"}</span>
               {hasData && psig ? <span class="sig-mark" title={`${fmtSlope(slope)} °F/yr, p<0.05`}>✓</span> : null}
             </div>
             {hasData ? (
@@ -292,7 +301,7 @@ function sparklinePath(series: { value: number | null }[]): string {
               </>
             ) : (
               <div class="park-visual park-visual-nodata">
-                <span class="park-nodata-badge">No temperature series</span>
+                <span class="park-nodata-badge">Island park · land-grid gap</span>
               </div>
             )}
           </>
@@ -302,7 +311,7 @@ function sparklinePath(series: { value: number | null }[]): string {
             {inner}
           </a>
         ) : (
-          <div class="card park-card park-card-nodata" title="No time-series data for this park — tiny-island coverage gap" {...commonData}>
+          <div class="card park-card park-card-nodata" title="Small island park — falls outside the gridded land-only datasets (DAYMET, ERA5-Land) this project uses." {...commonData}>
             {inner}
           </div>
         );
@@ -370,13 +379,13 @@ function sparklinePath(series: { value: number | null }[]): string {
   if (swarmSvg && parkSwarm && parkSwarm.length) {
     const W = 1000;
     const margin = { left: 20, right: 20, top: 14, bottom: 34 };
-    const LINE_STEP = 13;
-    const REGION_HEADER = 22;
+    const LINE_STEP = 14;
+    const REGION_HEADER = 26;
     const LANE_PAD_TOP = 2;
     const LANE_PAD_BOTTOM = 10;
-    const REGION_LABEL_Y_OFFSET = 11;
+    const REGION_LABEL_Y_OFFSET = 14;
     const PAD_X = 3, PAD_Y = 1;
-    const FONT_SIZE = 13;
+    const FONT_SIZE = 14;
     const svgNS = "http://www.w3.org/2000/svg";
 
     const presentRegions = REGION_ORDER
@@ -504,9 +513,9 @@ function sparklinePath(series: { value: number | null }[]): string {
       regionLabel.setAttribute("x", String(margin.left));
       regionLabel.setAttribute("y", String(laneTopY + REGION_LABEL_Y_OFFSET));
       regionLabel.setAttribute("font-family", "Space Grotesk, sans-serif");
-      regionLabel.setAttribute("font-size", "9.5");
-      regionLabel.setAttribute("font-weight", "500");
-      regionLabel.setAttribute("letter-spacing", "1.6");
+      regionLabel.setAttribute("font-size", "12");
+      regionLabel.setAttribute("font-weight", "600");
+      regionLabel.setAttribute("letter-spacing", "1.8");
       regionLabel.setAttribute("fill", "#6e6760");
       regionLabel.textContent = region.toUpperCase();
       gridGroup.appendChild(regionLabel);
@@ -517,8 +526,8 @@ function sparklinePath(series: { value: number | null }[]): string {
         sep.setAttribute("x2", W - margin.right);
         sep.setAttribute("y1", laneBottomY);
         sep.setAttribute("y2", laneBottomY);
-        sep.setAttribute("stroke", "#eeece7");
-        sep.setAttribute("stroke-width", "0.5");
+        sep.setAttribute("stroke", "rgba(13, 13, 12, 0.25)");
+        sep.setAttribute("stroke-width", "1");
         gridGroup.appendChild(sep);
       }
 

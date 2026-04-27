@@ -25,7 +25,7 @@ const compares = [
   { n: Math.round(buildTotal / 8), unit: "smartphone charges",       decimals: 0, ref: 4 },
 ];
 
-const lineItems = [
+const lineItemsRaw = [
   {
     label: "Earth Engine processing",
     g: carbon.ee_processing_g,
@@ -85,6 +85,9 @@ const lineItems = [
     ],
   },
 ];
+// Sort largest contributor first so the bar reads left → right
+// (most → least) and the line-item list follows the same order.
+const lineItems = [...lineItemsRaw].sort((a, b) => (b.g ?? 0) - (a.g ?? 0));
 const maxG = Math.max(...lineItems.map((x) => x.g));
 
 const sources = [
@@ -131,8 +134,7 @@ const sources = [
       A climate dashboard that doesn't show its own footprint would be
       a bit ironic. These numbers are order-of-magnitude estimates of
       the CO₂-equivalent emissions from producing the data, building
-      the site, hosting it, and viewing it. Every assumption is
-      auditable below.
+      the site, hosting it, and viewing it.
     </p>
 
     <!-- Hero ledger stat -->
@@ -179,11 +181,12 @@ const sources = [
           <div
             class="carbon-stack-seg"
             style={`flex-grow:${r.g}; background:${r.color};`}
-            title={`${r.label}: ${r.g.toFixed(1)}g`}
             data-label={r.label}
             data-g={r.g.toFixed(1)}
+            data-pct={((r.g / buildTotal) * 100).toFixed(1)}
           ></div>
         ))}
+        <div id="carbon-stack-tooltip" class="carbon-stack-tooltip" role="tooltip"></div>
       </div>
       <div class="carbon-stack-legend">
         {lineItems.map((r) => (
@@ -322,6 +325,28 @@ estimate(n_parks=63, n_commits=${n_commits || 42}, monthly_views=10_000)`}</code
         if (t < 1) requestAnimationFrame(frame);
       }
       requestAnimationFrame(frame);
+    })();
+
+    // Cursor-following tooltip on the breakdown bar. Replaces the
+    // browser's default title-attribute tooltip, which on macOS/Windows
+    // pairs with a help cursor that looks like a stray question mark.
+    (function () {
+      const stack = document.querySelector(".carbon-stack");
+      const tip = document.getElementById("carbon-stack-tooltip");
+      if (!stack || !tip) return;
+      stack.addEventListener("mousemove", (e) => {
+        const seg = e.target.closest(".carbon-stack-seg");
+        if (!seg) { tip.classList.remove("active"); return; }
+        const rect = stack.getBoundingClientRect();
+        const label = seg.dataset.label || "";
+        const g = seg.dataset.g || "";
+        const pct = seg.dataset.pct || "";
+        tip.innerHTML = `<strong>${label}</strong><span>${g} g · ${pct}%</span>`;
+        tip.style.left = (e.clientX - rect.left) + "px";
+        tip.style.top = (e.clientY - rect.top) + "px";
+        tip.classList.add("active");
+      });
+      stack.addEventListener("mouseleave", () => tip.classList.remove("active"));
     })();
   </script>
 </Base>
