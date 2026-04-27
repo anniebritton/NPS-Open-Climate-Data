@@ -131,8 +131,7 @@ const sources = [
     <span class="kicker" style="margin-top:0.8rem;display:block">Transparency</span>
     <h1>What did this site cost the climate?</h1>
     <p class="carbon-lede">
-      A climate dashboard that doesn't show its own footprint would be
-      a bit ironic. These numbers are order-of-magnitude estimates of
+      These numbers are order-of-magnitude estimates of
       the CO₂-equivalent emissions from producing the data, building
       the site, hosting it, and viewing it.
     </p>
@@ -287,13 +286,6 @@ const sources = [
         </li>
       ))}
     </ol>
-
-    <!-- Rerun -->
-    <div class="carbon-section-head">
-      <h2>Rerun the estimate yourself</h2>
-    </div>
-    <pre class="carbon-rerun"><code>{`from nps_climate_data.carbon import estimate
-estimate(n_parks=63, n_commits=${n_commits || 42}, monthly_views=10_000)`}</code></pre>
   </section>
 
   <script is:inline>

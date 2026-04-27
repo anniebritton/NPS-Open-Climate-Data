@@ -1327,18 +1327,51 @@ a.method-flow-node:focus-visible {
   white-space: nowrap;
 }
 
-.method-limits {
-  margin: 1.2rem 0 0;
-  padding: 0;
-  list-style: none;
+/* Limitations card grid — replaces the old list to make the section
+   scannable. Each card has a category tag (dataset / statistics /
+   method / coverage), a short title, and a 2-3 sentence body. */
+.limit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 0.9rem;
+  margin-top: 1.4rem;
 }
-.method-limits li {
-  padding: 0.9rem 0;
-  border-bottom: 1px solid var(--rule);
-  font-size: 0.95rem;
-  max-width: 680px;
+.limit-card {
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
+  line-height: 1.55;
 }
-.method-limits li:last-child { border-bottom: none; }
+.limit-card h3 {
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 1.05rem;
+  margin: 0.5rem 0 0.45rem;
+  line-height: 1.2;
+}
+.limit-card p { margin: 0; color: var(--ink); }
+.limit-card p code {
+  background: rgba(13, 13, 12, 0.06);
+  padding: 0 0.25rem;
+  border-radius: 2px;
+  font-size: 0.86em;
+}
+.limit-tag {
+  display: inline-block;
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+.limit-tag--dataset  { color: #b5613b; background: rgba(181, 97, 59, 0.10); }
+.limit-tag--stats    { color: #7a5c8b; background: rgba(122, 92, 139, 0.10); }
+.limit-tag--method   { color: #4a7fa5; background: rgba(74, 127, 165, 0.10); }
+.limit-tag--coverage { color: #2a6041; background: rgba(42, 96, 65, 0.10); }
 
 .method-citations-list {
   font-family: "Space Grotesk", sans-serif;

@@ -264,98 +264,117 @@ const tocItems = [
         <span class="method-num" aria-hidden="true">07</span>
         <span class="kicker">Limitations</span>
         <h2>Known limitations and biases</h2>
-        <ul class="method-limits">
-          <li>
-            <strong>Bias in complex terrain.</strong> Both DAYMET v4 and
-            ERA5-Land have documented systematic biases in mountain
-            parks (cold-bias at high elevation in DAYMET; smoothing of
-            elevation-driven temperature gradients in ERA5-Land's
-            ~11 km grid). Treat absolute values with care; the trend
-            signal is more robust than the level.
-          </li>
-          <li>
-            <strong>These are not station observations.</strong> Polygon
-            means are reanalysis or interpolated-grid values reduced
-            over the entire park boundary. They will not match a
-            specific weather station inside the park, and they smooth
-            within-park heterogeneity (e.g. a coastal pixel and an
-            interior valley pixel are averaged together). For
-            station-level analysis, use the underlying NWS / NCEI
-            records directly.
-          </li>
-          <li>
-            <strong>Multipart parks are area-naive.</strong> The
-            union-level series for parks with disjoint geometry (Saguaro,
-            Channel Islands, Kings Canyon, Redwood, American Samoa)
-            averages the per-polygon daily values without weighting by
-            polygon area. For a small-island park where one unit
-            dominates the polygon's footprint, the union series is
-            biased toward the smaller units. Per-part series are exposed
-            in the summary JSON — prefer those if you care about the
-            largest unit specifically.
-          </li>
-          <li>
-            <strong>No autocorrelation correction.</strong> Annual
-            climate series exhibit lag-1 autocorrelation that inflates
-            the Mann–Kendall Z statistic and depresses the effective
-            p-value. The deployed pipeline uses the standard MK
-            normal-approximation, which is appropriate for n ≈ 45 with
-            mild autocorrelation. Series with strong serial
-            dependence — or any series longer than a few decades — should
-            be re-tested with the Hamed–Rao variant<sup><a href="#cite-hamed-rao">7</a></sup>
-            or a block-bootstrap p-value before being used in inference.
-          </li>
-          <li>
-            <strong>No multiple-comparisons correction.</strong> Each
-            park is tested independently across 14 variables, and the
-            site shows 63 parks. Some "significant at p &lt; 0.05"
-            findings will be false positives at that scale — under the
-            null, ~5% of (park, variable) cells would be flagged
-            spuriously. For papers that lean on the significance
-            indicator, apply a Benjamini–Hochberg FDR<sup><a href="#cite-bh">10</a></sup>
-            or Bonferroni correction across the full table.
-          </li>
-          <li>
-            <strong>ERA5-Land potential evapotranspiration is biased
-            high.</strong> The dataset's bare-soil / no-vegetation
-            assumption inflates <code>pet_mm</code> by ~1.5–2× vs FAO
-            Penman–Monteith in vegetated parks. Trend direction is still
-            informative but absolute magnitudes are not directly
-            comparable to station-based PET. <code>aet_mm</code>
-            (actual ET) uses the modelled surface-energy balance and is
-            unaffected.
-          </li>
-          <li>
-            <strong>Land-only grid coverage.</strong> Three small island
-            parks (American Samoa, Dry Tortugas, Virgin Islands) fall
-            inside ERA5-Land pixels that are sea-masked because the
-            land fraction is too low for the ~11 km grid, and DAYMET
-            doesn't cover the offshore islands. The site labels them
-            "outside land-grid coverage" and renders no charts.
-          </li>
-          <li>
-            <strong>Reference period.</strong> 1981–2010 is WMO-standard
-            but slightly back-loaded inside a 1980–present record, which
-            compresses early-period anomalies. The newer 1991–2020 WMO
-            normal would shorten the comparison window.
-          </li>
-          <li>
-            <strong>Earth Engine reduction tolerance.</strong> The EE
-            export uses <code>bestEffort=True</code> with
-            <code>maxPixels=1e13</code>. For very large polygons (e.g.
-            Wrangell-St. Elias), bestEffort can sub-sample pixels rather
-            than aggregate every one. For our purposes the spatial mean
-            converges, but the pixel count behind a given daily value is
-            not always the full polygon.
-          </li>
-          <li>
-            <strong>Spatial averaging in general.</strong> Park-wide
-            means smooth within-park gradients. Researchers needing
-            pixel-level series should use Earth Engine directly with
-            this package's helpers, or pull the underlying DAYMET /
-            ERA5-Land tiles.
-          </li>
-        </ul>
+        <p>
+          Tagged by category — <strong>dataset</strong> (upstream
+          DAYMET / ERA5-Land properties), <strong>statistics</strong>
+          (trend-test caveats), <strong>method</strong> (choices in
+          this pipeline), and <strong>coverage</strong> (where the
+          grid doesn't reach).
+        </p>
+        <div class="limit-grid">
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--dataset">Dataset</span>
+            <h3>Complex-terrain bias</h3>
+            <p>
+              DAYMET v4 has cold-bias at high elevation; ERA5-Land's
+              ~11 km grid smooths elevation-driven temperature
+              gradients. The trend signal is more robust than the
+              absolute level.
+            </p>
+          </article>
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--dataset">Dataset</span>
+            <h3>Not station observations</h3>
+            <p>
+              Polygon means are reanalysis / interpolated-grid values
+              reduced over the entire park boundary. They will not
+              match a specific weather station inside the park.
+            </p>
+          </article>
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--dataset">Dataset</span>
+            <h3>ERA5-Land PET runs high</h3>
+            <p>
+              The dataset's bare-soil assumption inflates
+              <code>pet_mm</code> by ~1.5–2× vs FAO Penman–Monteith.
+              Trend direction is informative; absolute level is biased.
+              <code>aet_mm</code> is unaffected.
+            </p>
+          </article>
+
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--stats">Statistics</span>
+            <h3>No autocorrelation correction</h3>
+            <p>
+              Lag-1 autocorrelation depresses MK p-values. The deployed
+              normal-approximation is fine for n ≈ 45 with mild
+              dependence; longer-horizon work needs the Hamed–Rao
+              variant<sup><a href="#cite-hamed-rao">7</a></sup>.
+            </p>
+          </article>
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--stats">Statistics</span>
+            <h3>No multiple-comparisons correction</h3>
+            <p>
+              ~14 variables × 63 parks ≈ 880 tests; ~5% will be
+              false-positive at p&nbsp;&lt;&nbsp;0.05 under the null.
+              Apply Benjamini–Hochberg FDR<sup><a href="#cite-bh">10</a></sup>
+              or Bonferroni for inference.
+            </p>
+          </article>
+
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--method">Method</span>
+            <h3>Multipart parks are area-naive</h3>
+            <p>
+              The union series for disjoint-geometry parks (Saguaro,
+              Channel Islands, Kings Canyon, Redwood, American Samoa)
+              averages per-polygon values without area weighting.
+              Per-part series are exposed in the summary JSON.
+            </p>
+          </article>
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--method">Method</span>
+            <h3>1981–2010 baseline is back-loaded</h3>
+            <p>
+              WMO-standard, but back-loaded inside a 1980–present
+              record, which compresses early-period anomalies. The
+              1991–2020 normal would shorten the comparison window
+              further.
+            </p>
+          </article>
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--method">Method</span>
+            <h3>EE bestEffort sub-sampling</h3>
+            <p>
+              The EE export uses <code>bestEffort=True</code> with
+              <code>maxPixels=1e13</code>. For very large polygons
+              (e.g. Wrangell-St. Elias), it may sub-sample rather than
+              aggregate every pixel; the spatial mean still converges.
+            </p>
+          </article>
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--method">Method</span>
+            <h3>Spatial averaging smooths gradients</h3>
+            <p>
+              Park-wide means smooth within-park heterogeneity
+              (coastal vs interior, north vs south slope). For
+              pixel-level series, use Earth Engine directly with the
+              package's helpers.
+            </p>
+          </article>
+
+          <article class="limit-card">
+            <span class="limit-tag limit-tag--coverage">Coverage</span>
+            <h3>Land-only grid coverage</h3>
+            <p>
+              Three small island parks (American Samoa, Dry Tortugas,
+              Virgin Islands) fall inside sea-masked ERA5-Land pixels
+              and aren't covered by DAYMET. The site labels them
+              "outside land-grid coverage" and renders no charts.
+            </p>
+          </article>
+        </div>
       </section>
 
       <section id="citations" class="method-section method-citations">
