@@ -1,0 +1,78 @@
+---
+interface Props {
+  prose: string;
+  bibtex: string;
+  apa: string;
+}
+
+const { prose, bibtex, apa } = Astro.props;
+---
+
+<div class="research-cite" data-cite>
+  <div class="research-cite-tabs" role="tablist">
+    <button class="research-cite-tab active" data-tab="prose"  role="tab" aria-selected="true">Plain</button>
+    <button class="research-cite-tab"        data-tab="bibtex" role="tab" aria-selected="false">BibTeX</button>
+    <button class="research-cite-tab"        data-tab="apa"    role="tab" aria-selected="false">APA</button>
+    <button class="research-copy research-cite-copy" data-copy-target>Copy</button>
+  </div>
+  <div class="research-cite-panel" data-panel="prose">{prose}</div>
+  <div class="research-cite-panel" data-panel="bibtex" hidden><pre><code>{bibtex}</code></pre></div>
+  <div class="research-cite-panel" data-panel="apa" hidden>{apa}</div>
+</div>
+
+<script is:inline>
+  // Citation tabs + copy-to-clipboard. The handler is idempotent — adding
+  // multiple <CitationBox> elements on a page only attaches one set of
+  // listeners per node because we tag handled elements with data-cite-init.
+  (function () {
+    function closestText(btn) {
+      const cite = btn.closest("[data-cite]");
+      if (!cite) return "";
+      const active = cite.querySelector(".research-cite-panel:not([hidden])");
+      return active?.innerText || "";
+    }
+    function flash(btn) {
+      const prev = btn.textContent;
+      btn.textContent = "Copied";
+      btn.classList.add("is-copied");
+      setTimeout(() => {
+        btn.textContent = prev;
+        btn.classList.remove("is-copied");
+      }, 1400);
+    }
+    document.querySelectorAll("[data-cite]:not([data-cite-init])").forEach((cite) => {
+      cite.setAttribute("data-cite-init", "");
+      const tabs = cite.querySelectorAll(".research-cite-tab");
+      const panels = cite.querySelectorAll(".research-cite-panel");
+      tabs.forEach((tab) => {
+        tab.addEventListener("click", () => {
+          tabs.forEach((t) => { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
+          tab.classList.add("active");
+          tab.setAttribute("aria-selected", "true");
+          const target = tab.dataset.tab;
+          panels.forEach((p) => {
+            if (p.dataset.panel === target) p.removeAttribute("hidden");
+            else p.setAttribute("hidden", "");
+          });
+        });
+      });
+      cite.querySelectorAll(".research-copy").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const text = btn.dataset.copy != null ? btn.dataset.copy : closestText(btn);
+          if (!text) return;
+          try {
+            await navigator.clipboard.writeText(text);
+            flash(btn);
+          } catch {
+            const ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand("copy"); flash(btn); } catch {}
+            document.body.removeChild(ta);
+          }
+        });
+      });
+    });
+  })();
+</script>

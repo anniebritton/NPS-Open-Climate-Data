@@ -1,5 +1,6 @@
 ---
 import Base from "../../layouts/Base.astro";
+import CitationBox from "../../components/CitationBox.astro";
 import parksData from "../../../public/data/parks.json";
 import { stripeColor } from "../../lib/stripes";
 import { fmtSlope, fmtPVal, fmtTotal, cToF, cDeltaToF } from "../../lib/format";
@@ -76,6 +77,30 @@ const COLOR_BY_KIND: Record<string, string> = {
   other: "#6e6760",
 };
 
+// Per-park citation strings — same three formats as the project-wide
+// citation on /researchers, but specific to this park.
+const repoUrl = "https://github.com/anniebritton/NPS-Open-Climate-Data";
+const bibKey = `britton2026nps_${summary.slug.replace(/-/g, "_")}`;
+const citationProse = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, Open Climate Data — US National Parks. Derived from DAYMET v4 (Thornton et al.) and ERA5-Land (Muñoz-Sabater et al.). ${repoUrl}`;
+const citationApa = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series [Dataset]. Open Climate Data — US National Parks. ${repoUrl}`;
+const citationBibtex = `@misc{${bibKey},
+  author       = {Britton, Annie and Pritchard, Ian},
+  title        = {${summary.unit_name} climate series},
+  year         = {2026},
+  howpublished = {Open Climate Data --- US National Parks},
+  note         = {Derived from DAYMET v4 (Thornton et al.) and
+                  ERA5-Land (Mu\\~noz-Sabater et al.)},
+  url          = {${repoUrl}}
+}`;
+
+// Per-variable overrides for cases where the kind-based default doesn't read
+// well. Evapotranspiration variables get a leafy green so they're not
+// indistinguishable from radiation/wind on the chart strip.
+const COLOR_BY_VARIABLE: Record<string, string> = {
+  pet_mm: "#2a6041",
+  aet_mm: "#3f7a4a",
+};
+
 // One row per trend, ordered: headline vars first (in HEADLINE_ORDER), then the rest.
 const trendRows = (() => {
   const inHeadline = (v: string) => HEADLINE_ORDER.includes(v);
@@ -90,7 +115,9 @@ const trendRows = (() => {
   return sorted.map((t: any) => ({
     ...t,
     meta: metaFor(t.variable),
-    color: COLOR_BY_KIND[metaFor(t.variable).kind] ?? COLOR_BY_KIND.other,
+    color: COLOR_BY_VARIABLE[t.variable]
+        ?? COLOR_BY_KIND[metaFor(t.variable).kind]
+        ?? COLOR_BY_KIND.other,
   }));
 })();
 ---
@@ -219,10 +246,8 @@ const trendRows = (() => {
       <a href={`${base}data/parks/${summary.slug}.json`} download>Summary JSON</a>
       <a href={`${base}data/boundaries/${summary.slug}.geojson`} download>Boundary GeoJSON</a>
     </div>
-    <p style="color:var(--muted);font-size:0.88rem;margin-top:1rem">
-      Citation: {summary.unit_name} climate series, Open Climate Data — US National Parks,
-      derived from DAYMET v4 (Thornton et al.) and ERA5-Land (Muñoz-Sabater et al.).
-    </p>
+    <h3 style="margin-top:1.4rem">Cite this park</h3>
+    <CitationBox prose={citationProse} bibtex={citationBibtex} apa={citationApa} />
   </section>
 
   <script define:vars={{ slug, annual, headline, trends, trendRows, base }} is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.js"></script>

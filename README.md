@@ -27,7 +27,6 @@ nps_climate_data/        # Python package
 scripts/
   01_export_all_parks.py # Submit EE batch export tasks (needs credentials)
   02_build_site_data.py  # Build analysis summaries
-  03_generate_demo_data.py # Synthetic data for demoing the site
   04_write_carbon.py     # Dump carbon.json for the site
   05_generate_boundaries.py # Merge headline slopes; fallback to circles
   06_extract_padus_from_gdb.py # Real polygons from local PAD-US 4.1 GDB
@@ -58,10 +57,7 @@ through ISO date strings unmodified.
 ## Building the site end-to-end
 
 ```bash
-# 1. (Optional) Generate synthetic demo data to preview without EE:
-python scripts/03_generate_demo_data.py
-
-# Or run the real Earth Engine batch (slow; ~hours for all 63 parks):
+# 1. Run the Earth Engine batch (slow; ~hours for all 63 parks):
 earthengine authenticate
 python scripts/01_export_all_parks.py --start 1980-01-01
 
@@ -146,32 +142,6 @@ own time series, in addition to the union-level summary.
   (or equivalent) decomposition of the daily series into trend,
   seasonal, and residual components so users can see the annual cycle
   separately from the long-run trend.
-- **Methodology: data-shape visuals + worked example.** Pipeline-
-  diagram nodes are now clickable section anchors. Still open:
-  expand each step inline with a tiny visual of the data shape at
-  that stage (daily raw → reduced mean → annual aggregate → trend
-  line), and append an Acadia worked-example scrollytelling sequence
-  at the bottom that walks through every step with real numbers.
-- **Research-paper citations on park pages.** Add a "Further reading"
-  section to each per-park page listing peer-reviewed papers about
-  climate change in that specific park (citations only, no PDFs).
-  Start from Gonzalez 2018; hand-curate the rest from Google Scholar
-  + NPS IRMA. Store as `data/citations/<slug>.json` with BibTeX
-  fields.
-- **Hero ridges read faint.** The decorative ridge lines in the
-  top-right of the landing page should be a touch thicker or more
-  saturated so they register as an intentional design element rather
-  than background noise.
-- **Map zoom needs Ctrl+scroll polish.** The per-park map prompts for
-  Ctrl+scroll, but the gesture sometimes feels unresponsive. Verify
-  the wheel handler fires consistently across browsers, or expose
-  visible +/− controls.
-- **Label the park-card sparklines.** The mini trend line on each
-  park tile isn't labelled. Needs a compact axis hint or legend if it
-  fits without crowding the card.
-- **`03_generate_demo_data.py` is deprecated.** The deployed site
-  uses real committed data; the synthetic-data path remains for quick
-  EE-free previews but is not part of the main flow.
 
 ## Reporting issues
 
@@ -188,8 +158,7 @@ the more of the following you can include, the faster it gets resolved:
 - **Data / trend question** — the park slug and variable (e.g.
   `yellowstone`, `tmean_c`), plus a link to the per-park page.
 - **Pipeline / reproducibility** — the exact command that failed, your
-  Python version, and whether you were running the Earth Engine batch
-  or the `03_generate_demo_data.py` demo path.
+  Python version, and which step of `pipeline.ipynb` you were on.
 
 Pull requests are welcome. For non-trivial changes, open an issue
 first so we can agree on scope before you invest the time.
