@@ -417,8 +417,14 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
 .controls input[type="search"] { min-width: 260px; }
 .controls input[type="search"]:focus, .controls select:focus { border-color: var(--ink); }
 
-.section { padding: 3.5rem 0; }
-.section.park-section { padding: 1.6rem 0; }
+/* Vertical-only padding on section variants. Horizontal padding is
+   the container's job — using the `padding: X 0` shorthand here would
+   override .container's left/right padding (specificity: .section is
+   defined later than .container; .section.park-section beats .container
+   on specificity). That left park-page text at 0 px from the screen
+   edge on every viewport, fixed by switching to logical-axis props. */
+.section { padding-top: 3.5rem; padding-bottom: 3.5rem; }
+.section.park-section { padding-top: 1.6rem; padding-bottom: 1.6rem; }
 .section.park-section:first-of-type { padding-top: 1.4rem; }
 
 /* Decomposition charts on park detail pages — two side-by-side panels. */
