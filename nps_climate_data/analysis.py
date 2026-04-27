@@ -295,18 +295,24 @@ def all_trends(annual_df: pd.DataFrame) -> list[TrendResult]:
 def decompose_monthly(
     df: pd.DataFrame,
     variable: str,
-    ref: tuple[int, int] = (1981, 2010),
+    periods: tuple[tuple[int, int], ...] = (
+        (1981, 1995),  # early
+        (1996, 2010),  # middle (completes the WMO 1981-2010 baseline)
+        (2011, 2025),  # recent
+    ),
 ) -> dict | None:
-    """Classical additive decomposition of a daily series into long-term
-    trend, seasonal cycle, and residual at monthly resolution.
+    """Classical additive decomposition of a daily series at monthly
+    resolution, plus per-period seasonal climatologies.
 
     Returns dict with arrays:
       months          — 'YYYY-MM' labels
       observed        — monthly aggregate (mean for MEAN_VARS, sum for SUM_VARS)
       trend           — 12-month centred rolling mean of `observed`
-      residual        — observed - trend - seasonal_for_that_month
-    and a separate 12-element climatology block:
-      climatology     — {month: 1..12, mean, p10, p90} averaged over `ref`
+    and a per-period climatology block:
+      climatology[i]  — {period: [start, end], values: [{month, mean}, ...]}
+                         month-of-year mean restricted to that period.
+                         Multiple periods let the chart layer overlay how
+                         the seasonal cycle has shifted across decades.
 
     Returns None if the variable isn't present or has fewer than 24 months
     of data (one rolling window minimum).
@@ -335,23 +341,30 @@ def decompose_monthly(
     # endpoints are NaN until the window fills (~6 months on each side).
     trend = monthly.rolling(window=12, center=True, min_periods=12).mean()
 
-    # Climatology = month-of-year mean over the reference period
-    # (1981-2010 by default), so the seasonal shape is anchored to a
-    # stable WMO baseline rather than drifting with the warming trend.
-    ref_mask = (monthly.index.year >= ref[0]) & (monthly.index.year <= ref[1])
-    ref_monthly = monthly.loc[ref_mask]
-    clim_mean = ref_monthly.groupby(ref_monthly.index.month).mean()
-    clim_p10 = ref_monthly.groupby(ref_monthly.index.month).quantile(0.10)
-    clim_p90 = ref_monthly.groupby(ref_monthly.index.month).quantile(0.90)
+    # Per-period month-of-year climatologies. Each period yields a 12-point
+    # average shape; overlaying them shows how the seasonal cycle has
+    # shifted (e.g. winter warming) across the dataset window.
+    period_climatologies = []
+    for (start, end) in periods:
+        mask = (monthly.index.year >= start) & (monthly.index.year <= end)
+        sub = monthly.loc[mask]
+        if sub.empty:
+            continue
+        clim = sub.groupby(sub.index.month).mean()
+        # Need at least one observation per calendar month to draw a
+        # complete seasonal cycle. Skip periods that don't span a year.
+        if len(clim) < 12:
+            continue
+        period_climatologies.append({
+            "period": [int(start), int(end)],
+            "values": [
+                {"month": int(m), "mean": round(float(clim[m]), 4)}
+                for m in range(1, 13)
+            ],
+        })
 
-    # Seasonal component for every observed month is the climatology
-    # value for that calendar month. Residual is what's left after
-    # removing trend and seasonal.
-    seasonal = monthly.index.month.map(clim_mean.to_dict())
-    seasonal = pd.Series(seasonal, index=monthly.index)
-    # Anchor seasonal to zero-mean so trend absorbs the climatological mean.
-    seasonal = seasonal - clim_mean.mean()
-    residual = monthly - trend - seasonal
+    if not period_climatologies:
+        return None
 
     # Round to 4 decimals on the long monthly arrays — the chart layer
     # never needs more precision than that and the saved bytes matter
@@ -361,19 +374,10 @@ def decompose_monthly(
 
     return {
         "variable": variable,
-        "ref_period": [int(ref[0]), int(ref[1])],
         "months":   [d.strftime("%Y-%m") for d in monthly.index],
         "observed": [_r(v) for v in monthly.values],
         "trend":    [_r(v) for v in trend.values],
-        "climatology": [
-            {
-                "month": int(m),
-                "mean": round(float(clim_mean[m]), 4),
-                "p10":  round(float(clim_p10[m]),  4),
-                "p90":  round(float(clim_p90[m]),  4),
-            }
-            for m in range(1, 13) if m in clim_mean.index
-        ],
+        "climatology": period_climatologies,
     }
 
 

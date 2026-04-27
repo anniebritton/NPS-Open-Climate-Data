@@ -56,17 +56,16 @@ if (Array.isArray(summary.trends)) {
 }
 
 // Convert decomposition temperatures (°C → °F) in place. Observed,
-// trend, and climatology values are absolute temperatures so use cToF.
+// trend, and per-period climatology values are absolute temperatures
+// so use cToF.
 for (const v of TEMP_FIELDS) {
   const d = summary.decomposition?.[v];
   if (!d) continue;
   d.observed = d.observed.map((x: number | null) => x == null ? null : cToF(x));
   d.trend    = d.trend.map((x: number | null) => x == null ? null : cToF(x));
-  d.climatology = d.climatology.map((c: any) => ({
-    month: c.month,
-    mean: cToF(c.mean),
-    p10:  cToF(c.p10),
-    p90:  cToF(c.p90),
+  d.climatology = d.climatology.map((p: any) => ({
+    period: p.period,
+    values: p.values.map((m: any) => ({ month: m.month, mean: cToF(m.mean) })),
   }));
 }
 
@@ -163,7 +162,13 @@ const trendRows = (() => {
           <span><span class="stripes-legend-swatch" style={`background:${stripeColor(2)}`}></span>Warmer than 1981–2010 baseline</span>
         </div>
         <div class="stripes-full">
-          {stripes.map((s: any) => <div style={`background:${stripeColor(s.z)}`} title={`${s.year}: ${s.value != null ? s.value.toFixed(1) + "°F" : "no data"} (z=${s.z == null ? "—" : s.z.toFixed(2)})`}></div>)}
+          {stripes.map((s: any) => (
+            <div style={`background:${stripeColor(s.z)}`}
+                 data-year={s.year}
+                 data-value={s.value != null ? s.value.toFixed(1) : ""}
+                 data-z={s.z == null ? "" : s.z.toFixed(2)}></div>
+          ))}
+          <div id="stripes-tooltip" class="stripes-tooltip" role="tooltip"></div>
         </div>
         <div class="stripes-years">
           <span>{period.start_year}</span><span>{period.end_year}</span>
@@ -200,8 +205,8 @@ const trendRows = (() => {
       Every variable in the dataset, with its Theil–Sen slope and Mann–Kendall
       p-value. <strong>Click any row</strong> to open the annual time
       series, a 12-month rolling trend (long-term direction without the
-      annual cycle), and the seasonal climatology over the 1981–2010
-      baseline.
+      annual cycle), and the seasonal climatology overlaid for three
+      15-year periods so the shift in seasonal pattern is visible.
     </p>
     <div class="trend-rows" role="list">
       <div class="trend-rows-head" aria-hidden="true">
@@ -232,16 +237,18 @@ const trendRows = (() => {
           </summary>
           <div class="trend-row-body">
             {t.meta.description ? <p class="tr-desc">{t.meta.description}</p> : null}
+            <div class="chart-actions">
+              <button type="button" class="chart-download" data-download-var={t.variable}
+                      data-download-slug={summary.slug}>
+                Download all charts (PNG)
+              </button>
+            </div>
             <div class="chart-wrap">
               <div class="title">
                 <span>
                   Annual {t.meta.label.toLowerCase()} ({t.meta.unit})
                   <span class="theil-tag">(Theil–Sen)</span>
                 </span>
-                <button type="button" class="chart-download" data-download-var={t.variable}
-                        data-download-name={`${summary.slug}_${t.variable}.png`}>
-                  Download PNG
-                </button>
               </div>
               <div class="chart-canvas"><canvas id={`chart-${t.variable}`}></canvas></div>
             </div>
@@ -255,7 +262,7 @@ const trendRows = (() => {
                 </div>
                 <div class="chart-wrap">
                   <div class="title">
-                    <span>Seasonal cycle ({summary.decomposition[t.variable].ref_period[0]}–{summary.decomposition[t.variable].ref_period[1]})</span>
+                    <span>Seasonal cycle by period</span>
                   </div>
                   <div class="chart-canvas"><canvas id={`chart-decomp-clim-${t.variable}`}></canvas></div>
                 </div>
@@ -287,6 +294,8 @@ const trendRows = (() => {
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script define:vars={{ summary, trendRows, base }}>
+    // chartInstances[variable] is { annual, trend, clim } so the download
+    // button can grab all three Chart.js instances for that row.
     const chartInstances = {};
     function lineChart(id, years, values, label, color, trend, decimals) {
       const ctx = document.getElementById(id);
@@ -352,7 +361,7 @@ const trendRows = (() => {
     const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
     function decompTrendChart(id, decomp, color, unit) {
       const ctx = document.getElementById(id);
-      if (!ctx) return;
+      if (!ctx) return null;
       const fade = color.startsWith("#") ? color + "55" : color;
       new Chart(ctx, {
         type: "line",
@@ -410,31 +419,40 @@ const trendRows = (() => {
     function decompClimChart(id, decomp, color, unit) {
       const ctx = document.getElementById(id);
       if (!ctx) return;
-      const labels = decomp.climatology.map((c) => monthNames[c.month - 1]);
-      const meanV  = decomp.climatology.map((c) => c.mean);
-      const p10V   = decomp.climatology.map((c) => c.p10);
-      const p90V   = decomp.climatology.map((c) => c.p90);
-      const band = color.startsWith("#") ? color + "2e" : color;
-      new Chart(ctx, {
+      const periods = decomp.climatology;
+      if (!periods || !periods.length) return;
+      const labels = periods[0].values.map((m) => monthNames[m.month - 1]);
+
+      // Color-grade the periods oldest → newest. Older periods get a
+      // muted neutral, newest gets the variable's accent color so the
+      // shift in the seasonal cycle reads at a glance.
+      const muted = ["#bcb6a8", "#9c948a"];  // older → mid
+      const colors = periods.map((_, i) =>
+        i === periods.length - 1 ? color : (muted[i] ?? muted[muted.length - 1])
+      );
+      const widths = periods.map((_, i) =>
+        i === periods.length - 1 ? 2.6 : 1.8
+      );
+      const datasets = periods.map((p, i) => ({
+        label: `${p.period[0]}–${p.period[1]}`,
+        data: p.values.map((m) => m.mean),
+        borderColor: colors[i],
+        backgroundColor: "rgba(0,0,0,0)",
+        pointRadius: i === periods.length - 1 ? 3 : 0,
+        pointHoverRadius: 5,
+        borderWidth: widths[i],
+        tension: 0.3,
+        fill: false,
+      }));
+
+      return new Chart(ctx, {
         type: "line",
-        data: {
-          labels,
-          datasets: [
-            { label: "90th pct.", data: p90V, borderColor: "rgba(0,0,0,0)", backgroundColor: band, pointRadius: 0, fill: "+1" },
-            { label: "10th pct.", data: p10V, borderColor: "rgba(0,0,0,0)", backgroundColor: band, pointRadius: 0, fill: false },
-            { label: `Mean (${unit})`, data: meanV, borderColor: color, pointRadius: 3, pointHoverRadius: 5, borderWidth: 2.4, tension: 0.3, fill: false },
-          ],
-        },
+        data: { labels, datasets },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
-          plugins: {
-            legend: {
-              position: "bottom",
-              labels: { filter: (item) => item.text.startsWith("Mean") },
-            },
-          },
+          plugins: { legend: { position: "bottom" } },
           scales: {
             y: { beginAtZero: false, grid: { color: "rgba(26,26,26,0.08)" }, title: { display: true, text: unit } },
             x: { grid: { display: false } },
@@ -450,10 +468,11 @@ const trendRows = (() => {
         const key = det.dataset.var;
         if (initialized.has(key)) return;
         initialized.add(key);
+        chartInstances[key] = chartInstances[key] || {};
         const cfg = chartConfigs[key];
         if (cfg) {
           const chart = lineChart(`chart-${key}`, years, cfg.values, cfg.label, cfg.color, cfg.trend, cfg.decimals);
-          if (chart) chartInstances[key] = chart;
+          if (chart) chartInstances[key].annual = chart;
         }
         const decomp = summary.decomposition && summary.decomposition[key];
         if (decomp) {
@@ -461,31 +480,72 @@ const trendRows = (() => {
           // For temperature variables the decomposition was converted
           // °C → °F server-side, so the unit shown on the axis matches.
           const unit = (cfg && cfg.label.match(/\(([^)]+)\)$/)) ? cfg.label.match(/\(([^)]+)\)$/)[1] : "";
-          decompTrendChart(`chart-decomp-trend-${key}`, decomp, color, unit);
-          decompClimChart(`chart-decomp-clim-${key}`, decomp, color, unit);
+          const trendChart = decompTrendChart(`chart-decomp-trend-${key}`, decomp, color, unit);
+          const climChart  = decompClimChart(`chart-decomp-clim-${key}`,  decomp, color, unit);
+          if (trendChart) chartInstances[key].trend = trendChart;
+          if (climChart)  chartInstances[key].clim  = climChart;
         }
       });
     });
 
-    // Download chart as PNG. Chart must already be open (so it's been
-    // rendered) — clicking the button without expanding first is blocked
-    // by pointer-events on the closed accordion body anyway.
+    // Download all chart PNGs for a single variable. The button lives
+    // inside the accordion body, so by the time it's clickable the row
+    // is open and the three Chart.js instances exist.
+    function triggerDownload(url, filename) {
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
     document.querySelectorAll(".chart-download").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
         const key = btn.dataset.downloadVar;
-        const chart = chartInstances[key];
-        if (!chart) return;
-        const url = chart.toBase64Image("image/png", 1);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = btn.dataset.downloadName || `chart-${key}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        const slug = btn.dataset.downloadSlug || "park";
+        const charts = chartInstances[key];
+        if (!charts) return;
+        // Three downloads, one per chart type. Browsers stagger with a
+        // small delay so they don't get suppressed as a single batch.
+        const drops = [
+          { chart: charts.annual, suffix: "annual" },
+          { chart: charts.trend,  suffix: "trend"  },
+          { chart: charts.clim,   suffix: "seasonal" },
+        ].filter((d) => d.chart);
+        drops.forEach((d, i) => {
+          setTimeout(() => {
+            triggerDownload(
+              d.chart.toBase64Image("image/png", 1),
+              `${slug}_${key}_${d.suffix}.png`,
+            );
+          }, i * 120);
+        });
       });
     });
+
+    // Climate-stripes hover tooltip — replaces the native title-attribute
+    // tooltip with a cursor-following overlay (year + value + z-score).
+    (function () {
+      const strip = document.querySelector(".stripes-full");
+      const tip = document.getElementById("stripes-tooltip");
+      if (!strip || !tip) return;
+      strip.addEventListener("mousemove", (e) => {
+        const cell = e.target.closest("[data-year]");
+        if (!cell) { tip.classList.remove("active"); return; }
+        const rect = strip.getBoundingClientRect();
+        const year = cell.dataset.year;
+        const val = cell.dataset.value;
+        const z = cell.dataset.z;
+        tip.innerHTML = `<strong>${year}</strong>` +
+          `<span>${val ? `${val} °F` : "no data"}${z ? ` &middot; z = ${z}` : ""}</span>`;
+        tip.style.left = (e.clientX - rect.left) + "px";
+        tip.style.top = (e.clientY - rect.top) + "px";
+        tip.classList.add("active");
+      });
+      strip.addEventListener("mouseleave", () => tip.classList.remove("active"));
+    })();
 
     // map — single park view with a fill shaded by its own warming slope.
     const mapEl = document.getElementById("map");

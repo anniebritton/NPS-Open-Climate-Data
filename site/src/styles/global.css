@@ -530,6 +530,11 @@ a:hover { color: var(--canyon-deep); opacity: 1; }
   background: var(--card);
 }
 .chart-download:active { transform: translateY(0.5px); }
+.chart-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
 canvas { max-width: 100%; }
 .map-hint {
   font-family: "Space Grotesk", sans-serif;
@@ -810,10 +815,38 @@ canvas { max-width: 100%; }
   display: flex;
   gap: 0;
   height: 60px;
-  overflow: hidden;
   margin: 1rem 0;
+  position: relative;
+  /* overflow visible so the cursor-following tooltip can extend above */
 }
-.stripes-full div { flex: 1; }
+.stripes-full > div[data-year] { flex: 1; cursor: pointer; }
+.stripes-full > div[data-year]:hover {
+  outline: 1.5px solid var(--ink);
+  outline-offset: -1px;
+}
+.stripes-tooltip {
+  position: absolute;
+  pointer-events: none;
+  padding: 0.45rem 0.7rem;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.78rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  transform: translate(-50%, -130%);
+  opacity: 0;
+  transition: opacity 125ms var(--ease-out);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  line-height: 1.25;
+  font-feature-settings: "tnum";
+}
+.stripes-tooltip.active { opacity: 1; }
+.stripes-tooltip strong { font-weight: 600; font-size: 0.82rem; }
+.stripes-tooltip span { color: rgba(250, 250, 248, 0.72); }
 
 /* ── Footer ── */
 footer {
