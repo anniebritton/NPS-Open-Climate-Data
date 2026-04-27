@@ -2295,12 +2295,37 @@ a.method-flow-node:focus-visible {
 @media (max-width: 900px) {
   .footer-inner { grid-template-columns: 1fr 1fr; gap: 2.5rem; }
 }
+@media (max-width: 720px) {
+  /* Stack nav so links don't wrap into an asymmetric 2-3 split.
+     Brand above, links below in a centred row. */
+  .nav { padding: 0.85rem 1rem; }
+  .nav-inner { flex-direction: column; gap: 0.45rem; align-items: flex-start; }
+  .nav-links {
+    width: 100%;
+    gap: 1rem;
+    font-size: 0.86rem;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+}
 @media (max-width: 640px) {
   .hero-upper { padding: 3.5rem 1.4rem 2.5rem; min-height: 200px; }
   .hero-mountain { width: 100%; min-width: 0; height: 160px; top: auto; bottom: 0; opacity: 0.5; }
-  .container { padding: 0 1.4rem; }
+  /* Bumped from 1.4rem so park-page content doesn't sit edge-to-edge
+     against the screen frame on phones. */
+  .container { padding: 0 1.6rem; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
   .footer-inner { grid-template-columns: 1fr; gap: 2rem; }
   .footer-bottom { flex-direction: column; gap: 0.3rem; }
-  .nav-links { gap: 1.4rem; }
 }
+@media (max-width: 420px) {
+  /* Small phones: hide the GitHub link from the nav (it's still in the
+     footer) so the four primary links fit on one row. */
+  .container { padding: 0 1.2rem; }
+  .nav-links { gap: 0.9rem; font-size: 0.82rem; }
+  .nav-links a[href*="github.com"] { display: none; }
+}
+
+/* Citation prose / APA panels: long DOI URLs don't break by default
+   and overflow the panel on narrow viewports. */
+.research-cite-panel { overflow-wrap: anywhere; }

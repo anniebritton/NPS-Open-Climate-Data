@@ -485,19 +485,25 @@ function sparklinePath(series: { value: number | null }[]): string {
     // — but this script is client-side, so very unlikely).
     const measuredW = Math.round(swarmSvg.getBoundingClientRect().width);
     const W = measuredW > 0 ? measuredW : 1000;
-    // Margins leave room for the half-width of a centered park label
-    // hanging off the leftmost (low-warming) and rightmost
-    // (high-warming) gridlines. "Kobuk Valley", "Gates of the Arctic",
-    // "Wrangell-St. Elias" all need more than the original 20 px on
-    // the right; left side similarly.
-    const margin = { left: 70, right: 80, top: 14, bottom: 34 };
-    const LINE_STEP = 14;
-    const REGION_HEADER = 26;
+    // Margins + font scale with viewport so the chart doesn't waste
+    // half its width on side gutters on phones. Right margin always
+    // covers the half-width of the longest-label-at-the-rightmost-
+    // gridline ("Kobuk Valley", "Gates of the Arctic" at the relevant
+    // font size); left side mirrors.
+    const isMobile = W < 720;
+    const isSmall  = W < 480;
+    const FONT_SIZE = isSmall ? 11 : (isMobile ? 12 : 14);
+    const margin = isSmall
+      ? { left: 22, right: 32, top: 14, bottom: 34 }
+      : isMobile
+      ? { left: 30, right: 42, top: 14, bottom: 34 }
+      : { left: 70, right: 80, top: 14, bottom: 34 };
+    const LINE_STEP = isMobile ? 13 : 14;
+    const REGION_HEADER = isMobile ? 22 : 26;
     const LANE_PAD_TOP = 2;
     const LANE_PAD_BOTTOM = 10;
-    const REGION_LABEL_Y_OFFSET = 14;
+    const REGION_LABEL_Y_OFFSET = isMobile ? 12 : 14;
     const PAD_X = 3, PAD_Y = 1;
-    const FONT_SIZE = 14;
     const svgNS = "http://www.w3.org/2000/svg";
 
     const presentRegions = REGION_ORDER
