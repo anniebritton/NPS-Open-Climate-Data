@@ -72,41 +72,5 @@ const year = new Date().getFullYear();
         <span>Data: DAYMET v4 · ERA5-Land · USGS PAD-US</span>
       </div>
     </footer>
-
-    <!-- Privacy / cookie disclosure banner.
-         The site itself sets no tracking cookies and runs no analytics.
-         Some third-party CDNs and font / map services receive IP
-         addresses as part of normal HTTP requests; this banner is the
-         transparency disclosure for that. Dismissed once and persisted
-         in localStorage. -->
-    <div id="cookie-banner" class="cookie-banner" role="region" aria-label="Privacy notice" hidden>
-      <div class="cookie-banner-inner">
-        <p>
-          This site sets no tracking cookies and runs no analytics. It
-          loads fonts (Google Fonts), Chart.js (jsDelivr), Leaflet
-          (unpkg), and map tiles (OpenStreetMap), all of which receive
-          your IP address as part of standard HTTP requests. Source code
-          and a full privacy footprint live in the
-          <a href="https://github.com/anniebritton/NPS-Open-Climate-Data" target="_blank" rel="noopener">GitHub repo</a>.
-        </p>
-        <button id="cookie-banner-ack" type="button" class="cookie-banner-btn">Got it</button>
-      </div>
-    </div>
-    <script is:inline>
-      (function () {
-        var KEY = "nps-ocd-privacy-ack-v1";
-        var banner = document.getElementById("cookie-banner");
-        if (!banner) return;
-        try {
-          if (localStorage.getItem(KEY) === "1") return;
-        } catch (e) { /* incognito with storage disabled — show anyway */ }
-        banner.hidden = false;
-        var btn = document.getElementById("cookie-banner-ack");
-        if (btn) btn.addEventListener("click", function () {
-          try { localStorage.setItem(KEY, "1"); } catch (e) {}
-          banner.hidden = true;
-        });
-      })();
-    </script>
   </body>
 </html>
