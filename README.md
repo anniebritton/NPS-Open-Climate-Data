@@ -169,11 +169,18 @@ first so we can agree on scope before you invest the time.
 
 ## Authors
 
-- **Annie Britton** — project lead, analysis design, site. Geospatial
-  & climate-data engineer.
+- **Annie Britton** — project lead, analysis design, site. Applied
+  scientist working across climate science, remote sensing, and AI.
+  Senior Manager, AI Solutions at Quantum Rise; previously Lead
+  Scientist at Earth Finance and Climate Engine, with research at
+  Johns Hopkins and NASA DEVELOP.
   [GitHub](https://github.com/anniebritton) ·
   [LinkedIn](https://www.linkedin.com/in/annebritton/)
-- **Ian Pritchard** — contributor. Data engineering & analytics.
+- **Ian Pritchard** — contributor. Data-systems engineer with a
+  planetary-science background (MSc, Western — automated lunar crater
+  detection). Principal Data System Developer at VRIFY; previously
+  Head of Data Engineering at Earth Finance and VP, Data Engineering
+  at Climate Engine.
   [GitHub](https://github.com/ipritchard) ·
   [LinkedIn](https://www.linkedin.com/in/give-me-data/)
 
