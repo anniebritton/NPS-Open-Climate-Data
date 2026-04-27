@@ -152,7 +152,7 @@ function sparklinePath(series: { value: number | null }[]): string {
         <use href="#ridge" transform="translate(0,108)" stroke="#2a6041" stroke-width="1.1" stroke-opacity="0.20" fill="none"/>
       </svg>
       <div class="hero-content">
-        <h1>The story of climate<br/>change, park by park</h1>
+        <h1>The story of climate<br/>change, park by park.</h1>
         <p>
           Every one of the 63 US National Parks, with its own daily record of
           temperature, precipitation, snowpack, evaporation, solar radiation, and wind
@@ -172,7 +172,7 @@ function sparklinePath(series: { value: number | null }[]): string {
     <h2>Total warming per park, {startYear}–{endYear}</h2>
 
     <div class="swarm-wrap">
-      <p style="color:var(--ink);max-width:680px;margin-bottom:1.2rem">
+      <p style="color:var(--ink);max-width:70ch;margin-bottom:1.2rem">
         Every park, positioned by its total temperature change since {startYear}
         and grouped by region so you can compare Alaska to the Southwest at a
         glance. Hover for details, click to open.
@@ -217,7 +217,7 @@ function sparklinePath(series: { value: number | null }[]): string {
   <section class="container section" id="parks">
     <span class="kicker">All 63 parks</span>
     <h2>Browse the parks</h2>
-    <p style="color:var(--ink);max-width:680px">
+    <p style="color:var(--ink);max-width:70ch">
       Each tile summarises a park's mean annual temperature since {startYear}
       as climate stripes (cool blue = below 1981-2010 baseline, warm red =
       above). Click through for the full time series and trend tests.
@@ -320,21 +320,45 @@ function sparklinePath(series: { value: number | null }[]): string {
   </section>
 
   <section class="container section">
-    <span class="kicker">Why this matters</span>
-    <h2>Protected, but not immune</h2>
-    <p style="max-width:720px">
-      National parks were set aside to preserve scenic and ecological
-      heritage — but they can't be fenced off from the climate. This
-      project pulls the science out of research journals and into one
-      place: every park's temperature, precipitation, snowpack, and
-      evaporation record, from 1980 through today, with Mann-Kendall
-      trend tests and Theil-Sen slopes applied consistently across units.
-    </p>
+    <section class="research-section research-section-footer">
+      <div class="research-section-intro">
+        <span class="kicker">Team</span>
+        <h2>Contributors &amp; roadmap</h2>
+        <p>
+          Contributions welcome — see
+          <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/issues">GitHub issues</a>
+          for the current list of open work.
+        </p>
+      </div>
+      <div class="research-section-content">
+        <div class="research-foot-grid">
+          <div>
+            <span class="research-foot-label">Contributors</span>
+            <ul class="research-foot-list">
+              <li><strong>Annie Britton</strong><br/><span>project lead, analysis design, site</span></li>
+              <li><strong>Ian Pritchard</strong><br/><span>contributor</span></li>
+            </ul>
+          </div>
+          <div>
+            <span class="research-foot-label">Extensions welcome</span>
+            <ul class="research-foot-list">
+              <li>PRISM &amp; GRIDMET for CONUS</li>
+              <li>Autocorrelation-corrected MK (Hamed &amp; Rao 1998)</li>
+              <li>Per-pixel trend maps inside the park boundary</li>
+              <li>National Monuments / Recreation Areas beyond the 63</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="container section">
+    <span class="kicker">For researchers</span>
     <div class="note">
-      <strong>Researchers:</strong> the full pre-processed data is
-      available as Parquet and CSV per park, and the analysis pipeline is
-      reproducible from a single command. See the
-      <a href={base + "researchers"}>researchers page</a>.
+      The full pre-processed data is available as Parquet and CSV per
+      park, and the analysis pipeline is reproducible from a single
+      command. See the <a href={base + "researchers"}>researchers page</a>.
     </div>
   </section>
 </Base>

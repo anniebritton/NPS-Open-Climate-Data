@@ -95,11 +95,11 @@ const trendRows = (() => {
 })();
 ---
 <Base title={title} description={`Climate trends for ${summary.unit_name}, ${period.start_year}-${period.end_year}.`}>
-  <section class="container section">
+  <section class="container section park-section">
     <a href={base} style="font-size:0.9rem;">← All parks</a>
     <span class="kicker" style="margin-top:0.8rem;display:block">{summary.state}</span>
     <h1>{summary.unit_name}</h1>
-    <p style="color:var(--ink);max-width:680px">
+    <p style="color:var(--ink);max-width:70ch">
       Daily {summary.multipart ? "per-unit" : "park-wide"} climate series
       from <strong>{period.start_year}</strong> to <strong>{period.end_year}</strong>,
       reduced from DAYMET v4 {summary.state.includes("AK") || summary.state === "AS" || summary.state === "VI" ? "/ ERA5-Land" : "+ ERA5-Land"}
@@ -130,7 +130,7 @@ const trendRows = (() => {
     </div>
   </section>
 
-  <section class="container section">
+  <section class="container section park-section">
     <h2>Headline trends</h2>
     <p style="color:var(--ink)">
       Theil–Sen slope estimates with Mann–Kendall p-values. Trends marked
@@ -152,12 +152,12 @@ const trendRows = (() => {
     </div>
   </section>
 
-  <section class="container section">
+  <section class="container section park-section">
     <h2>Time series & trends</h2>
-    <p style="color:var(--ink);max-width:680px">
+    <p style="color:var(--ink);max-width:70ch">
       Every variable in the dataset, with its Theil–Sen slope and Mann–Kendall
-      p-value. Click any row to open the annual time series with its best-fit
-      trend line.
+      p-value. <strong>Click any row</strong> to open the annual time series
+      with its best-fit trend line.
     </p>
     <div class="trend-rows" role="list">
       <div class="trend-rows-head" aria-hidden="true">
@@ -166,11 +166,11 @@ const trendRows = (() => {
         <span class="num">Total change</span>
         <span class="num">p-value</span>
         <span>Significance</span>
-        <span></span>
+        <span class="trend-rows-head-hint">Open chart</span>
       </div>
       {trendRows.map((t: any) => (
         <details class="trend-row" data-var={t.variable} role="listitem">
-          <summary>
+          <summary aria-label={`Open ${t.meta.label} time-series chart`}>
             <span class="tr-var">{t.meta.label}</span>
             <span class="tr-slope num">
               {fmtSlope(t.slope_per_year, t.meta.decimals)} <span class="tr-unit">{t.meta.slopeUnit}</span>
@@ -180,14 +180,24 @@ const trendRows = (() => {
             <span class="tr-sig">
               {t.significant_95 ? <span class="sig">sig.</span> : <span class="sig not-sig">not sig.</span>}
             </span>
-            <span class="tr-chev" aria-hidden="true">▾</span>
+            <span class="tr-chev" aria-hidden="true">
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                <path d="M3 6 L8 11 L13 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
           </summary>
           <div class="trend-row-body">
             {t.meta.description ? <p class="tr-desc">{t.meta.description}</p> : null}
             <div class="chart-wrap">
               <div class="title">
-                Annual {t.meta.label.toLowerCase()} ({t.meta.unit})
-                <span class="theil-tag">(Theil–Sen)</span>
+                <span>
+                  Annual {t.meta.label.toLowerCase()} ({t.meta.unit})
+                  <span class="theil-tag">(Theil–Sen)</span>
+                </span>
+                <button type="button" class="chart-download" data-download-var={t.variable}
+                        data-download-name={`${summary.slug}_${t.variable}.png`}>
+                  Download PNG
+                </button>
               </div>
               <div class="chart-canvas"><canvas id={`chart-${t.variable}`}></canvas></div>
             </div>
@@ -197,7 +207,7 @@ const trendRows = (() => {
     </div>
   </section>
 
-  <section class="container section">
+  <section class="container section park-section">
     <h2>Download the data</h2>
     <p style="color:var(--ink)">
       Everything on this page is open-licensed. The summary JSON is
@@ -219,9 +229,10 @@ const trendRows = (() => {
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
   <script is:inline src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <script define:vars={{ summary, trendRows, base }}>
+    const chartInstances = {};
     function lineChart(id, years, values, label, color, trend, decimals) {
       const ctx = document.getElementById(id);
-      if (!ctx) return;
+      if (!ctx) return null;
       const datasets = [{
         label,
         data: values,
@@ -246,7 +257,7 @@ const trendRows = (() => {
           fill: false,
         });
       }
-      new Chart(ctx, {
+      const chart = new Chart(ctx, {
         type: "line",
         data: { labels: years, datasets },
         options: {
@@ -259,6 +270,7 @@ const trendRows = (() => {
           },
         },
       });
+      return chart;
     }
 
     // Build per-variable chart configs once, then lazy-init on first <details> open.
@@ -283,8 +295,29 @@ const trendRows = (() => {
         if (initialized.has(key)) return;
         const cfg = chartConfigs[key];
         if (!cfg) return;
-        lineChart(`chart-${key}`, years, cfg.values, cfg.label, cfg.color, cfg.trend, cfg.decimals);
+        const chart = lineChart(`chart-${key}`, years, cfg.values, cfg.label, cfg.color, cfg.trend, cfg.decimals);
+        if (chart) chartInstances[key] = chart;
         initialized.add(key);
+      });
+    });
+
+    // Download chart as PNG. Chart must already be open (so it's been
+    // rendered) — clicking the button without expanding first is blocked
+    // by pointer-events on the closed accordion body anyway.
+    document.querySelectorAll(".chart-download").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const key = btn.dataset.downloadVar;
+        const chart = chartInstances[key];
+        if (!chart) return;
+        const url = chart.toBase64Image("image/png", 1);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = btn.dataset.downloadName || `chart-${key}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
       });
     });
 

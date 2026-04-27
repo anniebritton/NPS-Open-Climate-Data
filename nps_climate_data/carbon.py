@@ -49,13 +49,20 @@ LOCAL_CPU_SEC_PER_PARK = 30.0
 LOCAL_POWER_W = 20.0
 
 # Claude API usage — cumulative over every dev session that touched the repo.
-# Anthropic's 2024 disclosures and independent estimates (Luccioni et al.)
-# put LLM inference at roughly 2-4 Wh per 1k output tokens for large models,
-# and ~0.2 Wh per 1k input tokens (input is much cheaper).
+# Energy per token is hard to pin down: published per-query figures range
+# from ~0.3 Wh (Hugging Face / Anthropic technical posts on modern
+# inference infrastructure) up to ~3 Wh (Goldman Sachs 2024, often cited
+# but generally considered an overestimate for SOTA models on cached,
+# batched serving). We use a conservative middle: ~1.5 Wh per 1k output
+# tokens, and ~0.1 Wh per 1k input tokens — input is much cheaper because
+# prefill is highly parallel and prompt caching avoids re-processing on
+# Claude Code's repeated context. Luccioni et al. (BLOOM, JMLR 24) is the
+# closest independent benchmark; SOTA Claude infra is more efficient than
+# BLOOM-176B was in 2022.
 # Per-commit budget is a rough proxy for session work; baseline covers the
 # initial build sessions before the first commit.
-CLAUDE_INPUT_WH_PER_KT = 0.2
-CLAUDE_OUTPUT_WH_PER_KT = 3.0
+CLAUDE_INPUT_WH_PER_KT = 0.1
+CLAUDE_OUTPUT_WH_PER_KT = 1.5
 CLAUDE_IN_PER_COMMIT = 50_000    # tokens per commit (rolling average)
 CLAUDE_OUT_PER_COMMIT = 10_000
 CLAUDE_IN_BASELINE = 300_000     # pre-first-commit build work

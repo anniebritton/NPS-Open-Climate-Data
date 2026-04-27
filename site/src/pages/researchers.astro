@@ -73,12 +73,6 @@ const resources = [
     <a href={base} class="research-back">← Home</a>
     <span class="kicker" style="margin-top:0.8rem;display:block">For researchers</span>
     <h1>Data, code, and pipelines you can cite</h1>
-    <p class="research-lede">
-      Everything visualized on this site is open. The raw daily series, the
-      analysis code, the dataset definitions, and the statistical pipeline
-      all live in one MIT-licensed repository. Swap in PRISM or GRIDMET,
-      extend the boundary set, and regenerate the whole site with one command.
-    </p>
 
     <!-- Data -->
     <section class="research-section">
@@ -87,8 +81,7 @@ const resources = [
         <h2>Open downloads</h2>
         <p>
           Four flavours of output, all MIT-licensed. Temperatures are stored
-          in SI (°C) so downstream consumers get unambiguous values — only
-          the site's display layer converts to °F.
+          in SI (°C) — only the site's display layer converts to °F.
         </p>
       </div>
       <div class="research-section-content">
@@ -158,9 +151,6 @@ const resources = [
       <div class="research-section-intro">
         <span class="kicker">Cite</span>
         <h2>Suggested citation</h2>
-        <p>
-          Three ready-made formats. Click a tab to switch, then copy.
-        </p>
       </div>
       <div class="research-section-content">
         <div class="research-cite" data-cite>
@@ -177,38 +167,6 @@ const resources = [
       </div>
     </section>
 
-    <!-- Contributors + extensions -->
-    <section class="research-section research-section-footer">
-      <div class="research-section-intro">
-        <span class="kicker">Team</span>
-        <h2>Contributors &amp; roadmap</h2>
-        <p>
-          Project is small and moves in bursts. Contributions welcome — see
-          <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/issues">GitHub issues</a>
-          for the current list of open work.
-        </p>
-      </div>
-      <div class="research-section-content">
-        <div class="research-foot-grid">
-          <div>
-            <span class="research-foot-label">Contributors</span>
-            <ul class="research-foot-list">
-              <li><strong>Annie Britton</strong><br/><span>project lead, analysis design, site</span></li>
-              <li><strong>Ian Pritchard</strong><br/><span>contributor</span></li>
-            </ul>
-          </div>
-          <div>
-            <span class="research-foot-label">Extensions welcome</span>
-            <ul class="research-foot-list">
-              <li>PRISM &amp; GRIDMET for CONUS</li>
-              <li>Autocorrelation-corrected MK (Hamed &amp; Rao 1998)</li>
-              <li>Per-pixel trend maps inside the park boundary</li>
-              <li>National Monuments / Recreation Areas beyond the 63</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    </section>
   </section>
 
   <script is:inline>
