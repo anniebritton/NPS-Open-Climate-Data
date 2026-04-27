@@ -2335,3 +2335,14 @@ a.method-flow-node:focus-visible {
 /* Citation prose / APA panels: long DOI URLs don't break by default
    and overflow the panel on narrow viewports. */
 .research-cite-panel { overflow-wrap: anywhere; }
+
+/* Grid / flex items default to min-width: auto, which lets them grow
+   to fit their content's intrinsic minimum. On the Data page the
+   download cards contain <code> filenames with white-space: nowrap,
+   so each card was stretching to its longest line and overflowing
+   the viewport on phones. Same applies to the usage list, the
+   "Verify before you cite" steps, and the per-park download cards. */
+.research-resource,
+.research-usage > li,
+.research-steps > li,
+.park-download-card { min-width: 0; }
