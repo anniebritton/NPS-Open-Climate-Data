@@ -2077,6 +2077,18 @@ a.method-flow-node:focus-visible {
 }
 .research-foot-list li:last-child { border-bottom: none; }
 .research-foot-list li span { color: var(--muted); font-size: 0.78rem; }
+.research-foot-list li span.research-foot-links {
+  display: inline-block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.research-foot-list li span.research-foot-links a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
 
 @media (max-width: 900px) {
   .research-section {

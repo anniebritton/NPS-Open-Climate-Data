@@ -105,7 +105,7 @@ The suite covers:
 
 For end-to-end output validation (range checks, aggregation arithmetic
 recompute, MK/Theil-Sen consistency, external warming benchmarks for
-10 parks across climate zones), run:
+20 parks across climate zones), run:
 
 ```bash
 PYTHONPATH=. python scripts/qc_pass.py
@@ -169,8 +169,13 @@ first so we can agree on scope before you invest the time.
 
 ## Authors
 
-- **Annie Britton** — project lead, analysis design, site
-- **Ian Pritchard** — contributor
+- **Annie Britton** — project lead, analysis design, site. Geospatial
+  & climate-data engineer.
+  [GitHub](https://github.com/anniebritton) ·
+  [LinkedIn](https://www.linkedin.com/in/annebritton/)
+- **Ian Pritchard** — contributor. Data engineering & analytics.
+  [GitHub](https://github.com/ipritchard) ·
+  [LinkedIn](https://www.linkedin.com/in/give-me-data/)
 
 ## Citing
 

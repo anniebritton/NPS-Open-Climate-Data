@@ -250,7 +250,7 @@ const trendRows = (() => {
             <div class="chart-actions">
               <button type="button" class="chart-download" data-download-var={t.variable}
                       data-download-slug={summary.slug}>
-                Download all charts (PNG)
+                Download all charts (single PNG)
               </button>
             </div>
             <div class="chart-wrap">
@@ -569,29 +569,73 @@ const trendRows = (() => {
       a.click();
       a.remove();
     }
+    function loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = reject;
+        im.src = src;
+      });
+    }
+    // Compose the three Chart.js canvases into one tall PNG and emit
+    // a single download. Three separate <a download> clicks get
+    // suppressed as anti-spam by every modern browser even with a
+    // setTimeout stagger; one composite PNG is the reliable path.
+    async function compositeAndDownload(charts, filename) {
+      const labels = ["Annual time series + Theil–Sen trend",
+                      "12-month rolling trend (decomposition)",
+                      "Seasonal cycle"];
+      const items = [];
+      for (let i = 0; i < charts.length; i++) {
+        if (!charts[i]) continue;
+        items.push({ img: await loadImage(charts[i].toBase64Image("image/png", 1)), label: labels[i] });
+      }
+      if (!items.length) return;
+
+      const pad = 18;
+      const labelH = 26;
+      const width = Math.max(...items.map((it) => it.img.width));
+      const height = items.reduce((s, it) => s + it.img.height + labelH + pad, 0);
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#fcfcfc";
+      ctx.fillRect(0, 0, width, height);
+      ctx.fillStyle = "#0d0d0c";
+      ctx.font = "600 13px 'Space Grotesk', sans-serif";
+      ctx.textBaseline = "top";
+
+      let y = 0;
+      for (const it of items) {
+        ctx.fillStyle = "#0d0d0c";
+        ctx.fillText(it.label, 8, y + 6);
+        y += labelH;
+        ctx.drawImage(it.img, 0, y);
+        y += it.img.height + pad;
+      }
+      triggerDownload(canvas.toDataURL("image/png"), filename);
+    }
     document.querySelectorAll(".chart-download").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
+      btn.addEventListener("click", async (e) => {
         e.preventDefault();
         e.stopPropagation();
         const key = btn.dataset.downloadVar;
         const slug = btn.dataset.downloadSlug || "park";
         const charts = chartInstances[key];
         if (!charts) return;
-        // Three downloads, one per chart type. Browsers stagger with a
-        // small delay so they don't get suppressed as a single batch.
-        const drops = [
-          { chart: charts.annual, suffix: "annual" },
-          { chart: charts.trend,  suffix: "trend"  },
-          { chart: charts.clim,   suffix: "seasonal" },
-        ].filter((d) => d.chart);
-        drops.forEach((d, i) => {
-          setTimeout(() => {
-            triggerDownload(
-              d.chart.toBase64Image("image/png", 1),
-              `${slug}_${key}_${d.suffix}.png`,
-            );
-          }, i * 120);
-        });
+        const ordered = [charts.annual, charts.trend, charts.clim].filter(Boolean);
+        if (!ordered.length) return;
+        const original = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "Generating…";
+        try {
+          await compositeAndDownload(ordered, `${slug}_${key}.png`);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = original;
+        }
       });
     });
 
