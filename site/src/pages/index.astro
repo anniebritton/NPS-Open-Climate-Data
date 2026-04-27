@@ -129,9 +129,10 @@ function sparklinePath(series: { value: number | null }[]): string {
            width="100%" height="100%"
            fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
-          <!-- Path ends at the peak (~530, 80) and slopes back down on
-               the right; the previous final segment dropped sharply to
-               (760, 380), which read as a graphic glitch. -->
+          <!-- Crest is around (530, 80); the right flank descends to
+               (652, 152), about halfway between the peak and the old
+               sharp drop-off, so the shape reads as a mountain instead
+               of a line that vanishes at the top. -->
           <path id="ridge" d="M 0,380
             C 38,322 72,302 104,285
             C 128,273 142,278 158,286
@@ -141,7 +142,10 @@ function sparklinePath(series: { value: number | null }[]): string {
             C 356,196 370,184 388,168
             C 406,150 422,138 440,124
             C 455,114 470,108 486,98
-            C 499,90 514,84 530,80"/>
+            C 499,90 514,84 530,80
+            C 544,78 558,80 572,86
+            C 584,92 594,100 608,112
+            C 624,126 636,138 652,152"/>
         </defs>
         <use href="#ridge" stroke="#1f4a32" stroke-width="2.6" stroke-opacity="0.95" fill="none"/>
         <use href="#ridge" transform="translate(0,40)" stroke="#266036" stroke-width="2.2" stroke-opacity="0.78" fill="none"/>
