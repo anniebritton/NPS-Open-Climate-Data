@@ -7,5 +7,6 @@ setup(
     install_requires=[
         "earthengine-api",
         "pandas",
+        "numpy",
     ],
 )

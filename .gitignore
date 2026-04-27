@@ -5,6 +5,11 @@ __pycache__/
 .venv/
 venv/
 
+# Local agent / editor state — should never be committed
+.claude/
+.cursor/
+.aider*/
+
 # Build artifacts / distributions
 build/
 dist/

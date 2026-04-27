@@ -1,3 +1,21 @@
+"""Park-boundary lookup helpers.
+
+Bridges PAD-US (proclamation polygons) with the Earth Engine reduction
+pipeline:
+
+  * ``get_park_boundary`` queries the EE-hosted ``USGS/GAP/PAD-US/v20``
+    asset by ``Unit_Nm`` (with alias handling for Alaskan
+    "National Park and Preserve" units that PAD-US labels differently
+    from the public-facing names).
+  * ``get_local_park_boundary`` is a fallback that loads a committed
+    PAD-US 4.1 GeoJSON from ``site/public/data/boundaries/``. This is
+    how we cover the four parks redesignated after PAD-US v20 (Gateway
+    Arch, Indiana Dunes, New River Gorge, White Sands).
+  * ``split_multipart_features`` splits a multi-polygon park
+    (Saguaro, Channel Islands, Kings Canyon, etc.) into per-polygon
+    sub-units so each gets its own daily series.
+"""
+
 from __future__ import annotations
 
 import json

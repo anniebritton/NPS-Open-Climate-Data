@@ -1,3 +1,14 @@
+"""Manual end-to-end smoke test against live Earth Engine.
+
+Authenticates to EE, runs a tiny per-park query, and writes a CSV.
+Skipped from CI (``pytest --ignore=tests/test_basic.py``) because it
+requires a GCP project with EE enabled and authenticated credentials.
+Run by hand when you want to verify EE access:
+
+    earthengine authenticate
+    PYTHONPATH=. python tests/test_basic.py
+"""
+
 import sys
 import os
 import ee
