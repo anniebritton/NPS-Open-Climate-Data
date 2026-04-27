@@ -55,6 +55,22 @@ if (Array.isArray(summary.trends)) {
   summary.trends = summary.trends.map(convertTrend);
 }
 
+// Convert decomposition temperatures (°C → °F) in place. Trend, observed
+// and climatology values are absolute temperatures so use cToF; residuals
+// are deltas, which scale by 9/5 only.
+if (summary.decomposition?.tmean_c) {
+  const d = summary.decomposition.tmean_c;
+  d.observed = d.observed.map((v: number | null) => v == null ? null : cToF(v));
+  d.trend    = d.trend.map((v: number | null) => v == null ? null : cToF(v));
+  d.residual = d.residual.map((v: number | null) => v == null ? null : cDeltaToF(v));
+  d.climatology = d.climatology.map((c: any) => ({
+    month: c.month,
+    mean: cToF(c.mean),
+    p10:  cToF(c.p10),
+    p90:  cToF(c.p90),
+  }));
+}
+
 const headline = summary.headline_trends ?? {};
 const stripes = summary.stripes ?? [];
 const annual = summary.annual ?? [];
@@ -178,6 +194,34 @@ const trendRows = (() => {
       ))}
     </div>
   </section>
+
+  {summary.decomposition?.tmean_c ? (
+    <section class="container section park-section">
+      <h2>Trend vs. seasonal cycle</h2>
+      <p style="color:var(--ink);max-width:70ch">
+        Mean temperature decomposed into its long-term direction and its
+        annual cycle, so the warming signal is visible separately from the
+        Jan-to-Jul seasonal swing that dominates a raw plot. Trend is a
+        12-month centered rolling mean; the climatology is the average
+        month-of-year shape over the 1981–2010 baseline, with the shaded
+        band showing the 10th–90th percentile envelope across years.
+      </p>
+      <div class="decomp-grid">
+        <div class="chart-wrap">
+          <div class="title">
+            <span>Long-term trend (12-month rolling)</span>
+          </div>
+          <div class="chart-canvas"><canvas id="chart-decomp-trend"></canvas></div>
+        </div>
+        <div class="chart-wrap">
+          <div class="title">
+            <span>Seasonal cycle ({summary.decomposition.tmean_c.ref_period[0]}–{summary.decomposition.tmean_c.ref_period[1]})</span>
+          </div>
+          <div class="chart-canvas"><canvas id="chart-decomp-clim"></canvas></div>
+        </div>
+      </div>
+    </section>
+  ) : null}
 
   <section class="container section park-section">
     <h2>Time series & trends</h2>
@@ -325,6 +369,128 @@ const trendRows = (() => {
         initialized.add(key);
       });
     });
+
+    // Decomposition charts: long-term trend + seasonal climatology.
+    // Two static (non-accordion) Chart.js instances. Eager-init so the
+    // section above the accordion is populated on page load.
+    const decomp = summary.decomposition && summary.decomposition.tmean_c;
+    if (decomp) {
+      const trendCtx = document.getElementById("chart-decomp-trend");
+      if (trendCtx) {
+        new Chart(trendCtx, {
+          type: "line",
+          data: {
+            labels: decomp.months,
+            datasets: [
+              {
+                label: "Monthly mean (°F)",
+                data: decomp.observed,
+                borderColor: "rgba(181, 97, 59, 0.45)",
+                backgroundColor: "rgba(181, 97, 59, 0.07)",
+                pointRadius: 0,
+                borderWidth: 1,
+                fill: false,
+              },
+              {
+                label: "12-mo rolling trend (°F)",
+                data: decomp.trend,
+                borderColor: "#b5613b",
+                backgroundColor: "rgba(181, 97, 59, 0.10)",
+                pointRadius: 0,
+                borderWidth: 2.4,
+                tension: 0.2,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: { legend: { position: "bottom" } },
+            scales: {
+              y: { beginAtZero: false, grid: { color: "rgba(26,26,26,0.08)" }, title: { display: true, text: "°F" } },
+              x: {
+                grid: { display: false },
+                ticks: {
+                  // Year-only labels — show ticks on January only so the
+                  // axis isn't jammed with month strings.
+                  callback: function (val, idx) {
+                    const lbl = this.getLabelForValue(val);
+                    return lbl && lbl.endsWith("-01") ? lbl.slice(0, 4) : "";
+                  },
+                  maxRotation: 0,
+                  autoSkip: false,
+                },
+              },
+            },
+          },
+        });
+      }
+
+      const climCtx = document.getElementById("chart-decomp-clim");
+      if (climCtx) {
+        const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const labels = decomp.climatology.map((c) => monthNames[c.month - 1]);
+        const meanV  = decomp.climatology.map((c) => c.mean);
+        const p10V   = decomp.climatology.map((c) => c.p10);
+        const p90V   = decomp.climatology.map((c) => c.p90);
+        new Chart(climCtx, {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                // 90th percentile envelope (top of band)
+                label: "90th pct.",
+                data: p90V,
+                borderColor: "rgba(181, 97, 59, 0)",
+                backgroundColor: "rgba(181, 97, 59, 0.18)",
+                pointRadius: 0,
+                fill: "+1",
+              },
+              {
+                // 10th percentile envelope (bottom of band) — fill between this and the line above
+                label: "10th pct.",
+                data: p10V,
+                borderColor: "rgba(181, 97, 59, 0)",
+                backgroundColor: "rgba(181, 97, 59, 0.18)",
+                pointRadius: 0,
+                fill: false,
+              },
+              {
+                label: "Mean (°F)",
+                data: meanV,
+                borderColor: "#b5613b",
+                backgroundColor: "rgba(181, 97, 59, 0.06)",
+                pointRadius: 3,
+                pointHoverRadius: 5,
+                borderWidth: 2.4,
+                tension: 0.3,
+                fill: false,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: {
+                position: "bottom",
+                // Hide the two envelope datasets from the legend; the
+                // shaded band is self-explanatory next to the mean line.
+                labels: { filter: (item) => item.text.startsWith("Mean") },
+              },
+            },
+            scales: {
+              y: { beginAtZero: false, grid: { color: "rgba(26,26,26,0.08)" }, title: { display: true, text: "°F" } },
+              x: { grid: { display: false } },
+            },
+          },
+        });
+      }
+    }
 
     // Download chart as PNG. Chart must already be open (so it's been
     // rendered) — clicking the button without expanding first is blocked

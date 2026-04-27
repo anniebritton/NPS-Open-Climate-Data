@@ -290,6 +290,88 @@ def all_trends(annual_df: pd.DataFrame) -> list[TrendResult]:
     return results
 
 
+# ---- decomposition --------------------------------------------------------
+
+def decompose_monthly(
+    df: pd.DataFrame,
+    variable: str,
+    ref: tuple[int, int] = (1981, 2010),
+) -> dict | None:
+    """Classical additive decomposition of a daily series into long-term
+    trend, seasonal cycle, and residual at monthly resolution.
+
+    Returns dict with arrays:
+      months          — 'YYYY-MM' labels
+      observed        — monthly aggregate (mean for MEAN_VARS, sum for SUM_VARS)
+      trend           — 12-month centred rolling mean of `observed`
+      residual        — observed - trend - seasonal_for_that_month
+    and a separate 12-element climatology block:
+      climatology     — {month: 1..12, mean, p10, p90} averaged over `ref`
+
+    Returns None if the variable isn't present or has fewer than 24 months
+    of data (one rolling window minimum).
+    """
+    if variable not in df.columns or df.empty:
+        return None
+
+    d = df[["date", variable]].copy()
+    d["date"] = pd.to_datetime(d["date"])
+    d = d.dropna(subset=[variable])
+    if len(d) < 24 * 28:  # ~24 months of daily data minimum
+        return None
+
+    # Resample daily → monthly, choosing aggregator by variable kind.
+    d.set_index("date", inplace=True)
+    if variable in SUM_VARS:
+        monthly = d[variable].resample("MS").sum(min_count=20)
+    else:
+        monthly = d[variable].resample("MS").mean()
+    monthly = monthly.dropna()
+    if len(monthly) < 24:
+        return None
+
+    # 12-month centred rolling mean as the long-term trend component.
+    # `center=True, window=12` puts the value at the centre of the window;
+    # endpoints are NaN until the window fills (~6 months on each side).
+    trend = monthly.rolling(window=12, center=True, min_periods=12).mean()
+
+    # Climatology = month-of-year mean over the reference period
+    # (1981-2010 by default), so the seasonal shape is anchored to a
+    # stable WMO baseline rather than drifting with the warming trend.
+    ref_mask = (monthly.index.year >= ref[0]) & (monthly.index.year <= ref[1])
+    ref_monthly = monthly.loc[ref_mask]
+    clim_mean = ref_monthly.groupby(ref_monthly.index.month).mean()
+    clim_p10 = ref_monthly.groupby(ref_monthly.index.month).quantile(0.10)
+    clim_p90 = ref_monthly.groupby(ref_monthly.index.month).quantile(0.90)
+
+    # Seasonal component for every observed month is the climatology
+    # value for that calendar month. Residual is what's left after
+    # removing trend and seasonal.
+    seasonal = monthly.index.month.map(clim_mean.to_dict())
+    seasonal = pd.Series(seasonal, index=monthly.index)
+    # Anchor seasonal to zero-mean so trend absorbs the climatological mean.
+    seasonal = seasonal - clim_mean.mean()
+    residual = monthly - trend - seasonal
+
+    return {
+        "variable": variable,
+        "ref_period": [int(ref[0]), int(ref[1])],
+        "months": [d.strftime("%Y-%m") for d in monthly.index],
+        "observed": [None if np.isnan(v) else float(v) for v in monthly.values],
+        "trend":    [None if np.isnan(v) else float(v) for v in trend.values],
+        "residual": [None if np.isnan(v) else float(v) for v in residual.values],
+        "climatology": [
+            {
+                "month": int(m),
+                "mean": float(clim_mean[m]),
+                "p10":  float(clim_p10[m]),
+                "p90":  float(clim_p90[m]),
+            }
+            for m in range(1, 13) if m in clim_mean.index
+        ],
+    }
+
+
 # ---- climate stripes ------------------------------------------------------
 
 def climate_stripes(annual_df: pd.DataFrame, variable: str = "tmean_c") -> list[dict]:

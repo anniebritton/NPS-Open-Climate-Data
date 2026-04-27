@@ -26,11 +26,15 @@ nps_climate_data/        # Python package
 
 scripts/
   01_export_all_parks.py # Submit EE batch export tasks (needs credentials)
-  02_build_site_data.py  # Build analysis summaries
+  02_build_site_data.py  # Build analysis summaries (incl. monthly decomp)
   04_write_carbon.py     # Dump carbon.json for the site
   05_generate_boundaries.py # Merge headline slopes; fallback to circles
   06_extract_padus_from_gdb.py # Real polygons from local PAD-US 4.1 GDB
   07_download_from_drive.py # Pull completed EE exports from Google Drive
+  qc_pass.py             # Audit pipeline outputs → docs/DATA_QC.md
+
+docs/
+  DATA_QC.md             # Auto-generated audit of pipeline outputs
 
 pipeline.ipynb           # End-to-end notebook (recommended entry point)
 site/                    # Astro static site, deployed to GitHub Pages
@@ -99,14 +103,25 @@ The suite covers:
 - An EE stub-integration test confirms `merge()` is called per extra
   dataset and `filterDate(..., end)` is passed an exclusive end
 
+For end-to-end output validation (range checks, aggregation arithmetic
+recompute, MK/Theil-Sen consistency, external warming benchmarks for
+10 parks across climate zones), run:
+
+```bash
+PYTHONPATH=. python scripts/qc_pass.py
+```
+
+It rewrites [`docs/DATA_QC.md`](docs/DATA_QC.md) with the latest audit.
+
 ## Data coverage
 
 All 63 designated National Parks have raw daily series, annual /
-seasonal aggregates, Mann–Kendall + Theil–Sen trend tests, and per-park
-JSON summaries committed under `site/public/data/parks/`. Three small
-island parks (American Samoa, Dry Tortugas, Virgin Islands) fall
-outside the gridded land-only datasets and render with an "outside
-land-grid coverage" badge instead of charts.
+seasonal aggregates, Mann–Kendall + Theil–Sen trend tests, monthly
+trend / seasonal-cycle decomposition, and per-park JSON summaries
+committed under `site/public/data/parks/`. Three small island parks
+(American Samoa, Dry Tortugas, Virgin Islands) fall outside the
+gridded land-only datasets and render with an "outside land-grid
+coverage" badge instead of charts.
 
 | Coverage | Datasets used |
 | --- | --- |
@@ -131,17 +146,6 @@ own time series, in addition to the union-level summary.
   honestly ("outside land-grid coverage") but a real fix would pull
   from ERA5-Single-Levels (which isn't land-masked),
   nearest-neighbour an adjacent coastal pixel, or switch to MERRA-2.
-- **Full data QC pass.** Triple-check pipeline outputs against
-  external sources — NOAA Climate at a Glance, NCEI USCRN, Gonzalez
-  et al. (2018), NPS IRMA — for a sample of ~10 parks across climate
-  zones. Verify unit conversions (Kelvin → °C, ERA5 evap sign),
-  annual aggregation choices (sums vs means), and MK/Theil–Sen
-  implementation. Deliverable: `docs/DATA_QC.md`.
-- **Time-series decomposition.** Current per-park analysis stops at
-  annual / seasonal aggregates + Mann–Kendall / Theil–Sen. Add an STL
-  (or equivalent) decomposition of the daily series into trend,
-  seasonal, and residual components so users can see the annual cycle
-  separately from the long-run trend.
 
 ## Reporting issues
 

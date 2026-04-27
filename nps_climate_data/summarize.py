@@ -26,6 +26,7 @@ from .analysis import (
     anomalies,
     all_trends,
     climate_stripes,
+    decompose_monthly,
 )
 from .parks import get_parks
 
@@ -111,6 +112,15 @@ def summarise_park(park: dict, park_dir: Path) -> dict | None:
 
     headline = {t.variable: t.to_dict() for t in trends if t.variable in HEADLINE_VARS}
 
+    # Monthly decomposition for the two headline variables. Lets the site
+    # show users the long-term trend separately from the seasonal cycle —
+    # the noise pattern that dominates a raw daily plot is removed.
+    decomposition = {}
+    for var in ("tmean_c", "prcp_mm"):
+        d = decompose_monthly(combined_daily, var)
+        if d is not None:
+            decomposition[var] = d
+
     summary = {
         "slug": park["slug"],
         "unit_name": park["unit_name"],
@@ -127,6 +137,7 @@ def summarise_park(park: dict, park_dir: Path) -> dict | None:
         "trends": [t.to_dict() for t in trends],
         "stripes": stripes,
         "headline_trends": headline,
+        "decomposition": decomposition,
         "part_summaries": part_summaries,
     }
     return _json_safe(summary)
