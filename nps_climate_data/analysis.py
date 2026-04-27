@@ -353,19 +353,24 @@ def decompose_monthly(
     seasonal = seasonal - clim_mean.mean()
     residual = monthly - trend - seasonal
 
+    # Round to 4 decimals on the long monthly arrays — the chart layer
+    # never needs more precision than that and the saved bytes matter
+    # when we're emitting decomposition for 14 variables × 63 parks.
+    def _r(v: float) -> float | None:
+        return None if np.isnan(v) else round(float(v), 4)
+
     return {
         "variable": variable,
         "ref_period": [int(ref[0]), int(ref[1])],
-        "months": [d.strftime("%Y-%m") for d in monthly.index],
-        "observed": [None if np.isnan(v) else float(v) for v in monthly.values],
-        "trend":    [None if np.isnan(v) else float(v) for v in trend.values],
-        "residual": [None if np.isnan(v) else float(v) for v in residual.values],
+        "months":   [d.strftime("%Y-%m") for d in monthly.index],
+        "observed": [_r(v) for v in monthly.values],
+        "trend":    [_r(v) for v in trend.values],
         "climatology": [
             {
                 "month": int(m),
-                "mean": float(clim_mean[m]),
-                "p10":  float(clim_p10[m]),
-                "p90":  float(clim_p90[m]),
+                "mean": round(float(clim_mean[m]), 4),
+                "p10":  round(float(clim_p10[m]),  4),
+                "p90":  round(float(clim_p90[m]),  4),
             }
             for m in range(1, 13) if m in clim_mean.index
         ],

@@ -2,7 +2,7 @@
 
 Pre-processed climate time series, trend tests, and a public website
 covering every one of the 63 US National Parks. Built on
-**DAYMET v4**, **ERA5-Land**, and **USGS PAD-US v20** via Google Earth
+**DAYMET v4**, **ERA5-Land**, and **USGS PAD-US 4.1** via Google Earth
 Engine.
 
 - 🌐 **Site:** <https://anniebritton.github.io/NPS-Open-Climate-Data/>
@@ -177,7 +177,7 @@ first so we can agree on scope before you invest the time.
 > Britton, A., & Pritchard, I. (2026). *NPS Open Climate Data:
 > Pre-processed climate trends for all US National Parks.* Derived from
 > DAYMET v4 and ERA5-Land via Google Earth Engine, with boundaries from
-> USGS PAD-US v20. MIT license.
+> USGS PAD-US 4.1. MIT license.
 
 ## License
 

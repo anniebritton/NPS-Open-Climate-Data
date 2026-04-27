@@ -84,37 +84,82 @@ RANGE_BANDS = {
 }
 
 
-# ---- external benchmarks (Gonzalez 2018, NOAA CaG) ------------------------
+# ---- external benchmarks (Gonzalez 2018, NPS climate pages, NOAA CaG) ------
 # For the broad QC, every CONUS / Alaska park should show a positive mean-
-# annual-temperature trend over 1980–present. Total warming over the
-# dataset window should be in the broad range below.
+# annual-temperature trend over 1980–present. Per-park bounds below are
+# anchored to the closest published numbers I could find, with a generous
+# tolerance on each side for inter-annual noise and for the methodology
+# difference between our polygon-averaged Theil–Sen slope and the
+# station-specific OLS rates that NPS climate pages usually quote.
 #
-# Reference points:
-#   * Gonzalez et al. 2018 (PNAS), Fig 1 + Table 1: mean US national-park
-#     warming 1895-2010 ~ 1.0 ± 0.2 °C, ~2x the CONUS average over the
-#     same window. National-park warming has accelerated since 1980.
-#   * NOAA Climate at a Glance state-level data shows ~0.3–0.6 °F per
-#     decade across most western/northern states 1980-present, i.e. about
-#     1.4–2.7 °F = 0.8–1.5 °C over a 45-year window. The Northeast and
-#     Alaska are at the upper end (Alaska 1981-2020 ~+2.0 °C/30yr; NCEI).
-#   * Some humid-subtropical Southeast parks show smaller absolute warming
-#     and noisier trends; significance over 45 years is plausible but
-#     ranges from ~0.4 °C to ~1.5 °C of total change.
-#
-# Per-park lower/upper bounds for total warming over the dataset window
-# (in °C) are intentionally generous so the check fails only on real
-# pipeline regressions, not on inter-annual noise.
-EXTERNAL_BOUNDS_C = {
-    "yellowstone":           (0.4, 3.0),   # Greater Yellowstone Ecosystem
-    "denali":                (0.5, 3.5),   # Alaska, large warming signal
-    "everglades":            (0.0, 2.0),   # subtropical, smaller signal
-    "death-valley":          (0.4, 3.0),   # arid Southwest
-    "olympic":               (0.2, 2.5),   # PNW, mild oceanic
-    "great-smoky-mountains": (0.0, 2.0),   # humid subtropical, noisy
-    "glacier":               (0.5, 3.0),   # alpine MT, well-documented
-    "big-bend":              (0.4, 3.0),   # semi-arid TX
-    "acadia":                (0.2, 2.5),   # humid continental coastal
-    "hawaii-volcanoes":      (-0.5, 2.0),  # tropical, weak/noisy trend OK
+# Format: slug -> (lo_C, hi_C, source). The expected anchor sits in the
+# middle of [lo, hi]; a pipeline value outside the band is a real
+# regression, not noise.
+EXTERNAL_BOUNDS_C: dict[str, tuple[float, float, str]] = {
+    # ~1.4 °C in the GYA "since the 1980s" per the Greater Yellowstone
+    # Climate Assessment (Hostetler et al., gyclimate.org/ch3). Our
+    # polygon average runs lower than the assessment's mid-elevation
+    # focus, so the lower bound is loose.
+    "yellowstone": (
+        0.4, 2.5,
+        "GYA Climate Assessment (gyclimate.org/ch3): ~1.4 °C since 1980s",
+    ),
+    # 4.3 ± 1.1 °C/century at Denali for 1950–2010 (Gonzalez 2018,
+    # highest of any US national park), scales to ~1.9 °C over 1980–
+    # 2025 if the rate held; bound widened for inter-decadal variability.
+    "denali": (
+        0.7, 3.5,
+        "Gonzalez et al. 2018: 4.3 ± 1.1 °C/century 1950–2010",
+    ),
+    # Subtropical S. Florida — modest warming, plenty of inter-annual
+    # noise from ENSO. Loose lower bound to allow short-term variability.
+    "everglades": (
+        0.0, 2.5,
+        "NOAA Climate at a Glance, Florida statewide: ~0.3 °F/dec post-1980",
+    ),
+    # Mojave Desert / hot deserts have warmed at or above CONUS average
+    # since 1980; multiple recent record years documented at Death Valley.
+    "death-valley": (
+        0.5, 3.0,
+        "NWS Death Valley Climate Book: accelerated record-setting since 2010",
+    ),
+    # PNW oceanic temperate — moderate warming, oceanic buffering
+    # tempers the signal vs interior West.
+    "olympic": (
+        0.2, 2.5,
+        "Washington State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # Humid-subtropical Southeast — smaller absolute warming; positive
+    # but variable.
+    "great-smoky-mountains": (
+        0.0, 2.5,
+        "NOAA Climate at a Glance, NC/TN statewide post-1980",
+    ),
+    # NPS Glacier reports ~0.8 °F/decade since 1980 ≈ 1.8 °C over the
+    # dataset window for station-specific records. Polygon mean over
+    # ~1M acres of high-alpine terrain runs cooler.
+    "glacier": (
+        0.4, 3.0,
+        "NPS Glacier (nps.gov/glac): ~0.8 °F/decade since 1980",
+    ),
+    # Hot semi-arid Texas — strong warming signal, in line with the
+    # Southwest broadly.
+    "big-bend": (
+        0.4, 3.0,
+        "Texas State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # NPS Acadia reports +3.4 °F over the past century, with
+    # acceleration post-1980 and rapid Gulf of Maine warming.
+    "acadia": (
+        0.5, 2.5,
+        "NPS Acadia (nps.gov/acad): +3.4 °F since 1895, accelerating",
+    ),
+    # Tropical, weak warming signal; allow slight cooling within the
+    # bounds since Pacific decadal variability dominates.
+    "hawaii-volcanoes": (
+        -0.5, 2.0,
+        "Hawaii State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
 }
 
 
@@ -240,7 +285,7 @@ def check_trend_consistency(park: dict) -> list[Finding]:
 
 def check_external_warming(park: dict) -> list[Finding]:
     """Compare 1980–present total warming against published per-park
-    bounds (Gonzalez 2018, NOAA CaG) for the QC sample of ~10 parks."""
+    bounds for the QC sample. Each entry has its own literature anchor."""
     findings: list[Finding] = []
     if park["slug"] not in EXTERNAL_BOUNDS_C:
         return findings
@@ -257,19 +302,14 @@ def check_external_warming(park: dict) -> list[Finding]:
     if slope is None or n is None:
         return findings
     total = slope * (n - 1)  # °C over the dataset window
-    lo, hi = EXTERNAL_BOUNDS_C[park["slug"]]
-    if lo <= total <= hi:
-        findings.append(Finding(
-            park["slug"], "tmean_c", "external warming benchmark",
-            "PASS",
-            f"total {total:+.2f} °C over {n}y in [{lo:+.1f}, {hi:+.1f}]",
-        ))
-    else:
-        findings.append(Finding(
-            park["slug"], "tmean_c", "external warming benchmark",
-            "WARN",
-            f"total {total:+.2f} °C over {n}y outside [{lo:+.1f}, {hi:+.1f}]",
-        ))
+    lo, hi, source = EXTERNAL_BOUNDS_C[park["slug"]]
+    inside = lo <= total <= hi
+    findings.append(Finding(
+        park["slug"], "tmean_c", "external warming benchmark",
+        "PASS" if inside else "WARN",
+        f"total {total:+.2f} °C over {n}y "
+        f"{'in' if inside else 'outside'} [{lo:+.1f}, {hi:+.1f}] — {source}",
+    ))
     return findings
 
 
@@ -330,11 +370,27 @@ def main() -> None:
     lines.append(
         "10 parks across climate zones (continental, arctic, subtropical, "
         "arid, oceanic, humid-subtropical, alpine, semi-arid, humid-"
-        "continental, tropical):\n"
+        "continental, tropical). Each has a literature-anchored bound for "
+        "expected total tmean_c warming over the 1980–2025 dataset window:\n"
     )
-    lines.append("\n".join(f"- `{slug}` — bounds {lo:+.1f} to {hi:+.1f} °C"
-                          for slug, (lo, hi) in EXTERNAL_BOUNDS_C.items()))
+    lines.append("\n".join(
+        f"- `{slug}` — expect {lo:+.1f} to {hi:+.1f} °C — {src}"
+        for slug, (lo, hi, src) in EXTERNAL_BOUNDS_C.items()
+    ))
     lines.append("\n")
+    lines.append(
+        "**A note on methodology.** The bounds above bracket *station-specific* "
+        "OLS rates that NPS climate pages and the State Climate Summaries "
+        "typically quote. Our pipeline reports a polygon-averaged "
+        "Theil–Sen slope for ERA5-Land + DAYMET pixels inside the entire "
+        "park boundary, which tends to run more conservative than a "
+        "single-station OLS on three counts: Theil–Sen is a robust median "
+        "estimator (less sensitive to high-warming outlier years), the "
+        "polygon mixes high-elevation pixels that warm slower, and ERA5-"
+        "Land is a reanalysis with its own coarser-grid biases. We expect "
+        "our values near the *lower* end of the published bounds; that "
+        "would not be a regression.\n"
+    )
 
     def section(title: str, findings: list[Finding]) -> None:
         n_pass = sum(1 for f in findings if f.status == "PASS")
@@ -398,6 +454,15 @@ def main() -> None:
         "(2018). *Disproportionate magnitude of climate change in United States "
         "national parks.* Environmental Research Letters, 13(10), 104001. "
         "https://doi.org/10.1088/1748-9326/aade09\n"
+        "- Hostetler, S., Whitlock, C., Shuman, B., Liefert, D., et al. "
+        "*Greater Yellowstone Climate Assessment: Past, Present, and Future "
+        "Climate Change in Greater Yellowstone Watersheds* (2021). "
+        "https://www.gyclimate.org/ch3\n"
+        "- NPS Climate Change pages: Acadia "
+        "(https://www.nps.gov/acad/learn/nature/climate-change.htm), Glacier "
+        "(https://www.nps.gov/glac/learn/nature/climate-change.htm), and "
+        "the State Climate Summaries 2022 series at "
+        "https://statesummaries.ncics.org\n"
         "- NOAA NCEI. *Climate at a Glance: Statewide Time Series.* "
         "https://www.ncei.noaa.gov/access/monitoring/climate-at-a-glance/statewide/time-series\n"
         "- Hamed, K. H., & Rao, A. R. (1998). *A modified Mann–Kendall trend "

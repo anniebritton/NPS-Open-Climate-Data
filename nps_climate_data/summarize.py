@@ -112,14 +112,14 @@ def summarise_park(park: dict, park_dir: Path) -> dict | None:
 
     headline = {t.variable: t.to_dict() for t in trends if t.variable in HEADLINE_VARS}
 
-    # Monthly decomposition for the two headline variables. Lets the site
-    # show users the long-term trend separately from the seasonal cycle —
-    # the noise pattern that dominates a raw daily plot is removed.
+    # Monthly decomposition for every trend variable. Lets the site show
+    # the long-term trend separately from the seasonal cycle on every
+    # accordion row, not just the headline temperatures.
     decomposition = {}
-    for var in ("tmean_c", "prcp_mm"):
-        d = decompose_monthly(combined_daily, var)
+    for t in trends:
+        d = decompose_monthly(combined_daily, t.variable)
         if d is not None:
-            decomposition[var] = d
+            decomposition[t.variable] = d
 
     summary = {
         "slug": park["slug"],
