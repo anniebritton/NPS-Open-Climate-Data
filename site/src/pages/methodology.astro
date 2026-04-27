@@ -137,51 +137,67 @@ const tocItems = [
         </p>
         <div class="method-tests">
           <article class="method-test">
-            <span class="method-test-name">Mann–Kendall</span>
+            <span class="method-test-name">Mann–Kendall<sup><a href="#cite-mann">5</a>,<a href="#cite-kendall">6</a></sup></span>
             <p>
-              Rank test with tie correction and normal-approximation
-              p-value, applied to the annual series (n ≥ 10).
+              Non-parametric rank test for monotonic trend. Uses tie
+              correction and the normal-approximation p-value, which is
+              standard for n ≥ 10. Applied to the annual series. Does
+              <em>not</em> correct for serial autocorrelation; for
+              series longer than a few decades, the Hamed–Rao
+              variant<sup><a href="#cite-hamed-rao">7</a></sup> is the
+              recommended substitute (see caveat below).
             </p>
           </article>
           <article class="method-test">
-            <span class="method-test-name">Theil–Sen</span>
+            <span class="method-test-name">Theil–Sen<sup><a href="#cite-theil">8</a>,<a href="#cite-sen">9</a></sup></span>
             <p>
               Slope estimator: the median of all pairwise year-over-year
-              slopes. Robust to outliers and more appropriate than OLS
-              when residuals aren't normal.
+              slopes. Robust to outliers and to non-normal residuals. We
+              prefer it to OLS for skewed climate variables (precip,
+              snow). The reported slope tends to be more conservative
+              than an OLS fit on the same series — a known property of
+              the median estimator, not a discrepancy.
             </p>
           </article>
           <article class="method-test" id="aggregation">
             <span class="method-test-name">Annual aggregation</span>
             <p>
-              Calendar year. Sums for precipitation, snow, ET; means for
-              temperature and radiation. Years with fewer than 330 valid
-              daily observations are dropped to avoid partial-year bias.
+              Calendar year. <em>Sums</em> for flow variables
+              (precipitation, snow, ET); <em>means</em> for state
+              variables (temperature, radiation, snow depth, vapour
+              pressure). Years with fewer than 330 valid daily
+              observations are dropped — about a 90% completeness
+              threshold, conservative enough to discard partial early
+              or late years without losing whole records.
             </p>
           </article>
           <article class="method-test">
             <span class="method-test-name">Seasonal aggregation</span>
             <p>
-              DJF / MAM / JJA / SON, with December assigned to the
-              following year's DJF.
+              Standard meteorological seasons: DJF / MAM / JJA / SON.
+              December is assigned to the following year's DJF so that
+              each winter is contiguous in calendar time.
             </p>
           </article>
           <article class="method-test">
             <span class="method-test-name">Anomalies</span>
             <p>
               Reference-period mean and σ computed over 1981–2010 (WMO
-              standard). z-scores drive the climate stripes on the home
-              and park pages.
+              30-year normal). z-scores drive the climate stripes on
+              the home and park pages.
             </p>
           </article>
           <article class="method-test">
             <span class="method-test-name">Monthly decomposition</span>
             <p>
               Classical additive decomposition at monthly resolution:
-              12-month centred rolling mean as the long-term trend, and
-              a 1981–2010 month-of-year climatology with 10th–90th
-              percentile envelope as the seasonal cycle. Surfaces on
-              every accordion row of the per-park time-series section.
+              12-month centred rolling mean as the long-term trend, plus
+              per-period month-of-year climatologies (1981–1995, 1996–
+              2010, 2011–2025) with a 10th–90th percentile inter-annual
+              envelope. Classical (rather than STL or X-13) keeps the
+              method dependency-free and reproducible from pandas alone;
+              the trade-off is that the seasonal component is fixed
+              within each period rather than allowed to evolve smoothly.
             </p>
           </article>
         </div>
@@ -226,19 +242,93 @@ const tocItems = [
         <h2>What these numbers can't tell you</h2>
         <ul class="method-limits">
           <li>
-            <strong>Bias in complex terrain.</strong> Gridded datasets
-            have documented systematic biases in mountain parks. Treat
-            absolute values with care; focus on trends.
+            <strong>Bias in complex terrain.</strong> Both DAYMET v4 and
+            ERA5-Land have documented systematic biases in mountain
+            parks (cold-bias at high elevation in DAYMET; smoothing of
+            elevation-driven temperature gradients in ERA5-Land's
+            ~11 km grid). Treat absolute values with care; the trend
+            signal is more robust than the level.
+          </li>
+          <li>
+            <strong>These are not station observations.</strong> Polygon
+            means are reanalysis or interpolated-grid values reduced
+            over the entire park boundary. They will not match a
+            specific weather station inside the park, and they smooth
+            within-park heterogeneity (e.g. a coastal pixel and an
+            interior valley pixel are averaged together). For
+            station-level analysis, use the underlying NWS / NCEI
+            records directly.
+          </li>
+          <li>
+            <strong>Multipart parks are area-naive.</strong> The
+            union-level series for parks with disjoint geometry (Saguaro,
+            Channel Islands, Kings Canyon, Redwood, American Samoa)
+            averages the per-polygon daily values without weighting by
+            polygon area. For a small-island park where one unit
+            dominates the polygon's footprint, the union series is
+            biased toward the smaller units. Per-part series are exposed
+            in the summary JSON — prefer those if you care about the
+            largest unit specifically.
+          </li>
+          <li>
+            <strong>No autocorrelation correction.</strong> Annual
+            climate series exhibit lag-1 autocorrelation that inflates
+            the Mann–Kendall Z statistic and depresses the effective
+            p-value. The deployed pipeline uses the standard MK
+            normal-approximation, which is appropriate for n ≈ 45 with
+            mild autocorrelation. Series with strong serial
+            dependence — or any series longer than a few decades — should
+            be re-tested with the Hamed–Rao variant<sup><a href="#cite-hamed-rao">7</a></sup>
+            or a block-bootstrap p-value before being used in inference.
+          </li>
+          <li>
+            <strong>No multiple-comparisons correction.</strong> Each
+            park is tested independently across 14 variables, and the
+            site shows 63 parks. Some "significant at p &lt; 0.05"
+            findings will be false positives at that scale — under the
+            null, ~5% of (park, variable) cells would be flagged
+            spuriously. For papers that lean on the significance
+            indicator, apply a Benjamini–Hochberg FDR<sup><a href="#cite-bh">10</a></sup>
+            or Bonferroni correction across the full table.
+          </li>
+          <li>
+            <strong>ERA5-Land potential evapotranspiration is biased
+            high.</strong> The dataset's bare-soil / no-vegetation
+            assumption inflates `pet_mm` by ~1.5–2× vs FAO Penman–
+            Monteith in vegetated parks. Trend direction is still
+            informative but absolute magnitudes are not directly
+            comparable to station-based PET. `aet_mm` (actual ET) uses
+            the modelled surface-energy balance and is unaffected.
+          </li>
+          <li>
+            <strong>Land-only grid coverage.</strong> Three small island
+            parks (American Samoa, Dry Tortugas, Virgin Islands) fall
+            inside ERA5-Land pixels that are sea-masked because the
+            land fraction is too low for the ~11 km grid, and DAYMET
+            doesn't cover the offshore islands. The site labels them
+            "outside land-grid coverage" and renders no charts.
           </li>
           <li>
             <strong>Reference period.</strong> 1981–2010 is WMO-standard
-            but slightly asymmetric within a 1980–present record.
+            but slightly back-loaded inside a 1980–present record, which
+            compresses early-period anomalies. The newer 1991–2020 WMO
+            normal would shorten the comparison window.
           </li>
           <li>
-            <strong>Spatial averaging.</strong> Park-wide means smooth
-            within-park gradients. Researchers needing pixel-level
-            series should use Earth Engine directly with this package's
-            helpers.
+            <strong>Earth Engine reduction tolerance.</strong> The EE
+            export uses <code>bestEffort=True</code> with
+            <code>maxPixels=1e13</code>. For very large polygons (e.g.
+            Wrangell-St. Elias), bestEffort can sub-sample pixels rather
+            than aggregate every one. For our purposes the spatial mean
+            converges, but the pixel count behind a given daily value is
+            not always the full polygon.
+          </li>
+          <li>
+            <strong>Spatial averaging in general.</strong> Park-wide
+            means smooth within-park gradients. Researchers needing
+            pixel-level series should use Earth Engine directly with
+            this package's helpers, or pull the underlying DAYMET /
+            ERA5-Land tiles.
           </li>
         </ul>
       </section>
@@ -251,11 +341,11 @@ const tocItems = [
           Pipeline outputs are audited against four classes of check —
           unit / range bands per variable, annual-aggregation arithmetic
           recompute, Mann–Kendall ↔ Theil–Sen consistency, and an
-          external warming benchmark for ten parks across climate zones
+          external warming benchmark for 20 parks across climate zones
           drawn from Gonzalez et al. (2018), the Greater Yellowstone
-          Climate Assessment, NPS climate-change pages, and NOAA Climate
-          at a Glance. Each finding is tagged PASS / WARN / FAIL with a
-          documented rubric.
+          Climate Assessment, NPS climate-change pages, and the NOAA /
+          NCEI State Climate Summaries. Each finding is tagged
+          PASS / WARN / FAIL with a documented rubric.
         </p>
         <p>
           The audit lives at
@@ -273,24 +363,61 @@ const tocItems = [
         <h2>For reproducibility</h2>
         <ol class="method-citations-list">
           <li>
-            Thornton, M. M. et al. (2022). <em>Daymet: Daily Surface
-            Weather Data on a 1-km Grid for North America, Version 4.</em>
+            Thornton, M. M., Shrestha, R., Wei, Y., Thornton, P. E., Kao,
+            S.-C., &amp; Wilson, B. E. (2022). <em>Daymet: Daily Surface
+            Weather Data on a 1-km Grid for North America, Version 4 R1.</em>
             ORNL DAAC.
+            <a href="https://doi.org/10.3334/ORNLDAAC/2129" target="_blank" rel="noopener">https://doi.org/10.3334/ORNLDAAC/2129</a>
           </li>
           <li>
             Muñoz Sabater, J. (2019). <em>ERA5-Land hourly data from
-            1950 to present.</em> Copernicus Climate Change Service (C3S) CDS.
+            1950 to present.</em> Copernicus Climate Change Service
+            (C3S) Climate Data Store.
+            <a href="https://doi.org/10.24381/cds.e2161bac" target="_blank" rel="noopener">https://doi.org/10.24381/cds.e2161bac</a>
           </li>
           <li>
             U.S. Geological Survey, Gap Analysis Project. <em>PAD-US 4.1:
             Protected Areas Database of the United States.</em>
+            <a href="https://doi.org/10.5066/P96WBCHS" target="_blank" rel="noopener">https://doi.org/10.5066/P96WBCHS</a>
+          </li>
+          <li>
+            World Meteorological Organization. (2017). <em>WMO
+            Guidelines on the Calculation of Climate Normals (WMO-No.
+            1203).</em> Geneva: WMO.
+          </li>
+          <li id="cite-mann">
+            Mann, H. B. (1945). Nonparametric tests against trend.
+            <em>Econometrica, 13</em>(3), 245–259.
+            <a href="https://doi.org/10.2307/1907187" target="_blank" rel="noopener">https://doi.org/10.2307/1907187</a>
+          </li>
+          <li id="cite-kendall">
+            Kendall, M. G. (1975). <em>Rank Correlation Methods</em> (4th ed.).
+            London: Charles Griffin.
           </li>
           <li id="cite-hamed-rao">
             Hamed, K. H., &amp; Rao, A. R. (1998). A modified Mann–Kendall
             trend test for autocorrelated data. <em>Journal of Hydrology,
             204</em>(1–4), 182–196.
-            <a href="https://doi.org/10.1016/S0022-1694(97)00125-X"
-               target="_blank" rel="noopener">https://doi.org/10.1016/S0022-1694(97)00125-X</a>
+            <a href="https://doi.org/10.1016/S0022-1694(97)00125-X" target="_blank" rel="noopener">https://doi.org/10.1016/S0022-1694(97)00125-X</a>
+          </li>
+          <li id="cite-theil">
+            Theil, H. (1950). A rank-invariant method of linear and
+            polynomial regression analysis, I, II, III.
+            <em>Proceedings of the Koninklijke Nederlandse Akademie van
+            Wetenschappen, Series A 53</em>, 386–392, 521–525, 1397–1412.
+          </li>
+          <li id="cite-sen">
+            Sen, P. K. (1968). Estimates of the regression coefficient
+            based on Kendall's tau. <em>Journal of the American
+            Statistical Association, 63</em>(324), 1379–1389.
+            <a href="https://doi.org/10.1080/01621459.1968.10480934" target="_blank" rel="noopener">https://doi.org/10.1080/01621459.1968.10480934</a>
+          </li>
+          <li id="cite-bh">
+            Benjamini, Y., &amp; Hochberg, Y. (1995). Controlling the
+            false discovery rate: A practical and powerful approach to
+            multiple testing. <em>Journal of the Royal Statistical
+            Society B, 57</em>(1), 289–300.
+            <a href="https://doi.org/10.1111/j.2517-6161.1995.tb02031.x" target="_blank" rel="noopener">https://doi.org/10.1111/j.2517-6161.1995.tb02031.x</a>
           </li>
         </ol>
       </section>

@@ -96,69 +96,106 @@ RANGE_BANDS = {
 # middle of [lo, hi]; a pipeline value outside the band is a real
 # regression, not noise.
 EXTERNAL_BOUNDS_C: dict[str, tuple[float, float, str]] = {
-    # ~1.4 °C in the GYA "since the 1980s" per the Greater Yellowstone
-    # Climate Assessment (Hostetler et al., gyclimate.org/ch3). Our
-    # polygon average runs lower than the assessment's mid-elevation
-    # focus, so the lower bound is loose.
+    # ---- existing 10 ------------------------------------------------------
     "yellowstone": (
         0.4, 2.5,
         "GYA Climate Assessment (gyclimate.org/ch3): ~1.4 °C since 1980s",
     ),
-    # 4.3 ± 1.1 °C/century at Denali for 1950–2010 (Gonzalez 2018,
-    # highest of any US national park), scales to ~1.9 °C over 1980–
-    # 2025 if the rate held; bound widened for inter-decadal variability.
     "denali": (
         0.7, 3.5,
         "Gonzalez et al. 2018: 4.3 ± 1.1 °C/century 1950–2010",
     ),
-    # Subtropical S. Florida — modest warming, plenty of inter-annual
-    # noise from ENSO. Loose lower bound to allow short-term variability.
     "everglades": (
         0.0, 2.5,
         "NOAA Climate at a Glance, Florida statewide: ~0.3 °F/dec post-1980",
     ),
-    # Mojave Desert / hot deserts have warmed at or above CONUS average
-    # since 1980; multiple recent record years documented at Death Valley.
     "death-valley": (
         0.5, 3.0,
         "NWS Death Valley Climate Book: accelerated record-setting since 2010",
     ),
-    # PNW oceanic temperate — moderate warming, oceanic buffering
-    # tempers the signal vs interior West.
     "olympic": (
         0.2, 2.5,
         "Washington State Climate Summary 2022 (statesummaries.ncics.org)",
     ),
-    # Humid-subtropical Southeast — smaller absolute warming; positive
-    # but variable.
     "great-smoky-mountains": (
         0.0, 2.5,
         "NOAA Climate at a Glance, NC/TN statewide post-1980",
     ),
-    # NPS Glacier reports ~0.8 °F/decade since 1980 ≈ 1.8 °C over the
-    # dataset window for station-specific records. Polygon mean over
-    # ~1M acres of high-alpine terrain runs cooler.
     "glacier": (
         0.4, 3.0,
         "NPS Glacier (nps.gov/glac): ~0.8 °F/decade since 1980",
     ),
-    # Hot semi-arid Texas — strong warming signal, in line with the
-    # Southwest broadly.
     "big-bend": (
         0.4, 3.0,
         "Texas State Climate Summary 2022 (statesummaries.ncics.org)",
     ),
-    # NPS Acadia reports +3.4 °F over the past century, with
-    # acceleration post-1980 and rapid Gulf of Maine warming.
     "acadia": (
         0.5, 2.5,
         "NPS Acadia (nps.gov/acad): +3.4 °F since 1895, accelerating",
     ),
-    # Tropical, weak warming signal; allow slight cooling within the
-    # bounds since Pacific decadal variability dominates.
     "hawaii-volcanoes": (
         -0.5, 2.0,
         "Hawaii State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+
+    # ---- 10 more, expanding zone coverage ---------------------------------
+    # Semi-arid Colorado Plateau. Arizona is among the fastest-warming
+    # CONUS states post-1980 (~0.5 °F/decade per NCEI).
+    "grand-canyon": (
+        0.4, 3.0,
+        "Arizona State Climate Summary 2022: ~0.5 °F/decade post-1980",
+    ),
+    # Alpine Colorado. Strong post-1980 warming throughout the
+    # Mountain West; high-elevation amplification is documented.
+    "rocky-mountain": (
+        0.4, 3.0,
+        "Colorado State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # PNW alpine Cascades. Less warming than interior West due to
+    # marine influence, but glacier loss is well-documented.
+    "mount-rainier": (
+        0.2, 2.5,
+        "Washington State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # Mojave / Sonoran transition desert. California has warmed
+    # ~0.4 °F/decade since 1980 statewide; deserts at the higher end.
+    "joshua-tree": (
+        0.4, 3.0,
+        "California State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # Mid-Atlantic humid continental. Virginia statewide warming has
+    # been moderate but consistent post-1980.
+    "shenandoah": (
+        0.0, 2.5,
+        "Virginia State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # Cold continental, Northern Lakes / boreal. Minnesota's
+    # post-1980 winter warming is among the strongest in CONUS.
+    "voyageurs": (
+        0.5, 3.5,
+        "Minnesota State Climate Summary 2022: strongest winter warming in CONUS",
+    ),
+    # Semi-arid Colorado Plateau. Same broad pattern as Grand Canyon.
+    "mesa-verde": (
+        0.4, 3.0,
+        "Colorado State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # PNW alpine. Oregon has warmed ~0.4 °F/decade post-1980; Crater
+    # Lake's high-elevation snowpack signal is widely studied.
+    "crater-lake": (
+        0.2, 2.5,
+        "Oregon State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # Sierra Nevada alpine. Snowpack decline + warming. CA upper end.
+    "sequoia": (
+        0.3, 3.0,
+        "California State Climate Summary 2022 (statesummaries.ncics.org)",
+    ),
+    # Brooks Range, interior Alaska. Gonzalez 2018 has Alaska parks at
+    # the high end of US warming; widen bound accordingly.
+    "gates-of-the-arctic": (
+        0.7, 3.5,
+        "Gonzalez et al. 2018 + Alaska State Climate Summary 2022",
     ),
 }
 
@@ -412,10 +449,13 @@ def main() -> None:
 
     lines.append("## QC sample\n")
     lines.append(
-        "10 parks across climate zones (continental, arctic, subtropical, "
-        "arid, oceanic, humid-subtropical, alpine, semi-arid, humid-"
-        "continental, tropical). Each has a literature-anchored bound for "
-        "expected total tmean_c warming over the 1980–2025 dataset window:\n"
+        f"{len(EXTERNAL_BOUNDS_C)} parks spanning the major US climate "
+        "zones (continental, arctic / boreal, humid subtropical, hot arid, "
+        "Mojave / Sonoran desert, oceanic temperate, humid continental, "
+        "alpine Sierra, alpine Cascades, alpine Rockies, semi-arid Colorado "
+        "Plateau, mid-Atlantic, Great Lakes / boreal, tropical). Each park "
+        "has a literature-anchored bound for expected total `tmean_c` "
+        "warming over the 1980–2025 dataset window:\n"
     )
     lines.append("\n".join(
         f"- `{slug}` — expect {lo:+.1f} to {hi:+.1f} °C — {src}"

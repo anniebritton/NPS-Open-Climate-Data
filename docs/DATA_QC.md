@@ -12,7 +12,7 @@ Every variable's annual values must fall inside a hard plausibility band (e.g. m
 - **FAIL** — at least one annual value for that variable on that park is outside the band. The first violating year is quoted as evidence; later years are suppressed for the same (park, variable) pair to avoid spam.
 
 ### 2. Annual aggregation arithmetic
-For the QC sample of 10 parks, recomputes `mean(tmean_c)` and `sum(prcp_mm)` per year from the raw daily CSV and compares to the pipeline's `annual` block. Catches regressions in the SUM_VARS / MEAN_VARS dispatch in `analysis.annual()` and any unit drift between the canonicalisation step and the aggregator.
+For the QC sample of 20 parks, recomputes `mean(tmean_c)` and `sum(prcp_mm)` per year from the raw daily CSV and compares to the pipeline's `annual` block. Catches regressions in the SUM_VARS / MEAN_VARS dispatch in `analysis.annual()` and any unit drift between the canonicalisation step and the aggregator.
 - **PASS** — recomputed value matches the pipeline within 1e-6 (temperature) or 1e-3 mm (precipitation) for every year that has ≥ 330 valid daily observations.
 - **FAIL** — first year that doesn't match, with both numbers quoted.
 
@@ -30,7 +30,7 @@ For the QC sample, compares the headline `tmean_c` total warming over 1980–pre
 
 ## QC sample
 
-10 parks across climate zones (continental, arctic, subtropical, arid, oceanic, humid-subtropical, alpine, semi-arid, humid-continental, tropical). Each has a literature-anchored bound for expected total tmean_c warming over the 1980–2025 dataset window:
+20 parks spanning the major US climate zones (continental, arctic / boreal, humid subtropical, hot arid, Mojave / Sonoran desert, oceanic temperate, humid continental, alpine Sierra, alpine Cascades, alpine Rockies, semi-arid Colorado Plateau, mid-Atlantic, Great Lakes / boreal, tropical). Each park has a literature-anchored bound for expected total `tmean_c` warming over the 1980–2025 dataset window:
 
 - `yellowstone` — expect +0.4 to +2.5 °C — GYA Climate Assessment (gyclimate.org/ch3): ~1.4 °C since 1980s
 - `denali` — expect +0.7 to +3.5 °C — Gonzalez et al. 2018: 4.3 ± 1.1 °C/century 1950–2010
@@ -42,6 +42,16 @@ For the QC sample, compares the headline `tmean_c` total warming over 1980–pre
 - `big-bend` — expect +0.4 to +3.0 °C — Texas State Climate Summary 2022 (statesummaries.ncics.org)
 - `acadia` — expect +0.5 to +2.5 °C — NPS Acadia (nps.gov/acad): +3.4 °F since 1895, accelerating
 - `hawaii-volcanoes` — expect -0.5 to +2.0 °C — Hawaii State Climate Summary 2022 (statesummaries.ncics.org)
+- `grand-canyon` — expect +0.4 to +3.0 °C — Arizona State Climate Summary 2022: ~0.5 °F/decade post-1980
+- `rocky-mountain` — expect +0.4 to +3.0 °C — Colorado State Climate Summary 2022 (statesummaries.ncics.org)
+- `mount-rainier` — expect +0.2 to +2.5 °C — Washington State Climate Summary 2022 (statesummaries.ncics.org)
+- `joshua-tree` — expect +0.4 to +3.0 °C — California State Climate Summary 2022 (statesummaries.ncics.org)
+- `shenandoah` — expect +0.0 to +2.5 °C — Virginia State Climate Summary 2022 (statesummaries.ncics.org)
+- `voyageurs` — expect +0.5 to +3.5 °C — Minnesota State Climate Summary 2022: strongest winter warming in CONUS
+- `mesa-verde` — expect +0.4 to +3.0 °C — Colorado State Climate Summary 2022 (statesummaries.ncics.org)
+- `crater-lake` — expect +0.2 to +2.5 °C — Oregon State Climate Summary 2022 (statesummaries.ncics.org)
+- `sequoia` — expect +0.3 to +3.0 °C — California State Climate Summary 2022 (statesummaries.ncics.org)
+- `gates-of-the-arctic` — expect +0.7 to +3.5 °C — Gonzalez et al. 2018 + Alaska State Climate Summary 2022
 
 
 **A note on methodology.** The bounds above bracket *station-specific* OLS rates that NPS climate pages and the State Climate Summaries typically quote. Our pipeline reports a polygon-averaged Theil–Sen slope for ERA5-Land + DAYMET pixels inside the entire park boundary, which tends to run more conservative than a single-station OLS on three counts: Theil–Sen is a robust median estimator (less sensitive to high-warming outlier years), the polygon mixes high-elevation pixels that warm slower, and ERA5-Land is a reanalysis with its own coarser-grid biases. We expect our values near the *lower* end of the published bounds; that would not be a regression.
@@ -71,17 +81,27 @@ _No findings._
 
 ## 4. External cross-check (Gonzalez 2018 / NOAA CaG)
 
-- 10 pass · 0 warn · 0 fail
+- 20 pass · 0 warn · 0 fail
 
 - **PASS** · `acadia` — tmean_c · *external warming benchmark* — total +1.50 °C over 46y in [+0.5, +2.5] — NPS Acadia (nps.gov/acad): +3.4 °F since 1895, accelerating
 - **PASS** · `big-bend` — tmean_c · *external warming benchmark* — total +1.92 °C over 46y in [+0.4, +3.0] — Texas State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `crater-lake` — tmean_c · *external warming benchmark* — total +0.96 °C over 46y in [+0.2, +2.5] — Oregon State Climate Summary 2022 (statesummaries.ncics.org)
 - **PASS** · `death-valley` — tmean_c · *external warming benchmark* — total +1.78 °C over 46y in [+0.5, +3.0] — NWS Death Valley Climate Book: accelerated record-setting since 2010
 - **PASS** · `denali` — tmean_c · *external warming benchmark* — total +1.33 °C over 46y in [+0.7, +3.5] — Gonzalez et al. 2018: 4.3 ± 1.1 °C/century 1950–2010
 - **PASS** · `everglades` — tmean_c · *external warming benchmark* — total +1.12 °C over 46y in [+0.0, +2.5] — NOAA Climate at a Glance, Florida statewide: ~0.3 °F/dec post-1980
+- **PASS** · `gates-of-the-arctic` — tmean_c · *external warming benchmark* — total +2.12 °C over 46y in [+0.7, +3.5] — Gonzalez et al. 2018 + Alaska State Climate Summary 2022
 - **PASS** · `glacier` — tmean_c · *external warming benchmark* — total +0.75 °C over 46y in [+0.4, +3.0] — NPS Glacier (nps.gov/glac): ~0.8 °F/decade since 1980
+- **PASS** · `grand-canyon` — tmean_c · *external warming benchmark* — total +1.81 °C over 46y in [+0.4, +3.0] — Arizona State Climate Summary 2022: ~0.5 °F/decade post-1980
 - **PASS** · `great-smoky-mountains` — tmean_c · *external warming benchmark* — total +1.51 °C over 46y in [+0.0, +2.5] — NOAA Climate at a Glance, NC/TN statewide post-1980
 - **PASS** · `hawaii-volcanoes` — tmean_c · *external warming benchmark* — total +0.57 °C over 46y in [-0.5, +2.0] — Hawaii State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `joshua-tree` — tmean_c · *external warming benchmark* — total +1.42 °C over 46y in [+0.4, +3.0] — California State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `mesa-verde` — tmean_c · *external warming benchmark* — total +2.31 °C over 46y in [+0.4, +3.0] — Colorado State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `mount-rainier` — tmean_c · *external warming benchmark* — total +1.18 °C over 46y in [+0.2, +2.5] — Washington State Climate Summary 2022 (statesummaries.ncics.org)
 - **PASS** · `olympic` — tmean_c · *external warming benchmark* — total +0.96 °C over 46y in [+0.2, +2.5] — Washington State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `rocky-mountain` — tmean_c · *external warming benchmark* — total +1.19 °C over 46y in [+0.4, +3.0] — Colorado State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `sequoia` — tmean_c · *external warming benchmark* — total +1.27 °C over 46y in [+0.3, +3.0] — California State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `shenandoah` — tmean_c · *external warming benchmark* — total +1.47 °C over 46y in [+0.0, +2.5] — Virginia State Climate Summary 2022 (statesummaries.ncics.org)
+- **PASS** · `voyageurs` — tmean_c · *external warming benchmark* — total +1.23 °C over 46y in [+0.5, +3.5] — Minnesota State Climate Summary 2022: strongest winter warming in CONUS
 - **PASS** · `yellowstone` — tmean_c · *external warming benchmark* — total +0.73 °C over 46y in [+0.4, +2.5] — GYA Climate Assessment (gyclimate.org/ch3): ~1.4 °C since 1980s
 
 ## Documented dataset characteristics

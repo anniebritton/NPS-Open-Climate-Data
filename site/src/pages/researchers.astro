@@ -74,6 +74,46 @@ const resources = [
     <span class="kicker" style="margin-top:0.8rem;display:block">For researchers</span>
     <h1>Data products, code, and reproducibility</h1>
 
+    <div class="research-disclaimer">
+      <strong>Use responsibly.</strong> These products are open-licensed
+      under MIT and audited internally against literature anchors and
+      arithmetic / range / consistency checks (see
+      <a href={base + "methodology#qc"}>Methodology &rarr; QC</a> and
+      <a href="https://github.com/anniebritton/NPS-Open-Climate-Data/blob/main/docs/DATA_QC.md"
+         target="_blank" rel="noopener"><code>docs/DATA_QC.md</code></a>).
+      They are <em>derived</em> products — polygon-averaged ERA5-Land
+      and DAYMET fields aggregated over PAD-US 4.1 boundaries, not
+      station observations. Before using any value in a peer-reviewed
+      result you should:
+      <ol>
+        <li>
+          Re-run the pipeline from raw, or independently re-derive the
+          variable of interest from DAYMET / ERA5-Land directly, and
+          confirm it matches.
+        </li>
+        <li>
+          Cross-check against station data (NOAA NCEI, NWS, or NPS
+          monitoring records) for the specific park and variable.
+        </li>
+        <li>
+          Apply autocorrelation handling (Hamed–Rao MK) and
+          multiple-comparisons correction (Benjamini–Hochberg FDR or
+          Bonferroni) appropriate to your hypothesis. The deployed
+          significance flags do neither.
+        </li>
+        <li>
+          Read the
+          <a href={base + "methodology#limitations"}>caveats</a> for
+          the variable you're using, especially <code>pet_mm</code>
+          (ERA5-Land overestimate vs FAO Penman–Monteith), high-
+          elevation cold bias, and area-naive multipart averaging.
+        </li>
+      </ol>
+      In short: cite the methodology page, run your own QC for your
+      use case, and treat the published numbers as a starting point,
+      not a final answer.
+    </div>
+
     <!-- Data -->
     <section class="research-section">
       <div class="research-section-intro">
