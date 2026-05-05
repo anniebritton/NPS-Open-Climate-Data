@@ -18,6 +18,35 @@ def _process_dataset(dataset_def: dict, start_date: str, end_date: str) -> ee.Im
         .filterDate(start_date, end_date)
         .select(dataset_def["bands"])
     )
+
+    bands = list(dataset_def["bands"])
+    transforms = dataset_def.get("transforms") or {}
+
+    if transforms:
+        # Apply per-band unit conversions server-side so raw exports come out
+        # in the same human-readable units as DAYMET (°C, mm, positive ET).
+        def _convert(img):
+            converted = []
+            for band in bands:
+                src = img.select(band)
+                t = transforms.get(band)
+                if t is None:
+                    converted.append(src)
+                    continue
+                op, val = t
+                if op == "subtract":
+                    converted.append(src.subtract(val).rename(band))
+                elif op == "multiply":
+                    converted.append(src.multiply(val).rename(band))
+                else:
+                    converted.append(src)
+            out = converted[0]
+            for b in converted[1:]:
+                out = out.addBands(b)
+            return out.copyProperties(img, ["system:time_start"])
+
+        ic = ic.map(_convert)
+
     pfx = dataset_def["name"] + "_"
 
     def _rename(img):
@@ -46,10 +75,43 @@ def _reduce_to_table(
 
 
 def _merged_ic(start_date: str, end_date: str, datasets: list[dict]) -> ee.ImageCollection:
+    """Combine per-dataset ImageCollections into one image per date.
+
+    Outer-joins on ``system:time_start`` so each output image carries bands
+    from every dataset that had an observation on that date. The reducer
+    downstream then emits a single feature per date — without this, the
+    merged collection produced two features per date (one per dataset, each
+    with NaNs for the other's bands), which is why downstream consumers had
+    to coalesce by date in pandas.
+    """
     per_ds = [_process_dataset(ds, start_date, end_date) for ds in datasets]
+    if len(per_ds) == 1:
+        return per_ds[0]
+
+    f = ee.Filter.equals(leftField="system:time_start", rightField="system:time_start")
     merged = per_ds[0]
-    for ic in per_ds[1:]:
-        merged = merged.merge(ic)
+    for sec in per_ds[1:]:
+        # Left-outer join: every primary image survives. Where ``sec`` has a
+        # match, its bands are catted in; otherwise the primary passes through.
+        left_outer = ee.Join.saveFirst(matchKey="_match", outer=True).apply(
+            primary=merged, secondary=sec, condition=f
+        )
+        left = ee.ImageCollection(left_outer).map(
+            lambda img: ee.Image(
+                ee.Algorithms.If(
+                    img.get("_match"),
+                    ee.Image.cat(img, ee.Image(img.get("_match"))),
+                    img,
+                )
+            ).copyProperties(img, ["system:time_start"])
+        )
+        # Pull in dates that exist only in ``sec`` — e.g. Dec 31 of leap years,
+        # which DAYMET v4's 365-day calendar omits but ERA5-Land has.
+        primary_times = ee.ImageCollection(merged).aggregate_array("system:time_start")
+        right_only = sec.filter(
+            ee.Filter.inList("system:time_start", primary_times).Not()
+        )
+        merged = left.merge(right_only)
     return merged
 
 

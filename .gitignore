@@ -30,6 +30,10 @@ site/dist/
 site/node_modules/
 site/.astro/
 
+# Local release-prep workspace (Zenodo archive builds, draft release notes,
+# anything ad-hoc handed off to a co-author). Not part of the public repo.
+release/
+
 # Jupyter
 .ipynb_checkpoints/
 

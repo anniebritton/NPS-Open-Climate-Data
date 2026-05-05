@@ -21,9 +21,8 @@ export function kebabToTitle(s: string): string {
   return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// Display-time Celsius → Fahrenheit. Pipeline data stays in SI; only the
-// rendered site converts, so CSV downloads and the methodology page remain
-// scientific.
+// Display-time Celsius → Fahrenheit. Pipeline data is metric throughout;
+// only the rendered site converts °C → °F.
 export function cToF(c: number | null | undefined): number | null {
   if (c == null || Number.isNaN(c)) return null;
   return c * 9 / 5 + 32;
