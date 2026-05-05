@@ -94,7 +94,7 @@ PYTHONPATH=. pytest tests/ --ignore=tests/test_basic.py
 
 The suite covers:
 
-- DAYMET/ERA5 unit conversions (Kelvin, meters, ECMWF sign convention)
+- DAYMET/ERA5 cross-dataset unit alignment (passthrough at the canonical layer; conversions applied server-side in EE)
 - Canonical-variable schema matches the declared EE bands
 - 5-year chunking respects `filterDate`'s exclusive end
 - Mann-Kendall detects trends and rejects flat series
@@ -122,7 +122,8 @@ subset you need:
 
 - `nps-open-climate-data-v1.0.0-all.zip` (178 MB) — everything below
 - `nps-open-climate-data-v1.0.0-daily.zip` (150 MB) — raw daily CSVs
-  (gzipped) per park, in DAYMET / ERA5 native units
+  (gzipped) per park, one row per date, metric units throughout
+  (ERA5 normalised at source to match DAYMET; see methodology page)
 - `nps-open-climate-data-v1.0.0-summary.zip` (24 MB) — per-park
   summary JSONs (annual + seasonal + decomposition + trends), plus
   `parks.json` index

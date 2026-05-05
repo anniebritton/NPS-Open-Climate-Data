@@ -64,7 +64,13 @@ const tocItems = [
             <p>
               ECMWF/Copernicus, 1950–present. Fills gaps DAYMET can't:
               parks in Alaska, American Samoa, and Virgin Islands,
-              plus evaporation, wind, and snow depth.
+              plus evaporation, wind, and snow depth. Bands:
+              <code>temperature_2m</code>/<code>_min</code>/<code>_max</code> (°C),
+              <code>total_precipitation_sum</code>,
+              <code>snowfall_sum</code>/<code>snowmelt_sum</code>/<code>snow_depth</code>,
+              <code>total_evaporation_sum</code>/<code>potential_evaporation_sum</code>
+              (mm), <code>snow_cover</code> (%),
+              <code>u</code>/<code>v_component_of_wind_10m</code> (m/s).
             </p>
           </article>
           <article class="source-card">
@@ -109,19 +115,18 @@ const tocItems = [
       <section id="conversions" class="method-section">
         <span class="method-num" aria-hidden="true">03</span>
         <span class="kicker">Units</span>
-        <h2>From SI to human-readable</h2>
+        <h2>Cross-dataset units, aligned at source</h2>
         <p>
-          All conversions happen in the display layer — raw pipeline
-          outputs stay strictly in SI units (the international
-          scientific system: Kelvin for temperature, metres for depth,
-          kg/m² for mass) so Parquet/CSV consumers get unambiguous values.
+          Unit conversions are applied server-side in Earth Engine before
+          export, so columns with a cross-dataset counterpart mean the
+          same thing whichever grid populated them. Other bands keep
+          their native units. The site converts °C → °F at render time
+          for US audiences; everything else passes through unchanged.
         </p>
         <ul class="method-list">
           <li><span>ERA5 temperatures</span><span>K − 273.15 → °C</span></li>
-          <li><span>ERA5 precipitation, snowfall, snowmelt</span><span>m × 1000 → mm</span></li>
+          <li><span>ERA5 precipitation, snowfall, snowmelt, snow depth</span><span>m × 1000 → mm</span></li>
           <li><span>ERA5 evaporation fluxes</span><span>sign-flip, × 1000 → positive mm/day</span></li>
-          <li><span>DAYMET SWE</span><span>kg/m² ≡ mm liquid water</span></li>
-          <li><span>Site display (temperature only)</span><span>°C → °F</span></li>
         </ul>
       </section>
 
@@ -204,16 +209,17 @@ const tocItems = [
         <div class="note">
           <strong>Why 1981–2010?</strong>
           The WMO defines "climate normals" as 30-year averages updated
-          each decade; 1981–2010 is the most recent normal that fits
-          entirely inside the 1980-onward DAYMET record, so every park
-          gets a baseline computed from the same period regardless of
-          dataset coverage. A more recent normal (1991–2020) would
-          shorten the comparison window for trends starting in 1980,
-          and an older one (1971–2000) would precede the start of the
-          DAYMET record. The chosen window is slightly back-loaded
-          inside a 1980–present series, which compresses early-period
-          anomalies — a deliberate trade for keeping every park on the
-          same yardstick.
+          each decade; 1981–2010 is the earliest normal that fits
+          entirely inside the 1980-onward DAYMET record, which anchors
+          the baseline as far left in the series as possible while still
+          satisfying WMO conventions. The current standard 1991–2020
+          normal also fits, but its window cuts the early-1980s out of
+          the reference period, so anomalies before 1991 are compared
+          against a baseline they didn't help define. An older normal
+          like 1971–2000 would precede the start of DAYMET entirely.
+          The chosen window is slightly back-loaded inside a 1980–present
+          series, which compresses early-period anomalies — a deliberate
+          trade for keeping every park on the same yardstick.
         </div>
         <div class="note">
           <strong>Longer-horizon inference needs autocorrelation handling.</strong>
