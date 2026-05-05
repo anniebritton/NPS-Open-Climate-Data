@@ -43,10 +43,10 @@ def _load_raw_park(park_dir: Path) -> dict[str, pd.DataFrame]:
             df = pd.read_parquet(f)
         else:
             df = pd.read_csv(f)
-        # EE batch exports merge DAYMET and ERA5 ImageCollections, producing
-        # two rows per date (one per dataset, each with NaN for the other's
-        # bands). Coalesce to one row per date so canonicalise() sees complete
-        # rows instead of half-populated ones.
+        # Current EE pipeline outer-joins datasets by date so each export
+        # already has one row per date. Older raw exports stored two rows per
+        # date (one per dataset, each with NaN for the other's bands); the
+        # groupby is kept as a safety net for those legacy CSVs.
         if "date" in df.columns:
             df = df.groupby("date").max(numeric_only=True).reset_index()
         label = f.stem

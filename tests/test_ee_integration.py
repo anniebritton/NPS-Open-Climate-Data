@@ -66,6 +66,9 @@ def stubbed_ee(monkeypatch):
     filt = types.SimpleNamespace(
         Or=lambda *a, **kw: ("Or", a, kw),
         eq=lambda *a, **kw: ("eq", a, kw),
+        # The outer-join in _merged_ic needs Filter.equals / Filter.inList.
+        equals=lambda *a, **kw: _Stub(rec, "Filter.equals()"),
+        inList=lambda *a, **kw: _Stub(rec, "Filter.inList()"),
     )
     reducer = types.SimpleNamespace(mean=lambda: "mean")
 
@@ -78,6 +81,12 @@ def stubbed_ee(monkeypatch):
     ee_mod.String = lambda s: _Stub(rec, f"String({s!r})")
     ee_mod.Geometry = lambda g=None: _Stub(rec, "Geometry()")
     ee_mod.Number = lambda n: _Stub(rec, f"Number({n})")
+    # ee.Join, ee.Algorithms, ee.Image are accessed as namespaced builders
+    # by the outer-join + per-image transform paths in core.
+    ee_mod.Join = _Stub(rec, "Join")
+    ee_mod.Algorithms = _Stub(rec, "Algorithms")
+    ee_mod.Image = _Stub(rec, "Image")
+    ee_mod.batch = _Stub(rec, "batch")
 
     # Insert before the package modules import `ee`
     monkeypatch.setitem(sys.modules, "ee", ee_mod)

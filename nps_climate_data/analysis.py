@@ -26,40 +26,36 @@ import pandas as pd
 # Map dataset-prefixed band names to canonical variables used everywhere
 # downstream. Multiple source columns may populate one canonical column; if
 # DAYMET is available it wins (higher resolution), else ERA5 fills in.
-# Temperatures emitted in degrees Celsius; ERA5 temperatures are stored in K.
-# Unit tokens used to drive conversions below:
-#   C        — already in Celsius
-#   K        — Kelvin, subtract 273.15
-#   mm       — millimeters, passthrough
-#   m        — meters, multiply by 1000 (-> mm)
-#   m_we     — meters of water equivalent, multiply by 1000 (-> mm)
-#   m_neg    — meters, sign-flip and multiply by 1000 (ERA5 evaporation
-#              fluxes are negative downward into the surface)
-#   Wm2     — W/m², passthrough
-#   kgm2    — kg/m², numerically equal to mm of liquid water
-#   Pa       — Pascals, passthrough
+# Raw EE exports are unit-aligned upstream (see datasets.py transforms): ERA5
+# temperatures arrive in °C, water-flux bands in mm, evaporation flipped
+# positive. canonicalise() therefore just maps column names — no value-side
+# conversion. Older raw exports (pre-2026 pipeline) shipped ERA5 in K / m and
+# need re-running through the EE pipeline to be readable here.
 CANONICAL = {
-    "tmax_c": [("DAYMET_tmax", "C"), ("ERA5_temperature_2m_max", "K")],
-    "tmin_c": [("DAYMET_tmin", "C"), ("ERA5_temperature_2m_min", "K")],
-    "tmean_c": [("ERA5_temperature_2m", "K")],  # DAYMET has no tmean native
-    "prcp_mm": [("DAYMET_prcp", "mm"), ("ERA5_total_precipitation_sum", "m")],
-    "snow_depth_we_mm": [("ERA5_snow_depth", "m_we")],  # ERA5-Land: m w.e. → mm
-    "snowfall_mm": [("ERA5_snowfall_sum", "m_we")],
-    "snowmelt_mm": [("ERA5_snowmelt_sum", "m_we")],
-    "snow_cover_pct": [("ERA5_snow_cover", "pass")],  # ERA5: % (0-100), passthrough
+    "tmax_c":  [("DAYMET_tmax", "C"), ("ERA5_temperature_2m_max", "C")],
+    "tmin_c":  [("DAYMET_tmin", "C"), ("ERA5_temperature_2m_min", "C")],
+    "tmean_c": [("ERA5_temperature_2m", "C")],  # DAYMET has no tmean native
+    "prcp_mm": [("DAYMET_prcp", "mm"), ("ERA5_total_precipitation_sum", "mm")],
+    "snow_depth_we_mm": [("ERA5_snow_depth", "mm")],
+    "snowfall_mm":      [("ERA5_snowfall_sum", "mm")],
+    "snowmelt_mm":      [("ERA5_snowmelt_sum", "mm")],
+    "snow_cover_pct":   [("ERA5_snow_cover", "pct")],
     "srad_wm2": [("DAYMET_srad", "Wm2")],
-    "swe_mm": [("DAYMET_swe", "kgm2")],
-    "vp_pa": [("DAYMET_vp", "Pa")],
-    # ERA5 evaporation bands are negative by convention; flip sign so
-    # pet_mm / aet_mm are the familiar positive mm / day values.
-    "pet_mm": [("ERA5_potential_evaporation_sum", "m_neg")],
-    "aet_mm": [("ERA5_total_evaporation_sum", "m_neg")],
+    "swe_mm":   [("DAYMET_swe", "kgm2")],
+    "vp_pa":    [("DAYMET_vp", "Pa")],
+    "pet_mm":   [("ERA5_potential_evaporation_sum", "mm")],
+    "aet_mm":   [("ERA5_total_evaporation_sum", "mm")],
     # wind_speed_ms is derived below from u/v components — not listed here
 }
 
 
 def canonicalise(df: pd.DataFrame) -> pd.DataFrame:
-    """Map a raw per-park DataFrame into canonical units + columns."""
+    """Map a raw per-park DataFrame into canonical columns.
+
+    Raw exports already arrive in the target units (°C, mm, etc.) — see
+    ``datasets.py`` transforms — so this function only resolves the
+    DAYMET-wins-over-ERA5 precedence and fills NaNs across sources.
+    """
     df = df.copy()
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"])
@@ -67,20 +63,10 @@ def canonicalise(df: pd.DataFrame) -> pd.DataFrame:
 
     for canon, sources in CANONICAL.items():
         series = None
-        for col, unit in sources:
+        for col, _unit in sources:
             if col not in df.columns:
                 continue
             s = df[col].astype(float)
-            if unit == "K":
-                s = s - 273.15
-            elif unit == "m":
-                s = s * 1000.0  # m -> mm
-            elif unit == "m_we":
-                s = s * 1000.0
-            elif unit == "m_neg":
-                s = -s * 1000.0  # ECMWF sign convention -> positive mm
-            # "pass" and unit tokens with no numeric conversion (Wm2, kgm2,
-            # Pa, mm, C) fall through unchanged.
             if series is None:
                 series = s
             else:

@@ -14,6 +14,8 @@ DATASETS = [
         "scale": 1000,
         "coverage": "CONUS_HI_PR",
         "start": "1980-01-01",
+        # DAYMET ships in human-readable units already (°C, mm, W/m², kg/m², Pa).
+        "transforms": {},
     },
     {
         "name": "ERA5",
@@ -25,7 +27,7 @@ DATASETS = [
             "temperature_2m",
             "temperature_2m_min",
             "temperature_2m_max",
-            "total_precipitation_sum",  # meters
+            "total_precipitation_sum",
             "v_component_of_wind_10m",
             "u_component_of_wind_10m",
             "snowmelt_sum",
@@ -38,6 +40,20 @@ DATASETS = [
         "scale": 11132,
         "coverage": "GLOBAL",
         "start": "1950-01-01",
+        # Apply server-side so raw exports are unit-consistent with DAYMET:
+        # temperatures in °C, water-flux bands in mm, evaporation flipped
+        # positive (ECMWF convention is negative-into-surface).
+        "transforms": {
+            "temperature_2m":            ("subtract",  273.15),
+            "temperature_2m_min":        ("subtract",  273.15),
+            "temperature_2m_max":        ("subtract",  273.15),
+            "total_precipitation_sum":   ("multiply",  1000.0),
+            "snowmelt_sum":              ("multiply",  1000.0),
+            "snowfall_sum":              ("multiply",  1000.0),
+            "snow_depth":                ("multiply",  1000.0),
+            "total_evaporation_sum":     ("multiply", -1000.0),
+            "potential_evaporation_sum": ("multiply", -1000.0),
+        },
     },
 ]
 

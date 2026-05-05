@@ -38,21 +38,26 @@ def test_every_canonical_variable_is_reachable_for_a_park():
         assert any(c in available for c, _ in sources), canon
 
 
-def test_evaporation_sign_flip():
+def test_evaporation_passthrough_positive_mm():
+    # Server-side transforms (datasets.py) sign-flip ECMWF evaporation and
+    # convert m → mm before the data ever lands in a CSV, so canonicalise()
+    # passes positive mm/day through unchanged.
     df = pd.DataFrame({
         "date": pd.date_range("2020-01-01", periods=3, freq="D"),
-        "ERA5_total_evaporation_sum": [-0.001, -0.002, -0.003],  # 1,2,3 mm/day
-        "ERA5_potential_evaporation_sum": [-0.002, -0.004, -0.006],
+        "ERA5_total_evaporation_sum": [1.0, 2.0, 3.0],
+        "ERA5_potential_evaporation_sum": [2.0, 4.0, 6.0],
     })
     c = A.canonicalise(df)
     assert np.allclose(c["aet_mm"], [1.0, 2.0, 3.0])
     assert np.allclose(c["pet_mm"], [2.0, 4.0, 6.0])
 
 
-def test_era5_precip_meters_to_mm():
+def test_era5_precip_passthrough_mm():
+    # As above: raw ERA5 precipitation arrives in mm after the EE-side
+    # transform; canonicalise() does not re-scale.
     df = pd.DataFrame({
         "date": pd.date_range("2020-01-01", periods=3, freq="D"),
-        "ERA5_total_precipitation_sum": [0.001, 0.010, 0.025],
+        "ERA5_total_precipitation_sum": [1.0, 10.0, 25.0],
     })
     c = A.canonicalise(df)
     assert np.allclose(c["prcp_mm"], [1.0, 10.0, 25.0])

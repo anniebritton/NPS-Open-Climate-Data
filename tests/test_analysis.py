@@ -41,12 +41,15 @@ def test_canonicalise_daymet_columns():
     assert np.allclose(c["tmean_c"], (c["tmax_c"] + c["tmin_c"]) / 2)
 
 
-def test_canonicalise_era5_kelvin_conversion():
+def test_canonicalise_era5_passthrough_celsius():
+    # Raw exports now come out of the EE pipeline already in °C (server-side
+    # transform in datasets.py), so canonicalise() should pass values through
+    # unchanged.
     dates = pd.date_range("2020-01-01", periods=3, freq="D")
     df = pd.DataFrame({
         "date": dates,
-        "ERA5_temperature_2m_max": [273.15, 283.15, 293.15],
-        "ERA5_temperature_2m_min": [263.15, 273.15, 283.15],
+        "ERA5_temperature_2m_max": [0.0, 10.0, 20.0],
+        "ERA5_temperature_2m_min": [-10.0, 0.0, 10.0],
     })
     c = A.canonicalise(df)
     assert np.allclose(c["tmax_c"], [0, 10, 20])
@@ -58,7 +61,7 @@ def test_canonicalise_daymet_wins_over_era5():
     df = pd.DataFrame({
         "date": dates,
         "DAYMET_tmax": [5.0, 10.0, np.nan],
-        "ERA5_temperature_2m_max": [278.15, 288.15, 298.15],  # 5, 15, 25 C
+        "ERA5_temperature_2m_max": [5.0, 15.0, 25.0],  # already °C upstream
     })
     c = A.canonicalise(df)
     # Where DAYMET is NaN, ERA5 should fill in
