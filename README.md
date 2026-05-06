@@ -116,18 +116,18 @@ It rewrites [`docs/DATA_QC.md`](docs/DATA_QC.md) with the latest audit.
 ## Downloading the data
 
 The full versioned dataset lives on **Zenodo**:
-[`10.5281/zenodo.19823584`](https://doi.org/10.5281/zenodo.19823584)
+[`10.5281/zenodo.20054028`](https://doi.org/10.5281/zenodo.20054028)
 (MIT-licensed). Four archives are available so you can pick the
 subset you need:
 
-- `nps-open-climate-data-v1.0.0-all.zip` (178 MB) — everything below
-- `nps-open-climate-data-v1.0.0-daily.zip` (150 MB) — raw daily CSVs
+- `nps-open-climate-data-v1.1.0-all.zip` (150 MB) — everything below
+- `nps-open-climate-data-v1.1.0-daily.zip` (142 MB) — raw daily CSVs
   (gzipped) per park, one row per date, metric units throughout
   (ERA5 normalised at source to match DAYMET; see methodology page)
-- `nps-open-climate-data-v1.0.0-summary.zip` (24 MB) — per-park
+- `nps-open-climate-data-v1.1.0-summary.zip` (7 MB) — per-park
   summary JSONs (annual + seasonal + decomposition + trends), plus
   `parks.json` index
-- `nps-open-climate-data-v1.0.0-boundaries.zip` (3 MB) — PAD-US 4.1
+- `nps-open-climate-data-v1.1.0-boundaries.zip` (1.3 MB) — PAD-US 4.1
   polygons in WGS84
 
 ### Programmatic access (Python)
@@ -148,8 +148,8 @@ Pass `force=True` to refresh.
 ### Per-format usage hints
 
 ```bash
-# Unzip any archive — extracts to nps-open-climate-data-v1.0.0/
-unzip nps-open-climate-data-v1.0.0-summary.zip
+# Unzip any archive — extracts to nps-open-climate-data-v1.1.0/
+unzip nps-open-climate-data-v1.1.0-summary.zip
 
 # Daily CSVs are gzipped; pandas auto-detects, or decompress manually:
 gunzip daily/yellowstone/yellowstone.csv.gz
@@ -236,9 +236,9 @@ first so we can agree on scope before you invest the time.
 
 ## Citing
 
-> Britton, A., & Pritchard, I. (2026). *NPS Open Climate Data v1.0.0:
+> Britton, A., & Pritchard, I. (2026). *NPS Open Climate Data v1.1.0:
 > Pre-processed climate trends for all 63 US National Parks* [Data set].
-> Zenodo. https://doi.org/10.5281/zenodo.19823584
+> Zenodo. https://doi.org/10.5281/zenodo.20054028
 
 Per-park citation strings (Plain / BibTeX / APA) are also available on
 each park page and on the [Data](https://anniebritton.github.io/NPS-Open-Climate-Data/data/)

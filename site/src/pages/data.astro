@@ -35,42 +35,42 @@ df = nps.get_data("Glacier National Park", "2020-01-01", "2025-01-01")
 # Full-history fetch with multipart handling (dict of sub-unit -> DataFrame):
 per_unit = nps.get_park_data("saguaro")`;
 
-const citationProse = `Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.0.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19823584`;
+const citationProse = `Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.1.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.20054028`;
 
 const citationBibtex = `@dataset{britton2026nps,
   author       = {Britton, Annie and Pritchard, Ian},
-  title        = {{NPS Open Climate Data v1.0.0: Pre-processed climate
+  title        = {{NPS Open Climate Data v1.1.0: Pre-processed climate
                   trends for all 63 US National Parks}},
   year         = {2026},
   publisher    = {Zenodo},
-  version      = {v1.0.0},
-  doi          = {10.5281/zenodo.19823584},
-  url          = {https://doi.org/10.5281/zenodo.19823584}
+  version      = {v1.1.0},
+  doi          = {10.5281/zenodo.20054028},
+  url          = {https://doi.org/10.5281/zenodo.20054028}
 }`;
 
-const citationApa = `Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.0.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19823584`;
+const citationApa = `Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.1.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.20054028`;
 
 // The full versioned dataset is on Zenodo. Each archive is a self-
 // contained zip; users pick whichever subset(s) they need.
-const zenodoRecord = "19823584";
-const zenodoDoi = "10.5281/zenodo.19823584";
+const zenodoRecord = "20054028";
+const zenodoDoi = "10.5281/zenodo.20054028";
 const zenodoBase = `https://zenodo.org/records/${zenodoRecord}/files`;
 const zenodoArchives = [
   { title: "Everything (single zip)",
-    file: "nps-open-climate-data-v1.0.0-all.zip",
-    size: "178 MB",
+    file: "nps-open-climate-data-v1.1.0-all.zip",
+    size: "150 MB",
     desc: "All four archives below in one download. Use this for offline analysis." },
   { title: "Daily CSVs (gzipped)",
-    file: "nps-open-climate-data-v1.0.0-daily.zip",
-    size: "150 MB",
+    file: "nps-open-climate-data-v1.1.0-daily.zip",
+    size: "142 MB",
     desc: "Raw 1980–2025 daily series per park, one row per date. Metric units throughout, with ERA5 normalised at source to match DAYMET — see the methodology page for the full unit table. Multipart parks ship one .csv.gz per polygon." },
   { title: "Park summaries (JSON)",
-    file: "nps-open-climate-data-v1.0.0-summary.zip",
-    size: "24 MB",
+    file: "nps-open-climate-data-v1.1.0-summary.zip",
+    size: "7 MB",
     desc: "Per-park summary JSONs — annual + seasonal aggregates, Mann–Kendall / Theil–Sen trends, monthly decomposition, climate stripes — plus parks.json index. Temperatures in °C." },
   { title: "Park boundaries (GeoJSON)",
-    file: "nps-open-climate-data-v1.0.0-boundaries.zip",
-    size: "3 MB",
+    file: "nps-open-climate-data-v1.1.0-boundaries.zip",
+    size: "1.3 MB",
     desc: "PAD-US 4.1 proclamation polygons dissolved per park, simplified to 50 m, in WGS84. Includes all_parks.geojson FeatureCollection." },
 ];
 
@@ -108,11 +108,11 @@ arc = nps.fetch_archive("boundaries")    # downloads + extracts the zip
   <script is:inline type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Dataset",
-    "name": "NPS Open Climate Data v1.0.0",
+    "name": "NPS Open Climate Data v1.1.0",
     "description": "Pre-processed climate time series, Mann–Kendall + Theil–Sen trend tests, and monthly trend / seasonal-cycle decomposition for every one of the 63 US National Parks. Built on DAYMET v4, ERA5-Land, and USGS PAD-US 4.1 via Google Earth Engine.",
     "url": "https://anniebritton.github.io/NPS-Open-Climate-Data/data/",
-    "identifier": ["10.5281/zenodo.19823584", "https://doi.org/10.5281/zenodo.19823584"],
-    "version": "v1.0.0",
+    "identifier": ["10.5281/zenodo.20054028", "https://doi.org/10.5281/zenodo.20054028"],
+    "version": "v1.1.0",
     "license": "https://opensource.org/licenses/MIT",
     "isAccessibleForFree": true,
     "creator": [
@@ -167,8 +167,8 @@ arc = nps.fetch_archive("boundaries")    # downloads + extracts the zip
         <ul class="research-usage">
           <li>
             <strong>Unzip the archive</strong> — every zip extracts to a
-            single <code>nps-open-climate-data-v1.0.0/</code> folder:
-            <pre><code>unzip nps-open-climate-data-v1.0.0-summary.zip</code></pre>
+            single <code>nps-open-climate-data-v1.1.0/</code> folder:
+            <pre><code>unzip nps-open-climate-data-v1.1.0-summary.zip</code></pre>
           </li>
           <li>
             <strong>Daily CSVs are gzipped</strong> — read directly

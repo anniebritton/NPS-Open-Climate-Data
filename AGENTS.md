@@ -34,7 +34,7 @@ Zenodo download module) stay usable on environments without
 `earthengine-api` credentials.
 
 The full versioned dataset is published on Zenodo
-(DOI `10.5281/zenodo.19823584`). `nps_climate_data.download` ships
+(DOI `10.5281/zenodo.20054028`). `nps_climate_data.download` ships
 stdlib-only helpers — `fetch_archive`, `fetch_summary`,
 `fetch_daily`, `fetch_boundary` — that pull and cache the archives
 under `~/.cache/nps_climate_data/`.

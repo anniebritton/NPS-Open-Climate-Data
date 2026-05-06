@@ -124,12 +124,12 @@ function sparklinePath(series: { value: number | null }[]): string {
   <script is:inline type="application/ld+json" set:html={JSON.stringify({
     "@context": "https://schema.org",
     "@type": "Dataset",
-    "name": "NPS Open Climate Data v1.0.0",
+    "name": "NPS Open Climate Data v1.1.0",
     "alternateName": "Open Climate Data — US National Parks",
     "description": "Pre-processed climate time series, Mann–Kendall + Theil–Sen trend tests, and monthly trend / seasonal-cycle decomposition for every one of the 63 US National Parks. Built on DAYMET v4, ERA5-Land, and USGS PAD-US 4.1 via Google Earth Engine.",
     "url": "https://anniebritton.github.io/NPS-Open-Climate-Data/",
-    "identifier": ["10.5281/zenodo.19823584", "https://doi.org/10.5281/zenodo.19823584"],
-    "version": "v1.0.0",
+    "identifier": ["10.5281/zenodo.20054028", "https://doi.org/10.5281/zenodo.20054028"],
+    "version": "v1.1.0",
     "license": "https://opensource.org/licenses/MIT",
     "isAccessibleForFree": true,
     "creator": [
@@ -157,19 +157,19 @@ function sparklinePath(series: { value: number | null }[]): string {
     ],
     "distribution": [
       { "@type": "DataDownload", "encodingFormat": "application/zip",
-        "name": "All-in-one archive (178 MB)",
-        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-all.zip" },
+        "name": "All-in-one archive (150 MB)",
+        "contentUrl": "https://zenodo.org/records/20054028/files/nps-open-climate-data-v1.1.0-all.zip" },
       { "@type": "DataDownload", "encodingFormat": "application/zip",
-        "name": "Daily CSVs, gzipped (150 MB)",
-        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-daily.zip" },
+        "name": "Daily CSVs, gzipped (142 MB)",
+        "contentUrl": "https://zenodo.org/records/20054028/files/nps-open-climate-data-v1.1.0-daily.zip" },
       { "@type": "DataDownload", "encodingFormat": "application/zip",
-        "name": "Per-park summary JSONs (24 MB)",
-        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-summary.zip" },
+        "name": "Per-park summary JSONs (7 MB)",
+        "contentUrl": "https://zenodo.org/records/20054028/files/nps-open-climate-data-v1.1.0-summary.zip" },
       { "@type": "DataDownload", "encodingFormat": "application/zip",
-        "name": "Park boundaries, GeoJSON (3 MB)",
-        "contentUrl": "https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-boundaries.zip" },
+        "name": "Park boundaries, GeoJSON (1.3 MB)",
+        "contentUrl": "https://zenodo.org/records/20054028/files/nps-open-climate-data-v1.1.0-boundaries.zip" },
     ],
-    "citation": "Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.0.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.19823584",
+    "citation": "Britton, A., & Pritchard, I. (2026). NPS Open Climate Data v1.1.0: Pre-processed climate trends for all 63 US National Parks [Data set]. Zenodo. https://doi.org/10.5281/zenodo.20054028",
   })} />
   <section class="hero">
     <div class="hero-upper">
@@ -431,8 +431,8 @@ function sparklinePath(series: { value: number | null }[]): string {
     <span class="kicker">For researchers</span>
     <div class="note">
       The full versioned dataset is on
-      <a href="https://doi.org/10.5281/zenodo.19823584" target="_blank" rel="noopener">Zenodo</a>
-      (DOI <code>10.5281/zenodo.19823584</code>), and the analysis pipeline
+      <a href="https://doi.org/10.5281/zenodo.20054028" target="_blank" rel="noopener">Zenodo</a>
+      (DOI <code>10.5281/zenodo.20054028</code>), and the analysis pipeline
       is reproducible from a single command. See the
       <a href={base + "data"}>Data page</a> for downloads, Python helpers,
       and citation formats.

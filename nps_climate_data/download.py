@@ -1,7 +1,7 @@
 """Stdlib-only helpers for fetching the Zenodo-hosted dataset.
 
 The full versioned dataset lives on Zenodo
-(DOI: ``10.5281/zenodo.19823584``). This module pulls + caches each
+(DOI: ``10.5281/zenodo.20054028``). This module pulls + caches each
 archive locally so callers don't have to deal with HTTP, gzip, or
 unzip plumbing themselves.
 
@@ -31,9 +31,9 @@ import zipfile
 from pathlib import Path
 from typing import Any, Literal
 
-ZENODO_RECORD = "19823584"
-ZENODO_DOI = "10.5281/zenodo.19823584"
-DATASET_VERSION = "v1.0.0"
+ZENODO_RECORD = "20054028"
+ZENODO_DOI = "10.5281/zenodo.20054028"
+DATASET_VERSION = "v1.1.0"
 _BASE_URL = f"https://zenodo.org/records/{ZENODO_RECORD}/files"
 _ROOT_DIR = f"nps-open-climate-data-{DATASET_VERSION}"
 
