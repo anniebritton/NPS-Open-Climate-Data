@@ -100,18 +100,18 @@ const COLOR_BY_KIND: Record<string, string> = {
 // citation on /researchers, but the prose narrows to this park.
 // All three point at the canonical Zenodo deposit DOI; the dataset
 // itself is versioned there.
-const zenodoDoi = "10.5281/zenodo.19823584";
+const zenodoDoi = "10.5281/zenodo.20054028";
 const zenodoUrl = `https://doi.org/${zenodoDoi}`;
 const bibKey = `britton2026nps_${summary.slug.replace(/-/g, "_")}`;
-const citationProse = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, in NPS Open Climate Data v1.0.0 [Data set]. Zenodo. ${zenodoUrl}`;
-const citationApa = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, in NPS Open Climate Data v1.0.0 [Data set]. Zenodo. ${zenodoUrl}`;
+const citationProse = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, in NPS Open Climate Data v1.1.0 [Data set]. Zenodo. ${zenodoUrl}`;
+const citationApa = `Britton, A., & Pritchard, I. (2026). ${summary.unit_name} climate series, in NPS Open Climate Data v1.1.0 [Data set]. Zenodo. ${zenodoUrl}`;
 const citationBibtex = `@dataset{${bibKey},
   author       = {Britton, Annie and Pritchard, Ian},
   title        = {{${summary.unit_name} climate series, in NPS Open
-                  Climate Data v1.0.0}},
+                  Climate Data v1.1.0}},
   year         = {2026},
   publisher    = {Zenodo},
-  version      = {v1.0.0},
+  version      = {v1.1.0},
   doi          = {${zenodoDoi}},
   url          = {${zenodoUrl}}
 }`;
@@ -318,9 +318,9 @@ const trendRows = (() => {
         <span class="park-download-title">Boundary GeoJSON</span>
         <span class="park-download-desc">PAD-US 4.1 proclamation polygon, dissolved, simplified to 50 m, in WGS84.</span>
       </a>
-      <a class="park-download-card" href="https://zenodo.org/records/19823584/files/nps-open-climate-data-v1.0.0-daily.zip?download=1" target="_blank" rel="noopener">
+      <a class="park-download-card" href="https://zenodo.org/records/20054028/files/nps-open-climate-data-v1.1.0-daily.zip?download=1" target="_blank" rel="noopener">
         <span class="park-download-kind">Zenodo · all 63 parks</span>
-        <span class="park-download-title">Daily CSVs (bulk, ~150 MB)</span>
+        <span class="park-download-title">Daily CSVs (bulk, ~142 MB)</span>
         <span class="park-download-desc">Raw 1980–2025 daily series for every park, gzipped. Use <code>nps.fetch_daily("{summary.slug}")</code> if you only want this one — see the <a href={base + "data#downloads"}>Data page</a>.</span>
       </a>
     </div>

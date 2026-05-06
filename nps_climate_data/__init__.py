@@ -7,7 +7,7 @@ on environments without EE credentials.
 
 The Zenodo download helpers (``fetch_archive``, ``fetch_summary``,
 ``fetch_daily``, ``fetch_boundary``) pull pre-computed outputs from
-the published dataset (DOI 10.5281/zenodo.19823584) — no EE needed.
+the published dataset (DOI 10.5281/zenodo.20054028) — no EE needed.
 """
 
 from .parks import get_parks, get_park, NATIONAL_PARKS
